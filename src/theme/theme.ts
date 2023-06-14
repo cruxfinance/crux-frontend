@@ -103,7 +103,7 @@ const mainTheme = [{
         contained: {
           '&:not([disabled])': {
             // color: '#ffffff',
-            padding: '3px 12px',
+            padding: '0 12px',
             border: `2px solid ${lightPrimaryMain}`,
             background: `linear-gradient(60deg, ${lightPrimaryMain} 30%, ${lightSecondaryMain} 90%)`,
             transition: 'transform .2s ease-out, background .1s ease-out, box-shadow .1s ease-in-out',
@@ -122,7 +122,7 @@ const mainTheme = [{
       },
       styleOverrides: {
         root: {
-          borderRadius: '12px',
+          borderRadius: '24px',
         }
       },
     },

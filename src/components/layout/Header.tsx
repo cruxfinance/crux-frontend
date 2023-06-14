@@ -334,7 +334,6 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   <NavigationListItem size={24} key={page.name} page={page} />
                 ))}
               </Grid>
-
             </Grid>
             <Grid item>
               <Grid

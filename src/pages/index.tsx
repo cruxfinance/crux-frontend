@@ -154,7 +154,7 @@ const Home: NextPage = () => {
               <Button variant="contained" href="/">
                 IDO Info
               </Button>
-              <Button variant="contained" color="secondary" href="/">
+              <Button variant="contained" disabled>
                 Whitepaper
               </Button>
             </Stack>
@@ -248,7 +248,7 @@ const Home: NextPage = () => {
                   }}
                 >
                   <Image
-                    src="/website-thumb-1.png"
+                    src="/charts.png"
                     fill={true}
                     alt="Website UI"
                     style={{ objectFit: "cover" }}
@@ -260,12 +260,18 @@ const Home: NextPage = () => {
           <Slide in={inView1} direction="left" timeout={600}>
             <Grid item md={6}>
               <Typography variant="h4" fontWeight={700}>
-                Portfolio Manager
+                Portfolio Manager & Charting Package
               </Typography>
               <Typography variant="subtitle1">
-                Manage your portfolio, track P&nbsp;L, follow your investments,
+                Manage your portfolio, track P&amp;L, follow your investments,
                 and see a summary of every trade you made in a given time
-                period.
+                period. Visualize ecosystem orderflow for traded assets
+                including NFTs, follow whale movements, and add custom reports
+                with future modelling. From basic tools to advanced features,
+                everthing is at your fingertips, through charting tools
+                including Simple & Exponential Moving Averages, Fibonacci
+                Retracements & Extensions, RSI, MACD, Volume metrics, Trendlines
+                & more.
               </Typography>
             </Grid>
           </Slide>
@@ -282,15 +288,16 @@ const Home: NextPage = () => {
           <Slide in={inView2} direction="right" timeout={600}>
             <Grid item md={6}>
               <Typography variant="h4" fontWeight={600}>
-                Charting Package
+                Notifications &amp; Alerts
               </Typography>
               <Typography variant="subtitle1">
-                Charts are an important tool for investors who want to make
-                informed decisions and manage their finances effectively. We
-                offer a variety of both upper & lower indicators. Including, but
-                not limited to, Simple & Exponential Moving Averages, Fibonacci
-                Retracements & Extensions, RSI, MACD, Volume metrics, Trendlines
-                & more.
+                When trading, it's important to respond quickly to market
+                changes. Crux's notification system allows you to set custom
+                notifications for all tracked events. Examples include P2P,
+                staking, redeeming, swaps, liquidity provisions, yield farming,
+                lending, borrowing, nft sales/purchases, and bridging tx&apos;s. Anytime
+                an address is engaged, you will have the choice to receive a
+                timely, detailed notification of the event that&apos;s occurring.
               </Typography>
             </Grid>
           </Slide>
@@ -307,7 +314,7 @@ const Home: NextPage = () => {
                   }}
                 >
                   <Image
-                    src="/website-thumb-1.png"
+                    src="/alert2.png"
                     fill={true}
                     alt="Website UI"
                     style={{ objectFit: "cover" }}
@@ -339,7 +346,7 @@ const Home: NextPage = () => {
                   }}
                 >
                   <Image
-                    src="/website-thumb-1.png"
+                    src="/accountant.png"
                     fill={true}
                     alt="Website UI"
                     style={{ objectFit: "cover" }}
@@ -353,19 +360,9 @@ const Home: NextPage = () => {
               <Typography variant="h4" fontWeight={600}>
                 Accounting Tools
               </Typography>
-              <List>
-                <ListItem>
-                  Easy to use accounting tools for tracking transactions, P &
-                  L etc.
-                </ListItem>
-                <ListItem>
-                  Downloadable tax forms downloads.
-                </ListItem>
-                <ListItem>
-                  Transaction history download in CSV formats compatible with
-                  a variety of platforms.
-                </ListItem>
-              </List>
+              <Typography variant="subtitle1">
+                One of the most important features of any trading platform is tax reporting. Add any number of tracked wallets and Crux will print out a detailed description of all transactions. Download in CSV formats compatible with a variety of platforms and simplify your annual accounting, saving you time and money.
+              </Typography>
             </Grid>
           </Slide>
         </Grid>
@@ -413,7 +410,7 @@ const Home: NextPage = () => {
                   }}
                 >
                   <Image
-                    src="/website-thumb-1.png"
+                    src="/desk-screens.png"
                     fill={true}
                     alt="Website UI"
                     style={{ objectFit: "cover" }}
