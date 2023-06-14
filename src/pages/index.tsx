@@ -1,4 +1,4 @@
-import React, { FC, useRef, useEffect, useState } from "react";
+import React from "react";
 import type { NextPage } from "next";
 import {
   Container,
@@ -9,11 +9,8 @@ import {
   Button,
   Box,
   Stack,
-  IconButton,
   Paper,
   Grow,
-  Slide,
-  useScrollTrigger,
   List,
   ListItem,
 } from "@mui/material";
@@ -22,8 +19,6 @@ import { useInView } from "react-intersection-observer";
 import wideBg from "@public/city-tiltshift3.jpg";
 import Timeline, { ITimelineItem } from "@components/Timeline";
 import { styled } from '@mui/system';
-// import bannerBg from '@public/banner.jpg'
-import Image from "next/image";
 import Feature from "@components/Feature";
 
 const timeline: ITimelineItem[] = [
@@ -94,8 +89,8 @@ const features = [
   {
     title: 'Notifications & Alerts',
     content: <Typography variant="subtitle1">
-      When trading, it's important to respond quickly to market
-      changes. Crux's notification system allows you to set custom
+      When trading, it&apos;s important to respond quickly to market
+      changes. Crux&apos;s notification system allows you to set custom
       notifications for all tracked events. Examples include P2P,
       staking, redeeming, swaps, liquidity provisions, yield farming,
       lending, borrowing, nft sales/purchases, and bridging tx&apos;s. Anytime
