@@ -263,11 +263,11 @@ const Footer: FC = () => {
             }}
           >
             <SocialGrid
-              telegram="https://t.me/coinecta"
-              discord="https://discord.gg/EuFdWye8yw"
-              github="https://github.com/coinecta"
-              twitter="https://twitter.com/CruxFinance"
-              medium="https://coinecta.medium.com/"
+              // telegram=""
+              // discord=""
+              // github=""
+              twitter="https://twitter.com/cruxfinance"
+            // medium=""
             />
           </Grid>
         </Grid>

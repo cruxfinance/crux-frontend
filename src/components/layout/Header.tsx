@@ -365,17 +365,6 @@ const Header: FC<IHeaderProps> = ({ }) => {
                     />
                   </Grid>
                 </Grid>
-                <Grid item>
-                  <Grid container direction="row" flexWrap="nowrap" sx={{ mt: 2 }}>
-                    <Grid item>
-                      <img src="/wallet-nation.png" width="148" />
-                    </Grid>
-                    <Grid item>
-                      <Typography variant="h6" fontSize="12px" gutterBottom fontWeight="800">Crypto transactions made easy</Typography>
-                      <Typography variant="body2" gutterBottom fontSize="12px" fontWeight="600">walletnation.io</Typography>
-                    </Grid>
-                  </Grid>
-                </Grid>
               </Grid>
             </Grid>
           </Grid>
