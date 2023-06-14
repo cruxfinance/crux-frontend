@@ -26,28 +26,25 @@ import SocialGrid from './SocialGrid';
 // import Brightness7Icon from '@mui/icons-material/Brightness7';
 // import IconButton from "@mui/material/IconButton";
 import { useRouter } from 'next/router';
+import { Link as ScrollLink } from "react-scroll";
 
 const pages = [
   {
     name: "Home",
-    link: "/",
+    link: "top",
   },
   {
-    name: "About",
-    link: "/roadmap"
+    name: "Features",
+    link: "features"
   },
   {
     name: "Roadmap",
-    link: "/roadmap"
+    link: "roadmap"
   },
   {
     name: "Tokenomics",
-    link: "/tokenomics"
-  },
-  {
-    name: "Team",
-    link: "/team"
-  },
+    link: "tokenomics"
+  }
 ];
 
 interface INavItemProps {
@@ -117,7 +114,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
             <Box
               onClick={() => setNavbarOpen(false)}
             >
-              <Link
+              {/* <Link
                 href={page.link}
                 sx={{
                   color: router.pathname === page.link ? theme.palette.primary.main : theme.palette.text.primary,
@@ -136,7 +133,34 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 >
                   {page.name}
                 </Typography>
-              </Link>
+              </Link> */}
+              <ScrollLink
+                to={page.link}
+                smooth={true}
+                duration={500}
+                offset={-100}
+              // sx={{
+              //   color: router.pathname === page.link ? theme.palette.primary.main : theme.palette.text.primary,
+              //   "&:hover": {
+              //     color: theme.palette.primary.main,
+              //   },
+              // }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: size ? size.toString() + 'px' : '16px',
+                    textDecoration: "none",
+                    fontWeight: fontWeight ? fontWeight : '500',
+                    px: '8px',
+                    "&:hover": {
+                      color: theme.palette.primary.main,
+                      cursor: 'pointer',
+                    },
+                  }}
+                >
+                  {page.name}
+                </Typography>
+              </ScrollLink>
             </Box>
           )}
         </Box>

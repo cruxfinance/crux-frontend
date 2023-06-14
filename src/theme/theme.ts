@@ -1,3 +1,4 @@
+import type { } from '@mui/lab/themeAugmentation';
 import { createTheme, responsiveFontSizes } from "@mui/material/styles";
 
 declare module '@mui/material/styles' {
@@ -5,6 +6,9 @@ declare module '@mui/material/styles' {
     transparent?: string;
   }
 }
+
+const lightPrimaryMain = '#FE6B8B'
+const lightSecondaryMain = '#FF8E53'
 
 const mainTheme = [{
   typography: {
@@ -92,18 +96,33 @@ const mainTheme = [{
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '6px',
-          verticalAlign: 'top'
+          borderRadius: '24px',
+          // verticalAlign: 'top',
+          textTransform: 'none',
+        },
+        contained: {
+          '&:not([disabled])': {
+            // color: '#ffffff',
+            padding: '3px 12px',
+            border: `2px solid ${lightPrimaryMain}`,
+            background: `linear-gradient(60deg, ${lightPrimaryMain} 30%, ${lightSecondaryMain} 90%)`,
+            transition: 'transform .2s ease-out, background .1s ease-out, box-shadow .1s ease-in-out',
+            '&:hover': {
+              transform: 'translate(-2px, -2px)',
+              boxShadow: `2px 2px 9px -2px ${lightPrimaryMain}`,
+              background: `linear-gradient(90deg, ${lightPrimaryMain} 30%, ${lightSecondaryMain} 90%)`,
+            }
+          },
         },
       },
     },
     MuiPaper: {
       defaultProps: {
-        elevation: 0, 
+        elevation: 0,
       },
       styleOverrides: {
         root: {
-          borderRadius: '6px',
+          borderRadius: '12px',
         }
       },
     },
@@ -243,7 +262,10 @@ const mainTheme = [{
   }
 }];
 
-const lightPrimaryMain = '#3F03DC'
+// const lightPrimaryMain = '#3F03DC'
+
+
+
 let lightTheme = createTheme({
   palette: {
     background: {
@@ -327,10 +349,10 @@ let darkTheme = createTheme({
     },
     primary: {
       // main: "#FF2147",
-      main: 'rgb(12, 120, 68)',
+      main: lightPrimaryMain,
     },
     secondary: {
-      main: "#29b6f6",
+      main: lightSecondaryMain,
     },
     divider: 'rgba(120,150,150,0.25)',
     contrastThreshold: 4.5,
@@ -342,17 +364,17 @@ let darkTheme = createTheme({
       color: 'rgba(228,228,228,1)',
     },
     button: {
-      
+
     }
   },
   components: {
-    // MuiPaper: {
-    //   styleOverrides: {
-    //     root: {
-    //       border: 'none'
-    //     },
-    //   },
-    // },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          background: `linear-gradient(75deg, rgba(16,19,30) 30%, rgba(8,10,22) 70%)`
+        },
+      },
+    },
     // MuiLink: {
     //   styleOverrides: {
     //     root: {
