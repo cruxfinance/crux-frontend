@@ -128,6 +128,7 @@ const UserMenu: FC<IUserMenuProps> = ({ }) => {
 
         <IconButton
           sx={{ p: 0 }}
+          disabled
           onClick={() => setLoggedIn(true)}
         >
           <LoginIcon />

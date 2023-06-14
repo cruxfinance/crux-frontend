@@ -224,9 +224,14 @@ const NotificationsMenu: FC = ({ }) => {
 
   return (
     <>
-      <Badge badgeContent={numberUnread} color="primary">
+      <Badge
+        // badgeContent={numberUnread} 
+        badgeContent={0}
+        color="primary"
+      >
         <IconButton
           onClick={(e) => isLg ? handleClick(e) : handleClickDialogOpen()}
+          disabled
           sx={{ p: 0 }}
         >
           <NotificationsIcon />

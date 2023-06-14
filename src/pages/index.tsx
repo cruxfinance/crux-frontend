@@ -141,7 +141,7 @@ const Home: NextPage = () => {
               align="center"
               gutterBottom
             >
-              Feature rich DeFi tools for Ergo & Cardano
+              Feature rich DeFi tools for the Ergo Ecosystem
             </Typography>
             <Typography variant="h6" align="center" paragraph>
               Track your portolio and interact with eUTXO DeFi in one place. Set
@@ -454,7 +454,7 @@ const Home: NextPage = () => {
           </Grid>
           <Grid item md={1}></Grid>
         </Grid>
-
+        <Typography sx={{ textAlign: "center" }}>Coming soon. </Typography>
       </Container>
     </>
   );

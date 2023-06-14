@@ -43,7 +43,7 @@ const pages = [
   },
   {
     name: "Tokenomics",
-    link: "tokenomics"
+    link: "tokenomics",
   }
 ];
 
@@ -246,7 +246,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 container
                 spacing={2}
               >
-                {pages.map((page, i) => (
+                {router.pathname === '/' && pages.map((page, i) => (
                   <NavigationListItem size={13} key={i} page={page} fontWeight={700} />
                 ))}
               </Grid>
@@ -260,7 +260,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
               >
 
                 <Grid item sx={{ display: { xs: "none", md: "flex" } }}>
-                  <Button variant="contained">
+                  <Button variant="contained" disabled>
                     Dashboard
                   </Button>
                 </Grid>
