@@ -11,11 +11,6 @@ import {
 import { useInView } from "react-intersection-observer";
 import Image from "next/image";
 
-const inViewOptions = {
-  threshold: 1,
-  triggerOnce: true
-};
-
 interface IFeatureProps {
   title: string;
   content: React.ReactElement;
@@ -28,22 +23,23 @@ const Feature: FC<IFeatureProps> = (props) => {
   const theme = useTheme();
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
-  const [ref, inView] = useInView(inViewOptions);
+  const [ref, inView] = useInView({
+    threshold: 1,
+    triggerOnce: true
+  });
   return (
-    <Box sx={{ mx: 'auto' }} maxWidth="lg">
+    <Box sx={{ mx: 'auto' }} maxWidth="lg" ref={ref}>
       <Grid
         container
-
         alignItems="center"
         direction={props.index % 2 === 0 ? "row" : "row-reverse"}
         spacing={3}
         sx={{
           mb: 6,
         }}
-        ref={ref}
       >
         <Slide
-          in={upMd ? inView : true}
+          in={inView}
           direction={props.index % 2 === 0 ? "right" : "left"}
           timeout={600}
         >
@@ -76,7 +72,7 @@ const Feature: FC<IFeatureProps> = (props) => {
           </Grid>
         </Slide>
         <Slide
-          in={upMd ? inView : true}
+          in={inView}
           direction={props.index % 2 === 0 ? "left" : "right"}
           timeout={300}
         >
