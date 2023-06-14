@@ -24,34 +24,32 @@ import Timeline, { ITimelineItem } from "@components/Timeline";
 
 const timeline: ITimelineItem[] = [
   {
-    date: 'Q3 2023',
+    date: "Q3 2023",
     listItems: [
-      'July 1st. Open phase-one funding round.',
-      'End of July: Work commences towards milestone one.',
-    ]
+      "July 1st. Open phase-one funding round.",
+      "End of July: Work commences towards milestone one.",
+    ],
   },
   {
-    date: 'Q4 2023',
+    date: "Q4 2023",
     listItems: [
-      'November: Launch liquidity pool',
-      'December: Release Portfolio Management platform with charting package.',
-      'December: Launch phase-two funding round after completion of milestone one.',
-      'December: Open subscriptions to early supporters.',
-    ]
+      "November: Launch liquidity pool",
+      "December: Release Portfolio Management platform with charting package.",
+      "December: Launch phase-two funding round after completion of milestone one.",
+      "December: Open subscriptions to early supporters.",
+    ],
   },
   {
-    date: 'Q1 2024',
-    listItems: [
-      'January: Locked liquidity providers begin accruing rewards.',
-    ]
+    date: "Q1 2024",
+    listItems: ["January: Locked liquidity providers begin accruing rewards."],
   },
   {
-    date: 'Q2 2024',
+    date: "Q2 2024",
     listItems: [
-      'Deliver Q1/24 report subscriber metrics, updated token metrics, total burnt tokens to date, new total maximum token supply.',
-      'June: Launch comprehensive trading platform.',
-    ]
-  }
+      "Deliver Q1/24 report subscriber metrics, updated token metrics, total burnt tokens to date, new total maximum token supply.",
+      "June: Launch comprehensive trading platform.",
+    ],
+  },
 ];
 
 // import bannerBg from '@public/banner.jpg'
@@ -261,15 +259,13 @@ const Home: NextPage = () => {
           </Slide>
           <Slide in={inView1} direction="left" timeout={600}>
             <Grid item md={6}>
-              <Typography variant="h4" fontWeight={600}>
-                Crowd-funding With Benefits
+              <Typography variant="h4" fontWeight={700}>
+                Portfolio Manager
               </Typography>
               <Typography variant="subtitle1">
-                Rather than being backed by a few VCs, we believe blockchain
-                projects should be funded by the community, and the community
-                should profit from their successes. By investing in IDOs, you
-                get in before the token is listed and receive preferential
-                pricing as appreciation for your faith in the project.{" "}
+                Manage your portfolio, track P&nbsp;L, follow your investments,
+                and see a summary of every trade you made in a given time
+                period.
               </Typography>
             </Grid>
           </Slide>
@@ -286,14 +282,15 @@ const Home: NextPage = () => {
           <Slide in={inView2} direction="right" timeout={600}>
             <Grid item md={6}>
               <Typography variant="h4" fontWeight={600}>
-                Crowd-funding With Benefits
+                Charting Package
               </Typography>
               <Typography variant="subtitle1">
-                Rather than being backed by a few VCs, we believe blockchain
-                projects should be funded by the community, and the community
-                should profit from their successes. By investing in IDOs, you
-                get in before the token is listed and receive preferential
-                pricing as appreciation for your faith in the project.{" "}
+                Charts are an important tool for investors who want to make
+                informed decisions and manage their finances effectively. We
+                offer a variety of both upper & lower indicators. Including, but
+                not limited to, Simple & Exponential Moving Averages, Fibonacci
+                Retracements & Extensions, RSI, MACD, Volume metrics, Trendlines
+                & more.
               </Typography>
             </Grid>
           </Slide>
@@ -354,15 +351,21 @@ const Home: NextPage = () => {
           <Slide in={inView3} direction="left" timeout={600}>
             <Grid item md={6}>
               <Typography variant="h4" fontWeight={600}>
-                Crowd-funding With Benefits
+                Accounting Tools
               </Typography>
-              <Typography variant="subtitle1">
-                Rather than being backed by a few VCs, we believe blockchain
-                projects should be funded by the community, and the community
-                should profit from their successes. By investing in IDOs, you
-                get in before the token is listed and receive preferential
-                pricing as appreciation for your faith in the project.{" "}
-              </Typography>
+              <List>
+                <ListItem>
+                  Easy to use accounting tools for tracking transactions, P &
+                  L etc.
+                </ListItem>
+                <ListItem>
+                  Downloadable tax forms downloads.
+                </ListItem>
+                <ListItem>
+                  Transaction history download in CSV formats compatible with
+                  a variety of platforms.
+                </ListItem>
+              </List>
             </Grid>
           </Slide>
         </Grid>
@@ -378,15 +381,23 @@ const Home: NextPage = () => {
           <Slide in={inView4} direction="right" timeout={600}>
             <Grid item md={6}>
               <Typography variant="h4" fontWeight={600}>
-                Crowd-funding With Benefits
+                Trading Floor
               </Typography>
               <Typography variant="subtitle1">
-                Rather than being backed by a few VCs, we believe blockchain
-                projects should be funded by the community, and the community
-                should profit from their successes. By investing in IDOs, you
-                get in before the token is listed and receive preferential
-                pricing as appreciation for your faith in the project.{" "}
+                Interact with all the popular Ergo smart contracts and tools
+                without ever leaving the app, including but not limited to:
               </Typography>
+              <List>
+                <ListItem>Trade (AMM/Orderbook)</ListItem>
+                <ListItem>Lend/borrow (Sigmafi/duckpools/EXLE)</ListItem>
+                <ListItem>SigUSD, dexy, mint redeem</ListItem>
+                <ListItem>Provide LP/Yield farm (Spectrum/duckpools)</ListItem>
+                <ListItem>Ergopad; stake, redeem vested tokens</ListItem>
+                <ListItem>Grid trading bots</ListItem>
+                <ListItem>Sigma O Options panel</ListItem>
+                <ListItem>Rosen Bridge (with liquidity panel)</ListItem>
+                <ListItem>Babel fee liquidity provision/visualization</ListItem>
+              </List>
             </Grid>
           </Slide>
           <Slide in={inView4} direction="left" timeout={300}>
