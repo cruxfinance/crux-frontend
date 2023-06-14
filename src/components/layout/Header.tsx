@@ -9,7 +9,8 @@ import {
   Divider,
   IconButton,
   Button,
-  Avatar
+  Avatar,
+  useMediaQuery
 } from '@mui/material';
 import Box from "@mui/material/Box";
 import Link from '@mui/material/Link'
@@ -69,7 +70,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
   const [navbarOpen, setNavbarOpen] = React.useState(false);
 
   const router = useRouter();
-
+  const upMd = useMediaQuery(theme.breakpoints.up("md"));
 
   // const toggleTheme = () => {
   //   setTheme((prevTheme: Theme) => (prevTheme === LightTheme ? DarkTheme : LightTheme));
@@ -112,7 +113,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
             </Typography>
           ) : (
             <Box
-              onClick={() => setNavbarOpen(false)}
+
             >
               {/* <Link
                 href={page.link}
@@ -135,6 +136,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 </Typography>
               </Link> */}
               <ScrollLink
+                onClick={() => setNavbarOpen(false)}
                 to={page.link}
                 smooth={true}
                 duration={500}
@@ -184,7 +186,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
           borderBottom: trigger ? `1px solid ${theme.palette.divider}` : '1px solid rgba(0,0,0,0)',
           backdropFilter: trigger ? "blur(10px)" : 'none',
           borderRadius: '0px',
-          background: trigger ? theme.palette.background.transparent : 'none',
+          background: navbarOpen ? theme.palette.background.default : trigger ? theme.palette.background.transparent : 'none',
           transition: 'border-bottom 200ms, backdrop-filter 200ms, background 200ms, box-shadow 200ms'
         }}
       >
@@ -194,7 +196,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
             justifyContent="space-between"
             alignItems="center"
             sx={{
-              height: "80px",
+              height: "60px",
 
             }}
           >
@@ -232,7 +234,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                     fontSize: '2rem!important',
                     fontWeight: '700',
                     lineHeight: 1,
-                    display: 'inline-block',
+                    display: upMd ? 'inline-block' : 'none',
                     verticalAlign: 'middle',
                     fontFamily: '"Jura", sans-serif',
                   }}
@@ -277,19 +279,22 @@ const Header: FC<IHeaderProps> = ({ }) => {
                     <Grid item>
                       <UserMenu />
                     </Grid>
-                    <Grid item sx={{ display: { xs: "flex", md: "none" } }}>
-                      <IconButton
-                        sx={{ p: 0 }}
-                        onClick={() => setNavbarOpen(!navbarOpen)}
-                      >
-                        <Avatar sx={{ bgcolor: "rgba(235, 232, 255, 1)" }}>
+                    {router.pathname === '/' &&
+                      <Grid item sx={{ display: { xs: "flex", md: "none" } }}>
+                        <IconButton
+                          sx={{ p: 0 }}
+                          onClick={() => setNavbarOpen(!navbarOpen)}
+                        >
+
                           {!navbarOpen
                             ? <MenuIcon color="primary" />
                             : <ClearIcon color="primary" />
                           }
-                        </Avatar>
-                      </IconButton>
-                    </Grid>
+
+                        </IconButton>
+                      </Grid>
+                    }
+
                   </Grid>
                 </Grid>
               </Grid>
@@ -297,16 +302,16 @@ const Header: FC<IHeaderProps> = ({ }) => {
           </Grid>
         </Container>
       </AppBar>
-      <Fade in={navbarOpen} style={{ transitionDuration: "400ms" }}>
+      <Fade in={navbarOpen} style={{ transitionDuration: "200ms" }}>
         <Box
           sx={{
-            height: "calc(100vh - 97px)",
+            height: "calc(100vh - 60px)",
             width: "100vw",
             position: "fixed",
             top: 0,
             zIndex: "102",
             background: theme.palette.background.default,
-            mt: "97px",
+            mt: "60px",
             p: "16px",
             pb: 0,
           }}
@@ -341,9 +346,9 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 direction="column"
                 spacing={4}
               >
-                <Grid item>
+                {/* <Grid item>
                   <Button variant="contained" fullWidth>New transaction</Button>
-                </Grid>
+                </Grid> */}
                 <Grid item>
                   <Divider />
                 </Grid>
@@ -352,15 +357,15 @@ const Header: FC<IHeaderProps> = ({ }) => {
                     Follow us on social media
                   </Typography>
                   <Typography variant="body2" gutterBottom sx={{ mb: 4 }} fontSize="14px" >
-                    We are always looking for ways to improve our products and to connect with both users and followers
+                    Interacting with our socials helps us reach a wider audience.
                   </Typography>
                   <Grid container direction="row" spacing={3} sx={{ fontSize: '24px' }}>
                     <SocialGrid
-                      telegram="/"
-                      discord="/"
-                      github="/"
-                      twitter="/"
-                      medium="/"
+                      twitter="https://twitter.com/CruxFinance"
+                    // telegram="/"
+                    // discord="/"
+                    // github="/"
+                    // medium="/"
                     />
                   </Grid>
                 </Grid>

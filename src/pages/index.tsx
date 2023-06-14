@@ -21,6 +21,10 @@ import { v4 as uuidv4 } from "uuid";
 import { useInView } from "react-intersection-observer";
 import wideBg from "@public/city-tiltshift3.jpg";
 import Timeline, { ITimelineItem } from "@components/Timeline";
+import { styled } from '@mui/system';
+// import bannerBg from '@public/banner.jpg'
+import Image from "next/image";
+import Feature from "@components/Feature";
 
 const timeline: ITimelineItem[] = [
   {
@@ -52,34 +56,108 @@ const timeline: ITimelineItem[] = [
   },
 ];
 
-// import bannerBg from '@public/banner.jpg'
-import Image from "next/image";
+const StyledList = styled(List)({
+  listStyle: 'disc',
+  listStyleType: "disc",
+  // listStylePosition: 'inside',
+  padding: 0,
+  marginLeft: '32px',
+  marginBottom: '2rem',
+  "& li": {
+    display: 'list-item',
+    paddingLeft: '6px',
+  },
+});
+
+const StyledListItem = styled(ListItem)({
+  display: 'list-item',
+  paddingTop: 0,
+});
+
+const features = [
+  {
+    title: 'Portfolio Manager & Charting Package',
+    content: <Typography variant="subtitle1">
+      Manage your portfolio, track P&amp;L, follow your investments,
+      and see a summary of every trade you made in a given time
+      period. Visualize ecosystem orderflow for traded assets
+      including NFTs, follow whale movements, and add custom reports
+      with future modelling. From basic tools to advanced features,
+      everthing is at your fingertips, through charting tools
+      including Simple & Exponential Moving Averages, Fibonacci
+      Retracements & Extensions, RSI, MACD, Volume metrics, Trendlines
+      & more.
+    </Typography>,
+    image: '/charts.png',
+    imageAlt: 'Financial Charts'
+  },
+  {
+    title: 'Notifications & Alerts',
+    content: <Typography variant="subtitle1">
+      When trading, it's important to respond quickly to market
+      changes. Crux's notification system allows you to set custom
+      notifications for all tracked events. Examples include P2P,
+      staking, redeeming, swaps, liquidity provisions, yield farming,
+      lending, borrowing, nft sales/purchases, and bridging tx&apos;s. Anytime
+      an address is engaged, you will have the choice to receive a
+      timely, detailed notification of the event that&apos;s occurring.
+    </Typography>,
+    image: '/alert2.png',
+    imageAlt: 'Mobile Notification'
+  },
+  {
+    title: 'Accounting Tools',
+    content: <Typography variant="subtitle1">
+      One of the most important features of any trading platform is tax reporting. Add any number of tracked wallets and Crux will print out a detailed description of all transactions. Download in CSV formats compatible with a variety of platforms and simplify your annual accounting, saving you time and money.
+    </Typography>,
+    image: '/desk-screens.png',
+    imageAlt: 'Trading Desk'
+  },
+  {
+    title: 'Trading Floor',
+    content: <><Typography variant="subtitle1">
+      Interact with all the popular Ergo smart contracts and tools
+      without ever leaving the app, including but not limited to:
+    </Typography>
+      <StyledList dense>
+        <StyledListItem>Trade (AMM/Orderbook)</StyledListItem>
+        <StyledListItem>Lend/borrow (Sigmafi/duckpools/EXLE)</StyledListItem>
+        <StyledListItem>SigUSD, dexy, mint redeem</StyledListItem>
+        <StyledListItem>Provide LP/Yield farm (Spectrum/duckpools)</StyledListItem>
+        <StyledListItem>Ergopad; stake, redeem vested tokens</StyledListItem>
+        <StyledListItem>Grid trading bots</StyledListItem>
+        <StyledListItem>Sigma O Options panel</StyledListItem>
+        <StyledListItem>Rosen Bridge (with liquidity panel)</StyledListItem>
+        <StyledListItem>Babel fee liquidity provision/visualization</StyledListItem>
+      </StyledList></>,
+    image: '/accountant.png',
+    imageAlt: 'Accountant'
+  }
+]
 
 const inViewOptions = {
   threshold: 1,
-  triggerOnce: true,
+  triggerOnce: true
 };
 
 const Home: NextPage = () => {
   const theme = useTheme();
+  // const trigger = useScrollTrigger({ threshold: 800 });
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
-  const trigger = useScrollTrigger({ threshold: 800 });
-  const [ref1, inView1] = useInView(inViewOptions);
-  const [ref2, inView2] = useInView(inViewOptions);
-  const [ref3, inView3] = useInView(inViewOptions);
-  const [ref4, inView4] = useInView({ ...inViewOptions, threshold: 0.5 });
   const [ref5, inView5] = useInView(inViewOptions);
-  const [ref6, inView6] = useInView({ ...inViewOptions, threshold: 0.3 });
+  // const [ref6, inView6] = useInView({ ...inViewOptions, threshold: 0.3 });
 
-  const logoLinkSx = {
-    display: "block",
-    color: theme.palette.text.primary,
-    "&:hover": {
-      "& .MuiSvgIcon-root": {
-        color: theme.palette.primary.main,
-      },
-    },
-  };
+  // const logoLinkSx = {
+  //   display: "block",
+  //   color: theme.palette.text.primary,
+  //   "&:hover": {
+  //     "& .MuiSvgIcon-root": {
+  //       color: theme.palette.primary.main,
+  //     },
+  //   },
+  // };
+
+
 
   return (
     <>
@@ -226,200 +304,19 @@ const Home: NextPage = () => {
           </Grid>
           <Grid item md={1}></Grid>
         </Grid>
-
-        <Grid
-          container
-          maxWidth="lg"
-          alignItems="center"
-          spacing={3}
-          sx={{ mb: 12, mx: "auto" }}
-          ref={ref1}
-        >
-          <Slide in={inView1} direction="right" timeout={300}>
-            <Grid item md={6}>
-              <Paper sx={{ height: "400px", maxWidth: "550px", p: 2 }}>
-                <Box
-                  sx={{
-                    position: "relative",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "20px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <Image
-                    src="/charts.png"
-                    fill={true}
-                    alt="Website UI"
-                    style={{ objectFit: "cover" }}
-                  />
-                </Box>
-              </Paper>
-            </Grid>
-          </Slide>
-          <Slide in={inView1} direction="left" timeout={600}>
-            <Grid item md={6}>
-              <Typography variant="h4" fontWeight={700}>
-                Portfolio Manager & Charting Package
-              </Typography>
-              <Typography variant="subtitle1">
-                Manage your portfolio, track P&amp;L, follow your investments,
-                and see a summary of every trade you made in a given time
-                period. Visualize ecosystem orderflow for traded assets
-                including NFTs, follow whale movements, and add custom reports
-                with future modelling. From basic tools to advanced features,
-                everthing is at your fingertips, through charting tools
-                including Simple & Exponential Moving Averages, Fibonacci
-                Retracements & Extensions, RSI, MACD, Volume metrics, Trendlines
-                & more.
-              </Typography>
-            </Grid>
-          </Slide>
-        </Grid>
-
-        <Grid
-          container
-          maxWidth="lg"
-          alignItems="center"
-          spacing={3}
-          sx={{ mb: 12, mx: "auto" }}
-          ref={ref2}
-        >
-          <Slide in={inView2} direction="right" timeout={600}>
-            <Grid item md={6}>
-              <Typography variant="h4" fontWeight={600}>
-                Notifications &amp; Alerts
-              </Typography>
-              <Typography variant="subtitle1">
-                When trading, it's important to respond quickly to market
-                changes. Crux's notification system allows you to set custom
-                notifications for all tracked events. Examples include P2P,
-                staking, redeeming, swaps, liquidity provisions, yield farming,
-                lending, borrowing, nft sales/purchases, and bridging tx&apos;s. Anytime
-                an address is engaged, you will have the choice to receive a
-                timely, detailed notification of the event that&apos;s occurring.
-              </Typography>
-            </Grid>
-          </Slide>
-          <Slide in={inView2} direction="left" timeout={300}>
-            <Grid item md={6}>
-              <Paper sx={{ height: "400px", maxWidth: "550px", p: 2 }}>
-                <Box
-                  sx={{
-                    position: "relative",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "20px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <Image
-                    src="/alert2.png"
-                    fill={true}
-                    alt="Website UI"
-                    style={{ objectFit: "cover" }}
-                  />
-                </Box>
-              </Paper>
-            </Grid>
-          </Slide>
-        </Grid>
-
-        <Grid
-          container
-          maxWidth="lg"
-          alignItems="center"
-          spacing={3}
-          sx={{ mb: 12, mx: "auto" }}
-          ref={ref3}
-        >
-          <Slide in={inView3} direction="right" timeout={300}>
-            <Grid item md={6}>
-              <Paper sx={{ height: "400px", maxWidth: "550px", p: 2 }}>
-                <Box
-                  sx={{
-                    position: "relative",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "20px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <Image
-                    src="/accountant.png"
-                    fill={true}
-                    alt="Website UI"
-                    style={{ objectFit: "cover" }}
-                  />
-                </Box>
-              </Paper>
-            </Grid>
-          </Slide>
-          <Slide in={inView3} direction="left" timeout={600}>
-            <Grid item md={6}>
-              <Typography variant="h4" fontWeight={600}>
-                Accounting Tools
-              </Typography>
-              <Typography variant="subtitle1">
-                One of the most important features of any trading platform is tax reporting. Add any number of tracked wallets and Crux will print out a detailed description of all transactions. Download in CSV formats compatible with a variety of platforms and simplify your annual accounting, saving you time and money.
-              </Typography>
-            </Grid>
-          </Slide>
-        </Grid>
-
-        <Grid
-          container
-          maxWidth="lg"
-          alignItems="center"
-          spacing={3}
-          sx={{ mb: 6, mx: "auto" }}
-          ref={ref4}
-        >
-          <Slide in={inView4} direction="right" timeout={600}>
-            <Grid item md={6}>
-              <Typography variant="h4" fontWeight={600}>
-                Trading Floor
-              </Typography>
-              <Typography variant="subtitle1">
-                Interact with all the popular Ergo smart contracts and tools
-                without ever leaving the app, including but not limited to:
-              </Typography>
-              <List>
-                <ListItem>Trade (AMM/Orderbook)</ListItem>
-                <ListItem>Lend/borrow (Sigmafi/duckpools/EXLE)</ListItem>
-                <ListItem>SigUSD, dexy, mint redeem</ListItem>
-                <ListItem>Provide LP/Yield farm (Spectrum/duckpools)</ListItem>
-                <ListItem>Ergopad; stake, redeem vested tokens</ListItem>
-                <ListItem>Grid trading bots</ListItem>
-                <ListItem>Sigma O Options panel</ListItem>
-                <ListItem>Rosen Bridge (with liquidity panel)</ListItem>
-                <ListItem>Babel fee liquidity provision/visualization</ListItem>
-              </List>
-            </Grid>
-          </Slide>
-          <Slide in={inView4} direction="left" timeout={300}>
-            <Grid item md={6}>
-              <Paper sx={{ height: "400px", maxWidth: "550px", p: 2 }}>
-                <Box
-                  sx={{
-                    position: "relative",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "20px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <Image
-                    src="/desk-screens.png"
-                    fill={true}
-                    alt="Website UI"
-                    style={{ objectFit: "cover" }}
-                  />
-                </Box>
-              </Paper>
-            </Grid>
-          </Slide>
-        </Grid>
+        {features.map((item, i) => {
+          const key = uuidv4()
+          return (
+            <Feature
+              title={item.title}
+              content={item.content}
+              image={item.image}
+              imageAlt={item.imageAlt}
+              index={i}
+              key={key}
+            />
+          )
+        })}
       </Container>
       {/* END features */}
 
