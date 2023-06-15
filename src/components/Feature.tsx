@@ -11,7 +11,14 @@ import {
 import { useInView } from "react-intersection-observer";
 import Image from "next/image";
 
-interface IFeatureProps {
+export interface IFeature {
+  title: string;
+  content: React.ReactElement;
+  image: string;
+  imageAlt: string;
+}
+
+export interface IFeatureProps {
   title: string;
   content: React.ReactElement;
   image: string;
@@ -24,7 +31,7 @@ const Feature: FC<IFeatureProps> = (props) => {
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const [ref, inView] = useInView({
-    threshold: 1,
+    threshold: 0.1,
     triggerOnce: true
   });
   return (

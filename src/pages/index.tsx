@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import type { NextPage } from "next";
 import {
   Container,
@@ -19,7 +19,8 @@ import { useInView } from "react-intersection-observer";
 import wideBg from "@public/city-tiltshift3.jpg";
 import Timeline, { ITimelineItem } from "@components/Timeline";
 import { styled } from '@mui/system';
-import Feature from "@components/Feature";
+import MemoizedFeatureList from "@components/MemoizedFeatureList";
+import { IFeature } from '@components/Feature'
 
 const timeline: ITimelineItem[] = [
   {
@@ -69,7 +70,7 @@ const StyledListItem = styled(ListItem)({
   paddingTop: 0,
 });
 
-const features = [
+const features: IFeature[] = [
   {
     title: 'Portfolio Manager & Charting Package',
     content: <Typography variant="subtitle1">
@@ -77,8 +78,8 @@ const features = [
       and see a summary of every trade you made in a given time
       period. Visualize ecosystem orderflow for traded assets
       including NFTs, follow whale movements, and add custom reports
-      with future modelling. From basic tools to advanced features,
-      everthing is at your fingertips, through charting tools
+      with future modeling. From basic tools to advanced features,
+      everything is at your fingertips, through charting tools
       including Simple & Exponential Moving Averages, Fibonacci
       Retracements & Extensions, RSI, MACD, Volume metrics, Trendlines
       & more.
@@ -105,8 +106,9 @@ const features = [
     content: <Typography variant="subtitle1">
       One of the most important features of any trading platform is tax reporting. Add any number of tracked wallets and Crux will print out a detailed description of all transactions. Download in CSV formats compatible with a variety of platforms and simplify your annual accounting, saving you time and money.
     </Typography>,
-    image: '/desk-screens.png',
-    imageAlt: 'Trading Desk'
+    image: '/accountant.png',
+    imageAlt: 'Accountant'
+
   },
   {
     title: 'Trading Floor',
@@ -125,8 +127,8 @@ const features = [
         <StyledListItem>Rosen Bridge (with liquidity panel)</StyledListItem>
         <StyledListItem>Babel fee liquidity provision/visualization</StyledListItem>
       </StyledList></>,
-    image: '/accountant.png',
-    imageAlt: 'Accountant'
+    image: '/desk-screens.png',
+    imageAlt: 'Trading Desk'
   }
 ]
 
@@ -151,8 +153,6 @@ const Home: NextPage = () => {
   //     },
   //   },
   // };
-
-
 
   return (
     <>
@@ -299,10 +299,10 @@ const Home: NextPage = () => {
           </Grid>
           <Grid item md={1}></Grid>
         </Grid>
-        {features.map((item, i) => {
+        {/* {features.map((item, i) => {
           const key = uuidv4()
           return (
-            <Feature
+            <MemoFeature
               title={item.title}
               content={item.content}
               image={item.image}
@@ -311,7 +311,8 @@ const Home: NextPage = () => {
               key={key}
             />
           )
-        })}
+        })} */}
+        <MemoizedFeatureList features={features} />
       </Container>
       {/* END features */}
 
