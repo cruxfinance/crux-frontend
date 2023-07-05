@@ -359,11 +359,11 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   </Typography>
                   <Grid container direction="row" spacing={3} sx={{ fontSize: '24px' }}>
                     <SocialGrid
-                      twitter="https://twitter.com/CruxFinance"
-                    // telegram="/"
-                    // discord="/"
-                    // github="/"
-                    // medium="/"
+                      telegram="https://t.me/CruxFinance"
+                      discord="https://discord.gg/tZEd3PadtD"
+                      // github=""
+                      twitter="https://twitter.com/cruxfinance"
+                    // medium=""
                     />
                   </Grid>
                 </Grid>
