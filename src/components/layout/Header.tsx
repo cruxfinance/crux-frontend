@@ -112,9 +112,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
               {page.name}
             </Typography>
           ) : (
-            <Box
-
-            >
+            <Box>
               {/* <Link
                 href={page.link}
                 sx={{

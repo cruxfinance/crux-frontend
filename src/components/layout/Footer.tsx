@@ -263,8 +263,8 @@ const Footer: FC = () => {
             }}
           >
             <SocialGrid
-              // telegram=""
-              // discord=""
+              telegram="https://t.me/CruxFinance"
+              discord="https://discord.gg/tZEd3PadtD"
               // github=""
               twitter="https://twitter.com/cruxfinance"
             // medium=""

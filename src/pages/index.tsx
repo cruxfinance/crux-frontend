@@ -20,7 +20,9 @@ import wideBg from "@public/city-tiltshift3.jpg";
 import Timeline, { ITimelineItem } from "@components/Timeline";
 import { styled } from '@mui/system';
 import MemoizedFeatureList from "@components/MemoizedFeatureList";
-import { IFeature } from '@components/Feature'
+import Feature, { IFeature } from '@components/Feature'
+import ButtonLink from "@/components/ButtonLink";
+import Tokenomics, { TokenomicsData } from "@/components/Tokenomics";
 
 const timeline: ITimelineItem[] = [
   {
@@ -154,6 +156,7 @@ const Home: NextPage = () => {
   //   },
   // };
 
+
   return (
     <>
       {/* Hero section */}
@@ -224,12 +227,12 @@ const Home: NextPage = () => {
               spacing={2}
               justifyContent="center"
             >
-              <Button variant="contained" href="/">
+              <ButtonLink variant="contained" href="https://ergopad.io/projects/cruxfinance">
                 IDO Info
-              </Button>
-              <Button variant="contained" disabled>
+              </ButtonLink>
+              <ButtonLink variant="contained" href="https://docs.cruxfinance.io">
                 Whitepaper
-              </Button>
+              </ButtonLink>
             </Stack>
           </Paper>
           {/* <Box maxWidth='lg' sx={{ mx: 'auto' }}>
@@ -340,7 +343,7 @@ const Home: NextPage = () => {
       </Container>
 
       {/* Tokenomics */}
-      <Container maxWidth="lg" sx={{ mb: 12 }} id="tokenomics">
+      <Container sx={{ mb: 12 }} id="tokenomics">
         <Grid container sx={{ mb: 3 }}>
           <Grid item md={1}></Grid>
           <Grid item md={10}>
@@ -355,10 +358,121 @@ const Home: NextPage = () => {
           </Grid>
           <Grid item md={1}></Grid>
         </Grid>
-        <Typography sx={{ textAlign: "center" }}>Coming soon. </Typography>
+        {/* <Box sx={{
+            p: 2,
+            background: 'linear-gradient(106deg, rgba(56.42, 56.81, 62.69, 0.45) 0%, rgba(73.63, 74.14, 81.81, 0.33) 100%)',
+            boxShadow: '3px 3px 9px rgba(0, 0, 0, 0.50)',
+            borderRadius: '8px',
+            backdropFilter: 'blur(10px)',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+          }}>
+            <Box sx={{
+              textAlign: 'center',
+              color: '#F87E79',
+              fontSize: 24,
+              fontFamily: 'Bai Jamjuree',
+              fontWeight: '700',
+              wordWrap: 'break-word'
+            }}>Test Glass</Box>
+          </Box> */}
+        <Feature
+          {...{
+            title: 'Overview',
+            content: <Typography variant="subtitle1">
+              The Crux token&apos;s central utility is to serve as the platform&apos;s primary payment option. Discounts will be granted to subscribers who opt to pay dues using Crux. Paying subscription dues using the Crux token will award subscribers a 30% discount. In addition, 25% of platform revenue will be distributed to token holders who have staked their tokens. There will be yield farming with heavy distributions to early liquidity providers, and a loyalty program based on user metrics.
+            </Typography>,
+            image: '/crux-tokenomics-no-title.png',
+            imageAlt: 'Crux Tokenomics Pie Chart',
+            index: 0,
+            aspect: '878 / 566'
+          }} />
+        <Paper>
+          <Tokenomics
+            data={tokenomicsData}
+            total={100000000}
+            name="Crux Finance"
+            ticker="CRUX"
+          />
+        </Paper>
       </Container>
     </>
   );
 };
+
+const tokenomicsData: TokenomicsData[] = [
+  {
+    "name": "Phase 1",
+    "amount": 10000000,
+    "value": 0.010,
+    "pct": "10%",
+    "tge": "-",
+    "length": "10 Months",
+    "lockup": "5 Months"
+  },
+  {
+    "name": "Phase 2",
+    "amount": 12000000,
+    "value": 0.015,
+    "pct": "12%",
+    "tge": "-",
+    "length": "6 Months",
+    "lockup": "4 Months"
+  },
+  {
+    "name": "Liquditiy DEX",
+    "amount": 1500000,
+    "value": 0.020,
+    "pct": "1.5%",
+    "tge": "100%",
+    "length": "-",
+    "lockup": "None"
+  },
+  {
+    "name": "Marketing",
+    "amount": 3500000,
+    "value": "-",
+    "pct": "3.5%",
+    "tge": "100%",
+    "length": "-",
+    "lockup": "None"
+  },
+  {
+    "name": "Treasury - Platform Expansion",
+    "amount": 22000000,
+    "value": "-",
+    "pct": "22%",
+    "tge": "100%",
+    "length": "-",
+    "lockup": "None"
+  },
+  {
+    "name": "Loyalty Program",
+    "amount": 20000000,
+    "value": "-",
+    "pct": "20%",
+    "tge": "-",
+    "length": "60 Months ",
+    "lockup": "8 Months"
+  },
+  {
+    "name": "Liquidity Incentives",
+    "amount": 16000000,
+    "value": "-",
+    "pct": "16%",
+    "tge": "-",
+    "length": "12 Months",
+    "lockup": "1 Months"
+  },
+  {
+    "name": "Team",
+    "amount": 15000000,
+    "value": "-",
+    "pct": "15%",
+    "tge": "-",
+    "length": "15 Months",
+    "lockup": "8 Months"
+  }
+]
 
 export default Home;

@@ -24,7 +24,6 @@ export interface IFeatureProps {
   image: string;
   imageAlt: string;
   index: number;
-  aspect?: string;
 }
 
 const Feature: FC<IFeatureProps> = (props) => {
@@ -54,9 +53,8 @@ const Feature: FC<IFeatureProps> = (props) => {
           <Grid item xs={12} md={6}>
             <Paper
               sx={{
-                height: props.aspect !== undefined ? undefined : upSm ? "400px" : "200px",
-                aspectRatio: props.aspect,
-                // maxWidth: "650px",
+                height: upSm ? "400px" : "200px",
+                maxWidth: "550px",
                 p: upSm ? 2 : 0,
                 mx: 'auto'
               }}
