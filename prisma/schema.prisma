@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("POSTGRES_PRISMA_URL")
+  directUrl         = env("POSTGRES_URL_NON_POOLING")
+  shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  walletType   String?
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  rewardAddress  String?   @unique @map("reward_address")
+  defaultAddress String?   @unique @map("default_address")
+  nonce          String?
+  email          String?   @unique
+  emailVerified  DateTime? @map("email_verified")
+  image          String?
+  accounts       Account[]
+  sessions       Session[]
+  wallets        Wallet[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model UserProfile {
+  id             String        @id @default(cuid())
+  userId         String?       @unique @map("user_id")
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  email_verified DateTime?
+  first_name     String?
+  last_name      String?
+  middle_name    String?
+  legal_name     String?
+  birth_date     String?
+  country        String?
+  birth_country  String?
+  birth_state    String?
+  birth_place    String?
+  marital_status String?
+  nationality    String?
+  occupation     String?
+  image          String?
+  addresses      Address[]
+  transactions   Transaction[]
+
+  @@map("user_profiles")
+}
+
+model Address {
+  id             String      @id @default(cuid())
+  address_line_1 String
+  address_line_2 String?
+  city           String
+  state          String
+  region         String?
+  district       String?
+  province       String?
+  postal_code    String
+  country        String
+  user_id        String
+  user           UserProfile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Wallet {
+  id            Int    @id @default(autoincrement())
+  rewardAddress String @unique
+  changeAddress String @unique
+  user_id       String
+  user          User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id          String       @id @default(cuid())
+  description String
+  amount      String
+  currency    String
+  address     String
+  completed   Boolean      @default(false)
+  created_at  DateTime     @default(now())
+  user_id     String
+  user        UserProfile? @relation(fields: [user_id], references: [id])
+
+  @@map("transactions")
+}
