@@ -31,17 +31,32 @@ export const aspectRatioResize = (sourceWidth: number, sourceHeight: number, max
   }
 }
 
-export const formatNumber = (num: number, sigFig?: number) => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  } else if (num >= 0.001) {
-    return num.toFixed(sigFig && sigFig < 3 ? sigFig : 3).replace(/\.?0+$/, '');
+export const formatNumber = (num: number, sigFig: number = 3, fixed?: boolean) => {
+  const sign = num < 0 ? '-' : '';
+  const absNum = Math.abs(num);
+
+  const formatSmallNumber = (number: number) => {
+    if (number === 0) return '0';
+
+    const magnitude = Math.floor(Math.log10(number));
+    const multiplier = Math.pow(10, sigFig - magnitude - 1);
+    const rounded = Math.round(number * multiplier) / multiplier;
+
+    return rounded.toString();
+  };
+
+  if (absNum >= 1000000) {
+    return sign + (absNum / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  } else if (absNum >= 1000) {
+    return sign + (absNum / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  } else if (fixed && absNum < 10) {
+    return sign + absNum.toFixed(sigFig);
+  } else if (absNum >= 1) {
+    // Round numbers close to whole numbers
+    const rounded = Math.round(absNum * Math.pow(10, sigFig)) / Math.pow(10, sigFig);
+    return sign + parseFloat(rounded.toFixed(sigFig)).toString();
   } else {
-    if (sigFig && sigFig === 2) return '0.01'
-    if (sigFig && sigFig === 1) return '0.1'
-    return '0.001';
+    return sign + formatSmallNumber(absNum);
   }
 };
 

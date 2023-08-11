@@ -3,6 +3,9 @@ import {
   FormControl,
   InputLabel,
   MenuItem,
+  ToggleButtonGroup,
+  ToggleButton,
+  Grid
 } from "@mui/material";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import { SxProps } from "@mui/material";
@@ -15,30 +18,50 @@ interface ITokenSortProps {
 }
 
 const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
-  const handleChange = (event: SelectChangeEvent) => {
-    const [field, sort] = event.target.value.split('-');
+  const handleToggle = (event: React.MouseEvent<HTMLElement>, newValue: 'dec' | 'asc') => {
+    if (newValue !== null) setSorting(prevSort => ({
+      ...prevSort,
+      sortOrder: newValue,
+    }));
+  }
+  const handleSortSelection = (event: SelectChangeEvent) => {
     setSorting(prevSort => ({
       ...prevSort,
-      sortBy: field,
-      sortOrder: sort === 'asc' ? 'ASC' : 'DEC'
+      sortBy: event.target.value,
     }));
   };
 
   return (
     <FormControl fullWidth sx={sx} variant="filled">
-      <Select
-        id="sort-select-box"
-        variant="filled"
-        value={`${sorting.sortBy}-${sorting.sortOrder?.toLowerCase()}`}
-        onChange={handleChange}
-      >
-        <MenuItem value={"price-asc"}>Price: low to high</MenuItem>
-        <MenuItem value={"price-dec"}>Price: high to low</MenuItem>
-        <MenuItem value={"vol-asc"}>Volume: low to high</MenuItem>
-        <MenuItem value={"vol-dec"}>Volume: high to low</MenuItem>
-        <MenuItem value={"mktCap-asc"}>Market Cap: low to high</MenuItem>
-        <MenuItem value={"mktCap-dec"}>Market Cap: high to low</MenuItem>
-      </Select>
+      <Grid container direction="row">
+        <Grid>
+          <Select
+            id="sort-select-box"
+            variant="filled"
+            value={sorting.sortBy}
+            onChange={handleSortSelection}
+            aria-label="Select sorting item"
+          >
+            <MenuItem value={"price"}>Price</MenuItem>
+            <MenuItem value={"liquidity"}>Liquidity</MenuItem>
+            <MenuItem value={"mktCap"}>Market Cap</MenuItem>
+            <MenuItem value={"pctChange"}>Percent Change</MenuItem>
+            <MenuItem value={"vol"}>Volume</MenuItem>
+            <MenuItem value={"sells"}>Sells</MenuItem>
+            <MenuItem value={"buys"}>Buys</MenuItem>
+            <MenuItem value={"totalTransactions"}>Total transactions</MenuItem>
+
+          </Select>
+        </Grid>
+        <Grid>
+          <ToggleButtonGroup value={sorting.sortOrder} exclusive onChange={handleToggle}>
+            <ToggleButton value="asc" aria-label="Sort by ascending">Asc</ToggleButton>
+            <ToggleButton value="dec" aria-label="Sort by descending">Dec</ToggleButton>
+          </ToggleButtonGroup>
+        </Grid>
+      </Grid>
+
+
     </FormControl>
   );
 };

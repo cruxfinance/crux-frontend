@@ -1,13 +1,27 @@
 import { IFilters, IQueries, ISorting, ITimeframe, ITokenData } from '@src/pages/tokens';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { tokenData } from './data/tokenInfo';
+import { tokenData } from '../data/tokenInfo';
 
 type CombinedType = IFilters & ISorting & IQueries & ITimeframe;
 
 function applyFiltersAndSort(tokens: ITokenData[], filters: CombinedType): ITokenData[] {
   let filteredTokens = tokens;
 
-  // Apply filters
+  let pctChangeString: 'pctChange1hr' | 'pctChange4hr' | 'pctChange12hr' | 'pctChange24hr';
+  switch (filters.selectedPeriod) {
+    case '1hr':
+      pctChangeString = 'pctChange1hr';
+      break;
+    case '4hr':
+      pctChangeString = 'pctChange4hr';
+      break;
+    case '12hr':
+      pctChangeString = 'pctChange12hr';
+      break;
+    default:
+      pctChangeString = 'pctChange24hr';
+  }
+
   filteredTokens = filteredTokens.filter(token => {
     if (filters.priceMin !== undefined && token.price < filters.priceMin) return false;
     if (filters.priceMax !== undefined && token.price > filters.priceMax) return false;
@@ -15,8 +29,8 @@ function applyFiltersAndSort(tokens: ITokenData[], filters: CombinedType): IToke
     if (filters.liquidityMax !== undefined && token.liquidity > filters.liquidityMax) return false;
     if (filters.mktCapMin !== undefined && token.mktCap < filters.mktCapMin) return false;
     if (filters.mktCapMax !== undefined && token.mktCap > filters.mktCapMax) return false;
-    if (filters.pctChangeMin !== undefined && token.pctChange1hr < filters.pctChangeMin) return false;
-    if (filters.pctChangeMax !== undefined && token.pctChange1hr > filters.pctChangeMax) return false;
+    if (filters.pctChangeMin !== undefined && token[pctChangeString] < filters.pctChangeMin) return false;
+    if (filters.pctChangeMax !== undefined && token[pctChangeString] > filters.pctChangeMax) return false;
     if (filters.volMin !== undefined && token.vol < filters.volMin) return false;
     if (filters.volMax !== undefined && token.vol > filters.volMax) return false;
     if (filters.buysMin !== undefined && token.buys < filters.buysMin) return false;
@@ -46,8 +60,8 @@ function applyFiltersAndSort(tokens: ITokenData[], filters: CombinedType): IToke
           sortValueB = b.mktCap;
           break;
         case 'pctChange':
-          sortValueA = a.pctChange1hr;
-          sortValueB = b.pctChange1hr;
+          sortValueA = a[pctChangeString];
+          sortValueB = b[pctChangeString];
           break;
         case 'vol':
           sortValueA = a.vol;
@@ -61,14 +75,6 @@ function applyFiltersAndSort(tokens: ITokenData[], filters: CombinedType): IToke
           sortValueA = a.sells;
           sortValueB = b.sells;
           break;
-        case 'high':
-          sortValueA = a[`pctChange${filters.selectedPeriod ? filters.selectedPeriod : '24hr'}`];
-          sortValueB = b[`pctChange${filters.selectedPeriod ? filters.selectedPeriod : '24hr'}`];
-          break;
-        case 'low':
-          sortValueA = -a[`pctChange${filters.selectedPeriod ? filters.selectedPeriod : '24hr'}`];
-          sortValueB = -b[`pctChange${filters.selectedPeriod ? filters.selectedPeriod : '24hr'}`];
-          break;
         case 'totalTransactions':
           sortValueA = a.buys + a.sells;
           sortValueB = b.buys + b.sells;
@@ -79,13 +85,12 @@ function applyFiltersAndSort(tokens: ITokenData[], filters: CombinedType): IToke
           sortValueB = 0;
       }
 
-      return filters.sortOrder === 'DEC' ? sortValueB - sortValueA : sortValueA - sortValueB;
+      return filters.sortOrder === 'dec' ? sortValueB - sortValueA : sortValueA - sortValueB;
     });
   }
 
   return filteredTokens;
 }
-
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {

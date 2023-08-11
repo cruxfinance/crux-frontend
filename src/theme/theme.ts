@@ -115,6 +115,9 @@ const mainTheme = [{
             }
           },
         },
+        outlined: {
+          padding: '2px 12px'
+        }
       },
     },
     MuiPaper: {

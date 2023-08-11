@@ -2,16 +2,21 @@ import { FC, useState, useEffect } from 'react';
 import {
   Container,
   Typography,
-  Link,
   Box,
   Paper,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Button,
+  ToggleButtonGroup,
+  ToggleButton
 } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
 import TokenSort from '@components/tokens/SortBy'
 import TokenFilterOptions from '@components/tokens/Filters'
 import { formatNumber } from '@src/utils/general';
+import { useRouter } from 'next/router';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 
 export interface ITokenData {
   name: string;
@@ -48,7 +53,7 @@ export interface IFilters {
 
 export interface ISorting {
   sortBy?: string;
-  sortOrder?: 'DEC' | 'ASC';
+  sortOrder?: 'dec' | 'asc';
 }
 
 export interface IQueries {
@@ -62,13 +67,22 @@ export interface ITimeframe {
 
 const Tokens: FC = () => {
   const theme = useTheme()
+  const router = useRouter()
   const upSm = useMediaQuery(theme.breakpoints.up('sm'))
   const [loading, setLoading] = useState(false)
   const [filteredTokens, setFilteredTokens] = useState<ITokenData[]>([])
   const [filters, setFilters] = useState<IFilters>({})
-  const [sorting, setSorting] = useState<ISorting>({ sortBy: 'vol', sortOrder: 'DEC' })
+  const [sorting, setSorting] = useState<ISorting>({ sortBy: 'vol', sortOrder: 'dec' })
   const [queries, setQueries] = useState<IQueries>({ limit: 20, offset: 0 });
   const [timeframe, setTimeframe] = useState<ITimeframe>({ selectedPeriod: '24hr' });
+  const [filterModalOpen, setFilterModalOpen] = useState(false)
+
+  const handleTimeframeChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newTimeframe: '1hr' | '4hr' | '12hr' | '24hr',
+  ) => {
+    if (newTimeframe !== null) setTimeframe({ selectedPeriod: newTimeframe });
+  };
 
   async function fetchTokenData(
     filters: IFilters,
@@ -87,6 +101,7 @@ const Tokens: FC = () => {
           return acc;
         }, [] as string[])
         .join('&')
+      console.log(queryString)
       const response = await fetch(`/api/mocks/tokens?${queryString}`);
       const data = await response.json();
       setFilteredTokens(data);
@@ -101,17 +116,61 @@ const Tokens: FC = () => {
     fetchTokenData(filters, sorting, queries, timeframe);
   }, [filters, sorting, queries, timeframe]);
 
+  const numberFilters = Math.round(Object.keys(filters).length / 2)
+
+  const formatPercent = (pct: number) => {
+    return (
+      <Typography
+        sx={{
+          color: pct < 0 ? 'red' : pct > 0 ? 'green' : theme.palette.text.secondary
+        }}
+      >
+        {formatNumber(pct * 0.01, 2, true)}%
+      </Typography>
+    )
+  }
+
   return (
     <Container>
-      <Typography variant="h1">
-        Discover
-      </Typography>
-      <Link href="/tokens/token">
-        Test chart
-      </Link>
+      <Grid container alignItems="center" sx={{ mb: 2 }} spacing={2}>
+        <Grid>
+          <TokenSort sorting={sorting} setSorting={setSorting} />
+        </Grid>
+        <Grid>
+          <ToggleButtonGroup
+            exclusive
+            value={timeframe.selectedPeriod}
+            onChange={handleTimeframeChange}
+          >
+            <ToggleButton value="1hr">
+              1h
+            </ToggleButton>
+            <ToggleButton value="4hr">
+              4h
+            </ToggleButton>
+            <ToggleButton value="12hr">
+              12h
+            </ToggleButton>
+            <ToggleButton value="24hr">
+              24h
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Grid>
 
-      <TokenSort sorting={sorting} setSorting={setSorting} />
-      <TokenFilterOptions filters={filters} setFilters={setFilters} />
+        <Grid>
+          <Button
+            variant="contained"
+            onClick={() => setFilterModalOpen(!filterModalOpen)}
+            startIcon={<FilterAltIcon />}
+          >
+            Filters {numberFilters > 0 && '(' + numberFilters + ')'}
+          </Button>
+        </Grid>
+      </Grid>
+
+
+      <TokenFilterOptions filters={filters} setFilters={setFilters} open={filterModalOpen} setOpen={setFilterModalOpen} />
+
 
       <Paper>
         <Box sx={{
@@ -170,9 +229,15 @@ const Tokens: FC = () => {
               sx={{
                 py: 1,
                 background: i % 2 ? '' : theme.palette.background.paper,
+                userSelect: 'none',
                 '&:hover': {
-                  background: theme.palette.background.hover
+                  background: theme.palette.background.hover,
+                  cursor: 'pointer'
                 }
+              }}
+              onClick={(e) => {
+                e.preventDefault()
+                router.push(`/tokens/${token.ticker.toLowerCase()}`)
               }}
             >
               <Grid container spacing={1} alignItems="center">
@@ -191,16 +256,16 @@ const Tokens: FC = () => {
                   ${token.price}
                 </Grid>
                 <Grid xs={1}>
-                  {formatNumber(token.pctChange1hr * 0.01)}%
+                  {formatPercent(token.pctChange1hr)}
                 </Grid>
                 <Grid xs={1}>
-                  {formatNumber(token.pctChange4hr * 0.01)}%
+                  {formatPercent(token.pctChange4hr)}
                 </Grid>
                 <Grid xs={1}>
-                  {formatNumber(token.pctChange12hr * 0.01)}%
+                  {formatPercent(token.pctChange12hr)}
                 </Grid>
                 <Grid xs={1}>
-                  {formatNumber(token.pctChange24hr * 0.01)}%
+                  {formatPercent(token.pctChange24hr)}
                 </Grid>
                 <Grid xs={1}>
                   <Typography>
@@ -219,10 +284,10 @@ const Tokens: FC = () => {
                   </Typography>
                 </Grid>
                 <Grid xs={1}>
-                  <Typography>
+                  <Typography sx={{ color: 'green' }}>
                     B {token.buys}
                   </Typography>
-                  <Typography>
+                  <Typography sx={{ color: 'red' }}>
                     S {token.sells}
                   </Typography>
                 </Grid>

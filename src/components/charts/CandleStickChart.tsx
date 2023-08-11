@@ -1,3 +1,4 @@
+import React, { FC } from 'react'
 import {
   Button,
   Grid,
@@ -49,7 +50,7 @@ const pairBaseCurrencyMapper = {
   ergopad_erg: 'erg',
 };
 
-const CandleStickChart = () => {
+const CandleStickChart: FC<{ currency: 'USD' | 'ERG'; }> = ({ currency }) => {
   const theme = useTheme()
   const matches = useMediaQuery(theme.breakpoints.up('md'));
   const [rawData, setRawData] = useState<{
@@ -63,6 +64,11 @@ const CandleStickChart = () => {
   const [stepUnit, setStepUnit] = useState('1h');
   const [pair, setPair] = useState('ergopad_erg');
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (currency === 'USD') setPair('ergopad_sigusd')
+    if (currency === 'ERG') setPair('ergopad_erg')
+  }, [currency])
 
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -206,14 +212,14 @@ const CandleStickChart = () => {
 
   return (
     <>
-      <Typography variant="h6" sx={{ mb: 2, width: 'auto' }}>
+      {/* <Typography variant="h6" sx={{ mb: 2, width: 'auto' }}>
         1 ErgoPad = {lastPrice} {' '}
         {pairBaseCurrencyMapper[pair as keyof typeof pairBaseCurrencyMapper]}
-      </Typography>
+      </Typography> */}
       <Grid>
         <Grid container>
           <Grid item md={6} xs={12}>
-            <ToggleButtonGroup
+            {/* <ToggleButtonGroup
               value={pair}
               exclusive
               onChange={handlePairChange}
@@ -222,7 +228,7 @@ const CandleStickChart = () => {
             >
               <ToggleButton value="ergopad_sigusd">SigUSD</ToggleButton>
               <ToggleButton value="ergopad_erg">Erg</ToggleButton>
-            </ToggleButtonGroup>
+            </ToggleButtonGroup> */}
           </Grid>
           <Grid
             item
