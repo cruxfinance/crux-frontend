@@ -21,6 +21,7 @@ import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 export interface ITokenData {
   name: string;
   ticker: string;
+  tokenId: string;
   icon: string;
   price: number;
   pctChange1hr: number;
@@ -73,7 +74,7 @@ const Tokens: FC = () => {
   const [filteredTokens, setFilteredTokens] = useState<ITokenData[]>([])
   const [filters, setFilters] = useState<IFilters>({})
   const [sorting, setSorting] = useState<ISorting>({ sortBy: 'vol', sortOrder: 'dec' })
-  const [queries, setQueries] = useState<IQueries>({ limit: 20, offset: 0 });
+  const [queries, setQueries] = useState<IQueries>({ limit: 100, offset: 0 });
   const [timeframe, setTimeframe] = useState<ITimeframe>({ selectedPeriod: '24hr' });
   const [filterModalOpen, setFilterModalOpen] = useState(false)
 
@@ -122,7 +123,7 @@ const Tokens: FC = () => {
     return (
       <Typography
         sx={{
-          color: pct < 0 ? 'red' : pct > 0 ? 'green' : theme.palette.text.secondary
+          color: pct < 0 ? theme.palette.down.main : pct > 0 ? theme.palette.up.main : theme.palette.text.secondary
         }}
       >
         {formatNumber(pct * 0.01, 2, true)}%
@@ -237,7 +238,7 @@ const Tokens: FC = () => {
               }}
               onClick={(e) => {
                 e.preventDefault()
-                router.push(`/tokens/${token.ticker.toLowerCase()}`)
+                router.push(`/tokens/${token.tokenId}`)
               }}
             >
               <Grid container spacing={1} alignItems="center">
@@ -284,10 +285,10 @@ const Tokens: FC = () => {
                   </Typography>
                 </Grid>
                 <Grid xs={1}>
-                  <Typography sx={{ color: 'green' }}>
+                  <Typography sx={{ color: theme.palette.up.main }}>
                     B {token.buys}
                   </Typography>
-                  <Typography sx={{ color: 'red' }}>
+                  <Typography sx={{ color: theme.palette.down.main }}>
                     S {token.sells}
                   </Typography>
                 </Grid>

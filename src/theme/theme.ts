@@ -6,6 +6,16 @@ declare module '@mui/material/styles' {
     transparent?: string;
     hover?: string;
   }
+
+  interface Palette {
+    up: Palette['primary'];
+    down: Palette['primary'];
+  }
+
+  interface PaletteOptions {
+    up: PaletteOptions['primary'];
+    down: PaletteOptions['primary'];
+  }
 }
 
 const lightPrimaryMain = '#FE6B8B'
@@ -300,6 +310,12 @@ let lightTheme = createTheme({
     secondary: {
       main: "#3D8AB9",
     },
+    up: {
+      main: '#65ce92',
+    },
+    down: {
+      main: '',
+    }
   },
   typography: {
     fontFamily: '"Bai Jamjuree", sans-serif',
@@ -357,7 +373,7 @@ let darkTheme = createTheme({
     background: {
       default: 'rgb(0,1,8)',
       paper: 'rgba(16,19,30)',
-      transparent: 'rgba(12,15,27,0.85)',
+      transparent: 'rgba(12,15,27,0.25)',
       hover: '#212737'
     },
     text: {
@@ -370,6 +386,12 @@ let darkTheme = createTheme({
     },
     secondary: {
       main: lightSecondaryMain,
+    },
+    up: {
+      main: '#89c66d',
+    },
+    down: {
+      main: lightPrimaryMain,
     },
     divider: 'rgba(120,150,150,0.25)',
     contrastThreshold: 4.5,

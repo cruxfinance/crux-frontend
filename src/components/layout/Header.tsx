@@ -165,10 +165,10 @@ const Header: FC<IHeaderProps> = ({ }) => {
     );
   };
 
-  // const trigger = useScrollTrigger({
-  //   disableHysteresis: true,
-  //   threshold: 0,
-  // });
+  const trigger = useScrollTrigger({
+    // disableHysteresis: true,
+    threshold: 0,
+  });
 
   return (
     <>
@@ -178,11 +178,14 @@ const Header: FC<IHeaderProps> = ({ }) => {
         sx={{
           zIndex: 101,
           border: 'none',
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          top: trigger ? '-60px' : 0,
+          // borderBottom: `1px solid ${theme.palette.divider}`,
           backdropFilter: "blur(10px)",
           borderRadius: '0px',
+          // background: theme.palette.background.default,
+          boxShadow: '3px 3px 15px 5px rgba(0,0,0,0.5)',
           background: navbarOpen || notificationsOpen ? theme.palette.background.default : theme.palette.background.transparent,
-          transition: 'border-bottom 200ms, backdrop-filter 200ms, background 200ms, box-shadow 200ms'
+          transition: 'border-bottom 200ms, backdrop-filter 200ms, background 200ms, box-shadow 200ms, top 400ms'
         }}
       >
         <Container>
