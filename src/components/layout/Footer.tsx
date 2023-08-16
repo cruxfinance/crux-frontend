@@ -4,7 +4,7 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link"
 import SocialGrid from "@components/layout/SocialGrid";
-import Logo from "@/components/svgs/Logo";
+import Logo from "@components/svgs/Logo";
 import { useMediaQuery, useTheme } from "@mui/material";
 
 const titleFont = {
