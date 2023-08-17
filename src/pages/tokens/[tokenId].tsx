@@ -21,7 +21,7 @@ import Script from "next/script";
 import {
   ChartingLibraryWidgetOptions,
   ResolutionString,
-} from "@src/submodules/charts/charting_library";
+} from "@utils/charts/charts/charting_library";
 
 const defaultWidgetProps: Partial<ChartingLibraryWidgetOptions> = {
   symbol: "ERGOPAD",

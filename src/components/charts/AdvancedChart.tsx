@@ -1,6 +1,6 @@
 import styles from "./index.module.css";
 import { useEffect, useRef } from "react";
-import { ChartingLibraryWidgetOptions, LanguageCode, ResolutionString, widget } from "@src/submodules/charts/charting_library";
+import { ChartingLibraryWidgetOptions, LanguageCode, ResolutionString, widget } from "@utils/charts/charts/charting_library";
 import datafeed from "@src/utils/charts/datafeed";
 
 export const TVChartContainer = (props: Partial<ChartingLibraryWidgetOptions>) => {
