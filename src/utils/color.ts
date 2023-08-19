@@ -10,10 +10,13 @@ function interpolateColor(color1: RGB, color2: RGB, factor: number): RGB {
 
 export function generateGradient(steps: number): string[] {
   const presetColors: RGB[] = [
-    [247, 147, 26], // RGB for #F7931A
+    // [247, 147, 26], // RGB for #F7931A
+    [255, 195, 96], // RGB for #ffc360
     [254, 107, 139], // RGB for #FE6B8B
-    [0, 51, 173],   // RGB for #0033ad
-    [0, 255, 189],  // RGB for #00ffbd
+    // [0, 51, 173],   // RGB for #0033ad
+    [249, 51, 247], // #f933f7
+    [200, 216, 235],
+    [60, 221, 251],
     // [255, 142, 83], // RGB for #FF8E53
   ];
 

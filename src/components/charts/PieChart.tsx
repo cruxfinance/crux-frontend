@@ -39,6 +39,17 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
     return { ...token, startAngle, endAngle };
   });
 
+  useEffect(() => {
+    const activeToken = tokensWithAngles.find(token => token.symbol === activeSymbol);
+
+    if (activeToken && activeSymbol !== active?.symbol) {
+      setActive({ ...activeToken, color: colors[tokensWithAngles.indexOf(activeToken)] });
+    } else if (!activeToken && active) {
+      setActive(null);
+    }
+  }, [activeSymbol, tokensWithAngles, colors, active]);
+
+
   return (
     <main>
       <svg width={width} height={width}>
@@ -62,13 +73,10 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
               const sortedArcs = [...pie.arcs].sort((a, b) => a.startAngle - b.startAngle);
 
               return sortedArcs.map((arc, i) => {
-                if (arc.data.symbol === activeSymbol) {
-                  setActive({ ...arc.data, color: colors[i] })
-                }
-                else if (active?.symbol === arc.data.symbol) setActive(null)
+                if (!arc) return null; // Skip rendering if arc is null
                 return (
                   <g
-                    key={arc.data.symbol}
+                    key={`${arc.data.symbol}-${i}`}
                     onMouseEnter={() => {
                       arc.data && setActive({ ...arc.data, color: colors[i] })
                       setActiveSymbol(arc.data.symbol)
@@ -79,8 +87,7 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
                     }}
                   >
                     <path
-                      // @ts-ignore
-                      d={pie.path(arc)}
+                      d={pie.path(arc)!}
                       fill={colors[i]}
                     />
                   </g>

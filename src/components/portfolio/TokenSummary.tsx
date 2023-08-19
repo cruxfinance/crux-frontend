@@ -23,21 +23,29 @@ export type IActiveToken = {
 interface ITokenSummary {
   tokenList: IExtendedToken[];
   currency: Currencies;
+  boxHeight: string;
+  setBoxHeight: React.Dispatch<React.SetStateAction<string>>
+  setLoading: React.Dispatch<React.SetStateAction<{ [key: string]: boolean }>>
 }
 
 const ICON_URL = 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/'
 
-const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency }) => {
+const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBoxHeight, setLoading }) => {
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const theme = useTheme()
   const pieChartRef = useRef<HTMLElement | null>(null);
-  const [boxHeight, setBoxHeight] = useState('auto');
   const currencySymbol = currencies[currency]
 
   useEffect(() => {
     if (pieChartRef.current) {
       const height = pieChartRef.current.offsetHeight;
       setBoxHeight(`${height}px`);
+      setLoading(prev => {
+        return {
+          ...prev,
+          tokenSummary: false
+        }
+      })
     }
   }, [pieChartRef]);
 
@@ -80,7 +88,7 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency }) => {
                     borderRadius: '8px',
                     background: thisActive ? theme.palette.background.paper : 'none'
                   }}
-                  key={item.tokenId}
+                  key={i + ':' + item.tokenId}
                 >
                   <Box sx={{ pt: '2px' }}>
                     <Avatar src={ICON_URL + item.tokenId + '.svg'} sx={{ width: '24px', height: '24px' }} />

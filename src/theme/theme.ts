@@ -301,7 +301,7 @@ let lightTheme = createTheme({
     },
     text: {
       primary: 'rgba(23,21,21,1)',
-      secondary: 'rgba(160,160,160,1)',
+      secondary: 'rgba(120,140,160,1)',
     },
     primary: {
       // main: "#FF2147",
@@ -378,7 +378,7 @@ let darkTheme = createTheme({
     },
     text: {
       primary: 'rgba(244,244,244,1)',
-      secondary: 'rgba(160,160,160,1)',
+      secondary: 'rgba(120,130,150,1)',
     },
     primary: {
       // main: "#FF2147",
@@ -442,6 +442,23 @@ let darkTheme = createTheme({
     //     }
     //   }
     // },
+    MuiTooltip: {
+      styleOverrides: {
+        popper: {
+          '& .MuiTooltip-tooltip': {
+            backgroundColor: 'rgba(36,41,50,1)',
+            '& .MuiTooltip-arrow': {
+              '&:before': {
+                backgroundColor: 'rgba(36,41,50,1)'
+              }
+            }
+          },
+        }
+      },
+      defaultProps: {
+        enterTouchDelay: 0
+      }
+    },
     MuiSwitch: {
       styleOverrides: {
         root: {

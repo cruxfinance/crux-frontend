@@ -33,6 +33,7 @@
     "@types/uuid": "^9.0.2",
     "@visx/gradient": "^3.3.0",
     "@visx/group": "^3.3.0",
+    "@visx/mock-data": "^3.3.0",
     "@visx/scale": "^3.3.0",
     "@visx/shape": "^3.3.0",
     "@visx/text": "^3.3.0",
