@@ -9,19 +9,20 @@ import {
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { PieChart, IPieToken } from '@src/components/charts/PieChart';
 import { currencies, Currencies } from '@src/utils/currencies';
-import { IExtendedToken } from '@src/pages/portfolio';
+import { IReducedToken } from '@src/pages/portfolio';
 import { generateGradient } from '@src/utils/color';
-import { formatNumber } from '@src/utils/general';
+import { formatNumber, adjustDecimals } from '@src/utils/general';
 
 export type IActiveToken = {
-  symbol: string;
+  name: string;
   amount: number;
   value: number;
   color: string;
 } | null
 
 interface ITokenSummary {
-  tokenList: IExtendedToken[];
+  tokenList: IReducedToken[];
+  totalValue: number;
   currency: Currencies;
   boxHeight: string;
   setBoxHeight: React.Dispatch<React.SetStateAction<string>>
@@ -30,8 +31,10 @@ interface ITokenSummary {
 
 const ICON_URL = 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/'
 
-const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBoxHeight, setLoading }) => {
+const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBoxHeight, setLoading, totalValue }) => {
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
+  const [reducedTokensList, setReducedTokensList] = useState<IPieToken[]>([])
+  const [colors, setColors] = useState<string[]>([])
   const theme = useTheme()
   const pieChartRef = useRef<HTMLElement | null>(null);
   const currencySymbol = currencies[currency]
@@ -49,7 +52,15 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
     }
   }, [pieChartRef]);
 
-  const colors = generateGradient(tokenList.length)
+  useEffect(() => {
+    // remove any tokens that aren't at least 1% of the portfolio value, for the pie chart
+    const filteredTokens = tokenList.filter(token => {
+      return token.amount * token.value > totalValue * 0.01
+    })
+    setReducedTokensList(filteredTokens)
+
+    setColors(generateGradient(filteredTokens.length))
+  }, [tokenList])
 
   return (
     <>
@@ -67,16 +78,16 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
       <Grid container spacing={4}>
         <Grid>
           <Box ref={pieChartRef}>
-            <PieChart tokens={tokenList} currency={currency} colors={colors} activeSymbol={activeSymbol} setActiveSymbol={setActiveSymbol} />
+            <PieChart totalValue={totalValue} tokens={reducedTokensList} currency={currency} colors={colors} activeSymbol={activeSymbol} setActiveSymbol={setActiveSymbol} />
           </Box>
         </Grid>
         <Grid xs>
           <Box sx={{ overflowY: 'auto', height: boxHeight, mr: -2, pr: 2 }}>
             {tokenList.map((item, i) => {
-              const thisActive = item.symbol === activeSymbol
+              const thisActive = item.name === activeSymbol
               return (
                 <Box
-                  onMouseEnter={() => setActiveSymbol(item.symbol)}
+                  onMouseEnter={() => setActiveSymbol(item.name)}
                   onMouseLeave={() => setActiveSymbol(null)}
                   sx={{
                     display: 'flex',
@@ -96,9 +107,9 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography sx={{
                       fontWeight: 700,
-                      color: thisActive ? colors[i] : theme.palette.text.primary
+                      color: thisActive && colors[i] !== undefined ? colors[i] : theme.palette.text.primary
                     }}>
-                      {item.symbol}
+                      {item.name}
                     </Typography>
                     <Typography
                       sx={{ color: theme.palette.text.secondary }}
@@ -110,20 +121,22 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
                     <Typography sx={{ fontSize: '16px !important', fontWeight: 700 }}>
                       {formatNumber(item.amount)} ({currencySymbol + formatNumber(item.value * item.amount)})
                     </Typography>
-                    <Typography sx={{ fontSize: '16px !important', fontWeight: 700 }}>
-                      <Typography
-                        component="span"
-                        sx={{
-                          color: item.pctChange < 0
-                            ? theme.palette.down.main
-                            : item.pctChange > 0
-                              ? theme.palette.up.main
-                              : theme.palette.text.secondary,
-                          fontSize: '14px !important'
-                        }}>
-                        {(item.pctChange * 0.01).toFixed(2)}%
+                    {item.pctChange && (
+                      <Typography sx={{ fontSize: '16px !important', fontWeight: 700 }}>
+                        <Typography
+                          component="span"
+                          sx={{
+                            color: item.pctChange < 0
+                              ? theme.palette.down.main
+                              : item.pctChange > 0
+                                ? theme.palette.up.main
+                                : theme.palette.text.secondary,
+                            fontSize: '14px !important'
+                          }}>
+                          {(item.pctChange * 0.01).toFixed(2)}%
+                        </Typography>
                       </Typography>
-                    </Typography>
+                    )}
                   </Box>
                 </Box>
               )

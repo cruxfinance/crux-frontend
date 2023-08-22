@@ -109,3 +109,6 @@ export const getShorterAddress = (address: string): string => {
   return shortAddress;
 };
 
+export const adjustDecimals = (amount: number, decimals: number): number => {
+  return amount / Math.pow(10, decimals);
+}

@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Button,
@@ -23,19 +23,6 @@ import {
   ResolutionString,
 } from "@utils/charts/charts/charting_library";
 
-const defaultWidgetProps: Partial<ChartingLibraryWidgetOptions> = {
-  symbol: "ERGOPAD",
-  interval: "D" as ResolutionString,
-  library_path: "/static/charting_library/",
-  locale: "en",
-  charts_storage_url: "https://saveload.tradingview.com",
-  charts_storage_api_version: "1.1",
-  client_id: "tradingview.com",
-  user_id: "public_user_id",
-  fullscreen: false,
-  autosize: true,
-};
-
 const TVChartContainer = dynamic(
   () =>
     import("@components/charts/AdvancedChart").then((mod) => mod.TVChartContainer),
@@ -53,9 +40,20 @@ const Charts: FC = () => {
   const [loading, setLoading] = useState(false)
   const [tokenInfo, setTokenInfo] = useState<any>({})
   const [currency, setCurrency] = useState<Currencies>('USD')
+  const [tokenName, setTokenName] = useState<string>('')
 
-  // tradingview chart script
-  const [isScriptReady, setIsScriptReady] = useState(false);
+  const defaultWidgetProps: Partial<ChartingLibraryWidgetOptions> = useMemo(() => ({
+    symbol: tokenInfo.name,
+    interval: "D" as ResolutionString,
+    library_path: "/static/charting_library/",
+    locale: "en",
+    charts_storage_url: "https://saveload.tradingview.com",
+    charts_storage_api_version: "1.1",
+    client_id: "tradingview.com",
+    user_id: "public_user_id",
+    fullscreen: false,
+    autosize: true,
+  }), [tokenInfo.name]);
 
   async function fetchTokenData(tokenId: string) {
     setLoading(true)
@@ -124,14 +122,19 @@ const Charts: FC = () => {
             maxWidth: upMd ? 'calc(100vw - 370px)' : upSm ? 'calc(100vw - 56px)' : 'calc(100vw - 40px)',
             mb: 2
           }}>
-            <Script
+            {/* <Script
               src="/static/datafeeds/udf/dist/bundle.js"
               strategy="lazyOnload"
               onReady={() => {
                 setIsScriptReady(true);
               }}
             />
-            {isScriptReady && <TVChartContainer {...defaultWidgetProps} />}
+            {isScriptReady &&  */}
+            {tokenInfo.name
+              ? <TVChartContainer {...defaultWidgetProps} />
+              : 'Chart loading'
+            }
+
           </Paper>
           {upLg && (
             <Paper sx={{ p: 2, width: '100%' }}>
