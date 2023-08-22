@@ -1,7 +1,8 @@
 import styles from "./index.module.css";
 import { useEffect, useRef } from "react";
 import { ChartingLibraryWidgetOptions, LanguageCode, ResolutionString, widget } from "@utils/charts/charts/charting_library";
-import datafeed from "@src/utils/charts/datafeed";
+import datafeed from "@utils/charts/datafeed";
+import { UDFCompatibleDatafeed } from "@utils/charts/charts/datafeeds/udf/src/udf-compatible-datafeed";
 
 export const TVChartContainer = (props: Partial<ChartingLibraryWidgetOptions>) => {
   const chartContainerRef =
@@ -10,8 +11,8 @@ export const TVChartContainer = (props: Partial<ChartingLibraryWidgetOptions>) =
   useEffect(() => {
     const widgetOptions: ChartingLibraryWidgetOptions = {
       symbol: props.symbol,
-      datafeed: datafeed,
       interval: props.interval as ResolutionString,
+      datafeed: new UDFCompatibleDatafeed(`${process.env.API_URL ? process.env.API_URL : ''}/crux/trading_view`),
       container: chartContainerRef.current,
       library_path: props.library_path,
       locale: props.locale as LanguageCode,

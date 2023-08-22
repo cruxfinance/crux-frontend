@@ -8,47 +8,55 @@ import { IActiveToken } from "../portfolio/TokenSummary";
 import { formatNumber } from "@src/utils/general";
 
 export interface IPieToken {
-  symbol: string;
+  name: string;
   amount: number;
   value: number;
+}
+
+interface IAngledPieToken extends IPieToken {
+  startAngle: number;
+  endAngle: number;
 }
 
 export interface IPieChartProps {
   tokens: IPieToken[];
   currency: Currencies;
   colors: string[];
+  totalValue: number;
   activeSymbol: string | null;
   setActiveSymbol: React.Dispatch<React.SetStateAction<string | null>>
 }
 
-export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeSymbol, setActiveSymbol }) => {
+export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeSymbol, setActiveSymbol, totalValue }) => {
   const [active, setActive] = useState<IActiveToken>(null);
+  const [tokensWithAngles, setTokensWithAngles] = useState<IAngledPieToken[]>([])
   const width = 200;
   const half = width / 2;
   const currencySymbol = currencies[currency]
 
-  const totalValue = tokens.reduce((acc, token) => acc + token.amount * token.value, 0);
   let currentAngle = 0;
 
-  // Calculate start and end angle for each token
-  const tokensWithAngles = tokens.map(token => {
-    const value = token.amount * token.value;
-    const startAngle = currentAngle;
-    const endAngle = currentAngle + (value / totalValue) * 2 * Math.PI;
-    currentAngle = endAngle;
-    return { ...token, startAngle, endAngle };
-  });
+  useEffect(() => {
+    // Calculate start and end angle for each token
+    const addAngles = tokens.map(token => {
+      const value = token.amount * token.value;
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + (value / totalValue) * 2 * Math.PI;
+      currentAngle = endAngle;
+      return { ...token, startAngle, endAngle };
+    });
+    setTokensWithAngles(addAngles)
+  }, [tokens])
 
   useEffect(() => {
-    const activeToken = tokensWithAngles.find(token => token.symbol === activeSymbol);
+    const activeToken = tokensWithAngles.find(token => token.name === activeSymbol);
 
-    if (activeToken && activeSymbol !== active?.symbol) {
+    if (activeToken && activeSymbol !== active?.name) {
       setActive({ ...activeToken, color: colors[tokensWithAngles.indexOf(activeToken)] });
     } else if (!activeToken && active) {
       setActive(null);
     }
   }, [activeSymbol, tokensWithAngles, colors, active]);
-
 
   return (
     <main>
@@ -58,11 +66,11 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
             data={tokensWithAngles}
             pieValue={(data) => data.amount * data.value}
             outerRadius={({ data }) => {
-              const size = active && active.symbol == data.symbol ? 0 : 4;
+              const size = active && active.name == data.name ? 0 : 4;
               return half - size;
             }}
             innerRadius={({ data }) => {
-              const size = active && active.symbol == data.symbol ? 20 : 16;
+              const size = active && active.name == data.name ? 20 : 16;
               return half - size;
             }}
             padAngle={0.02}
@@ -76,10 +84,10 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
                 if (!arc) return null; // Skip rendering if arc is null
                 return (
                   <g
-                    key={`${arc.data.symbol}-${i}`}
+                    key={`${arc.data.name}-${i}`}
                     onMouseEnter={() => {
                       arc.data && setActive({ ...arc.data, color: colors[i] })
-                      setActiveSymbol(arc.data.symbol)
+                      setActiveSymbol(arc.data.name)
                     }}
                     onMouseLeave={() => {
                       setActive(null)
@@ -107,7 +115,7 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
                 fontSize={20}
                 dy={30}
               >
-                {`${formatNumber(active.amount)} ${active.symbol}`}
+                {`${formatNumber(active.amount)} ${active.name}`}
               </Text>
             </>
           ) : (
