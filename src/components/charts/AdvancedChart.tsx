@@ -12,7 +12,7 @@ export const TVChartContainer = (props: Partial<ChartingLibraryWidgetOptions>) =
     const widgetOptions: ChartingLibraryWidgetOptions = {
       symbol: props.symbol,
       interval: props.interval as ResolutionString,
-      datafeed: new UDFCompatibleDatafeed(`${process.env.API_URL ? process.env.API_URL : ''}/crux/trading_view`),
+      datafeed: new UDFCompatibleDatafeed(`${process.env.CRUX_API}/trading_view`),
       container: chartContainerRef.current,
       library_path: props.library_path,
       locale: props.locale as LanguageCode,

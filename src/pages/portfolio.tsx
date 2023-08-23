@@ -40,6 +40,7 @@ const Portfolio = () => {
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({
     tokenSummary: true
   })
+  const [areaChart, setAreaChart] = useState(true)
   const [currency, setCurrency] = useState<Currencies>('USD')
   const [filteredNfts, setFilteredNfts] = useState<INftItem[]>([])
   const [totalValue, setTotalValue] = useState<number>(0)
@@ -167,8 +168,14 @@ const Portfolio = () => {
           </Paper>
         </Grid>
         <Grid xs={12} md={9}>
-          <Paper sx={{ p: 3, width: '100%', height: '1000px' }}>
-            <XyChart height={600} tokenList={sortedFilteredTokensList} />
+          <Paper sx={{ p: 3, width: '100%', height: '100%' }}>
+            <Button onClick={() => setAreaChart(!areaChart)}>Switch Area</Button>
+            <XyChart
+              height={600}
+              tokenList={sortedFilteredTokensList}
+              areaChart={areaChart} // false for line chart
+              totalValue={totalValue}
+            />
           </Paper>
         </Grid>
       </Grid>

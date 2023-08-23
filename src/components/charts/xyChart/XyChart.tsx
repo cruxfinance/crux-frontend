@@ -1,11 +1,26 @@
 import React, { FC, useEffect, useState, useMemo } from 'react';
 import { IReducedToken } from '@src/pages/portfolio';
-
-import ExampleControls from './ExampleControls';
+import {
+  buildChartTheme,
+  AnimatedAreaSeries,
+  AnimatedAreaStack,
+  AnimatedLineSeries,
+  Tooltip,
+  XYChart,
+  darkTheme,
+  AnimatedAxis,
+  AnimatedGrid
+} from '@visx/xychart';
+import { curveCardinal, curveLinear } from '@visx/curve';
+import { useTheme } from '@mui/material';
+import { generateGradient } from '@utils/color';
+import { GradientOrangeRed, LinearGradient } from '@visx/gradient';
 
 export type XYChartProps = {
   height: number;
   tokenList: IReducedToken[];
+  areaChart: boolean;
+  totalValue: number;
 };
 
 type TradingViewHistoryResponse = {
@@ -25,7 +40,7 @@ interface IHistoryResponse extends IReducedToken {
 interface ITransformedResponses extends IHistoryResponse {
   transformedHistory: {
     date: Date;
-    value: number;
+    value: number | null;
   }[];
 }
 
@@ -36,17 +51,16 @@ type Accessors = {
   date: AccessorFunction;
 };
 
-const XyChart: FC<XYChartProps> = ({ height, tokenList }) => {
+const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue }) => {
   const [tokenData, setTokenData] = useState<ITransformedResponses[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
-  const [lineOrArea, setLineOrArea] = useState('line')
 
   const resolution = '1W'
   const from = 1660198189
 
-  const getDate = (d: { date: Date; value: number }) => d.date;
-  const getValue = (d: { date: Date; value: number }) => d.value;
+  const getDate = (d: { date: Date; value: number | null }) => d.date;
+  const getValue = (d: { date: Date; value: number | null }) => d.value;
 
   const accessors: Accessors = useMemo(() => {
     const xAccessors: { [key: string]: (datum: any) => any } = {};
@@ -64,20 +78,65 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList }) => {
     };
   }, [tokenData]);
 
-  const getHistory = (tokens: IReducedToken[], from: number, resolution: string, countback: number) => {
-    return tokens.map(async (token) => {
-      // change token.name to token.tokenId when the API gets changed
-      const response = await fetch(`https://api.cruxfinance.io/trading_view/history?symbol=${token.name.toLowerCase()}&from=${from}&to=${Math.floor(new Date().getTime() / 1000)}&resolution=${resolution}&countback=${countback}`);
-      const data: TradingViewHistoryResponse = await response.json();
+  const getAllUniqueDates = (data: ITransformedResponses[]) => {
+    const allDates: Date[] = [];
+    data.forEach(token => {
+      token.transformedHistory.forEach(item => {
+        if (!allDates.some(date => date.getTime() === item.date.getTime())) {
+          allDates.push(item.date);
+        }
+      });
+    });
+    return allDates.sort((a, b) => a.getTime() - b.getTime());
+  };
+
+  const fillMissingValues = (data: ITransformedResponses[], allDates: Date[]) => {
+    return data.map(token => {
+      const filledData = allDates.map(date => {
+        const existingData = token.transformedHistory.find(item => item.date.getTime() === date.getTime());
+        return existingData || { date, value: null };
+      });
       return {
         ...token,
-        history: data
+        transformedHistory: filledData
       };
-    })
+    });
+  };
+
+  // Filter out series with max value less than 1% of total portfolio value
+  const filterRelevantSeries = (data: ITransformedResponses[], totalValue: number) => {
+    return data.filter(token => {
+      const maxValue = Math.max(...token.transformedHistory.map(item => item.value !== null ? item.value : 0));
+      return maxValue >= 0.01 * totalValue;  // Check if max value is at least 1% of totalValue
+    });
+  };
+
+  const getHistory = async (tokens: IReducedToken[], from: number, resolution: string, countback: number) => {
+    const results = [];
+    for (const token of tokens) {
+      const url = `${process.env.CRUX_API}/trading_view/history?symbol=${token.name.toLowerCase()}&from=${from}&to=${Math.floor(new Date().getTime() / 1000)}&resolution=${resolution}&countback=${countback}`
+      console.log('request url: ' + url)
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch history for token ${token.name}. Status: ${response.status} ${response.statusText}`);
+      }
+
+      const data: TradingViewHistoryResponse = await response.json();
+      results.push({
+        ...token,
+        history: data
+      });
+    }
+    return results;
   };
 
   const transformedTokensData = (data: IHistoryResponse[]) => {
     return data.map(tokenData => {
+      if (!tokenData.history.t || !tokenData.history.c) {
+        throw new Error(`Invalid history data for token ${tokenData.name}`);
+      }
+
       const transformedHistory = tokenData.history.t.map((timestamp, index) => ({
         date: new Date(timestamp * 1000),
         value: tokenData.history.c[index] * tokenData.amount,
@@ -92,12 +151,25 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const historyDataPromises = getHistory(tokenList, from, resolution, 100);
-        const historyData = await Promise.all(historyDataPromises)
+        const historyData = await getHistory(tokenList, from, resolution, 100);
         const transformedData = transformedTokensData(historyData);
-        setTokenData(transformedData);
+
+        // Get all unique dates and fill missing values
+        const allDates = getAllUniqueDates(transformedData);
+        const filledData = fillMissingValues(transformedData, allDates);
+
+        // Filter out series with max value less than 1% of total portfolio value
+        const relevantData = filterRelevantSeries(filledData, totalValue);
+
+        setTokenData(relevantData);
       } catch (err) {
-        setError(err);
+        if (err instanceof Error) {
+          setError(`Error occurred: ${err.message}`);
+          console.error(err);
+        } else {
+          setError('An unexpected error occurred.');
+          console.error(err);
+        }
       } finally {
         setLoading(false);
       }
@@ -106,166 +178,169 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList }) => {
     fetchData();
   }, [tokenList]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (error) return <div>Error: unable to load chart. Please contact support via Discord or Telegram. </div>;
+
+  //config
+  const dateScaleConfig = {
+    type: 'band',
+    paddingInner: 0.3
+  } as const;
+  const valueScaleConfig = { type: 'linear' } as const;
+
+  const theme = useTheme()
+  const customTheme = buildChartTheme({
+    // colors
+    backgroundColor: theme.palette.background.paper, // used by Tooltip, Annotation
+    colors: generateGradient(tokenData.length), // categorical colors, mapped to series via `dataKey`s
+
+    // labels
+    // svgLabelBig?: SVGTextProps;
+    // svgLabelSmall?: SVGTextProps;
+    // htmlLabel?: HTMLTextStyles;
+
+    // lines
+    // xAxisLineStyles?: LineStyles;
+    // yAxisLineStyles?: LineStyles;
+    // xTickLineStyles?: LineStyles;
+    // yTickLineStyles?: LineStyles;
+    tickLength: 1,
+
+    // grid
+    gridColor: theme.palette.divider,
+    gridColorDark: theme.palette.text.secondary // used for axis baseline if x/yxAxisLineStyles not set
+    // gridStyles?: CSSProperties;
+  });
 
   return (
-    <ExampleControls tokenList={tokenData}>
-      {({
-        animationTrajectory,
-        config,
-        curve,
-        editAnnotationLabelPosition,
-        numTicks,
-        showGridColumns,
-        showGridRows,
-        stackOffset,
-        theme,
-        xAxisOrientation,
-        yAxisOrientation,
+    <XYChart
+      theme={customTheme}
+      xScale={dateScaleConfig}
+      yScale={valueScaleConfig}
+      height={height}
+    >
+      <AnimatedAxis
+        key={`date-axis-min`}
+        orientation={'bottom'}
+        numTicks={12}
+        animationTrajectory={'min'}
+        tickFormat={(date) => date.toLocaleDateString()}
+      />
+      <AnimatedAxis
+        key={`value-axis-min`}
+        // label={'Value'}
+        orientation={'left'}
+        numTicks={4}
+        animationTrajectory={'min'}
+        hideAxisLine
+      // tickFormat={}
+      />
+      <AnimatedGrid
+        key={`grid-min`} // force animate on update
+        rows={true}
+        columns={true}
+        animationTrajectory={'min'}
+        numTicks={8}
+      />
 
-        // components are animated or not depending on selection
-        AreaSeries,
-        AreaStack,
-        Axis,
-        Grid,
-        LineSeries,
-        Tooltip,
-        XYChart,
-      }) => (
-        <XYChart
-          theme={theme}
-          xScale={config.x}
-          yScale={config.y}
-          height={height}
-          captureEvents={!editAnnotationLabelPosition}
-        >
-          <Grid
-            key={`grid-${animationTrajectory}`} // force animate on update
-            rows={showGridRows}
-            columns={showGridColumns}
-            animationTrajectory={animationTrajectory}
-            numTicks={numTicks}
+      {tokenData.map((item, i) => {
+        const idString = `stacked-area-${item.name}`
+        return (
+          <LinearGradient
+            key={idString}
+            id={idString}
+            to={customTheme.colors[i]}
+            from={customTheme.colors[i]}
+            fromOpacity={1}
+            toOpacity={0.2}
+            rotate="12"
           />
-          {lineOrArea === 'area' && (
-            <AreaStack curve={curve} offset={stackOffset} renderLine={stackOffset !== 'wiggle'}>
-              {tokenData.map(token => (
-                <AreaSeries
-                  key={token.name}
-                  dataKey={token.name}
-                  data={token.transformedHistory}
-                  xAccessor={datum => datum.date}
-                  yAccessor={datum => datum.value}
-                  fillOpacity={0.4}
-                />
-              ))}
-            </AreaStack>
-          )}
-          {lineOrArea === 'line' && (
-            <>
-              {tokenData.map(token => (
-                <LineSeries
-                  key={token.name}
-                  dataKey={token.name}
-                  data={token.transformedHistory}
-                  xAccessor={datum => datum.date}
-                  yAccessor={datum => datum.value}
-                  curve={curve}
-                />
-              ))}
-            </>
-          )}
-          <Axis
-            key={`time-axis-${animationTrajectory}`}
-            orientation={xAxisOrientation}
-            numTicks={numTicks}
-            animationTrajectory={animationTrajectory}
-          />
-          <Axis
-            key={`value-axis-${animationTrajectory}`}
-            label={
-              stackOffset == null
-                ? 'Value'
-                : stackOffset === 'expand'
-                  ? 'Fraction of total value'
-                  : ''
-            }
-            orientation={yAxisOrientation}
-            numTicks={numTicks}
-            animationTrajectory={animationTrajectory}
-            // values don't make sense in stream graph
-            tickFormat={stackOffset === 'wiggle' ? () => '' : undefined}
-          />
-
-          <Tooltip<Accessors>
-            showHorizontalCrosshair={false}
-            showVerticalCrosshair={true}
-            snapTooltipToDatumX={true}
-            snapTooltipToDatumY={true}
-            showSeriesGlyphs={true}
-            renderTooltip={({ tooltipData, colorScale }) => (
-              <>
-                {(tooltipData?.nearestDatum?.datum &&
-                  new Date(accessors.date(tooltipData?.nearestDatum?.datum)).toLocaleDateString()) ||
-                  'No date'}
-                <br />
-                <br />
-
-
-                {Object.keys(tooltipData?.datumByKey ?? {}).map((tokenName) => {
-                  const datum = tooltipData?.datumByKey[tokenName]?.datum;
-                  if (datum) {
-                    const value = accessors.y[tokenName](datum);
-                    // Check if the value is valid before displaying it
-                    if (value !== null && !Number.isNaN(value) && value !== 0) {
-                      return (
-                        <div key={tokenName}>
-                          <em
-                            style={{
-                              color: colorScale?.(tokenName),
-                              textDecoration: tooltipData?.nearestDatum?.key === tokenName ? 'underline' : undefined,
-                            }}
-                          >
-                            {tokenName}
-                          </em>{' '}
-                          {`${value.toFixed(2)}`}
-                        </div>
-                      );
-                    }
-                  }
-                  return null;
-                })}
-
-                {/* 
-                {([tooltipData?.nearestDatum?.key]).map((tokenName) => {
-                  if (tokenName) {
-                    const value = tooltipData?.nearestDatum?.datum && accessors['y'][tokenName](tooltipData?.nearestDatum?.datum);
-
-                    return (
-                      <div key={tokenName}>
-                        <em
-                          style={{
-                            color: colorScale?.(tokenName),
-                            textDecoration: tooltipData?.nearestDatum?.key === tokenName ? 'underline' : undefined,
-                          }}
-                        >
-                          {tokenName}
-                        </em>{' '}
-                        {value == null || Number.isNaN(value)
-                          ? '-'
-                          : `${value.toFixed(2)}`}
-                      </div>
-                    );
-                  }
-                })} 
-                */}
-              </>
-            )}
-          />
-
-        </XYChart>
+        )
+      }
       )}
-    </ExampleControls>
+      {areaChart && (
+        <AnimatedAreaStack curve={curveLinear} offset='none' renderLine={true}>
+          {tokenData.map((token, i) => {
+            const idString = `stacked-area-${token.name}`
+            return (
+              <AnimatedAreaSeries
+                key={idString}
+                dataKey={token.name}
+                data={token.transformedHistory}
+                xAccessor={datum => datum.date}
+                yAccessor={datum => datum.value}
+                // fillOpacity={1}
+                fill={`url(#${idString})`}
+              />
+            )
+          }
+          )}
+        </AnimatedAreaStack>
+      )}
+      {!areaChart && (
+        <>
+          {/* {tokenData.map(token => (
+            <AnimatedLineSeries
+              key={token.name}
+              dataKey={token.name}
+              data={token.transformedHistory}
+              xAccessor={datum => datum.date}
+              yAccessor={datum => datum.value}
+              curve={curveLinear}
+            />
+          ))} */}
+          {tokenData.map(token => {
+            const idString = `stacked-area-${token.name}`
+            return (
+              <AnimatedAreaSeries
+                key={token.name}
+                dataKey={token.name}
+                data={token.transformedHistory}
+                xAccessor={datum => datum.date}
+                yAccessor={datum => datum.value}
+                fillOpacity={1}
+                fill={`url(#${idString})`}
+              />
+            )
+          })}
+        </>
+      )}
+
+      <Tooltip<Accessors>
+        showHorizontalCrosshair={false}
+        showVerticalCrosshair={true}
+        snapTooltipToDatumX={areaChart ? true : false}
+        snapTooltipToDatumY={false}
+        showSeriesGlyphs={true}
+        renderTooltip={({ tooltipData, colorScale }) => (
+          <>
+            {(tooltipData?.nearestDatum?.datum &&
+              new Date(accessors.date(tooltipData?.nearestDatum?.datum)).toLocaleDateString()) ||
+              'No date'}
+            <br />
+            <br />
+            {Object.keys(tooltipData?.datumByKey ?? {}).map((tokenName) => {
+              const datum = tooltipData?.datumByKey[tokenName]?.datum;
+              const value = accessors.y[tokenName](datum);
+              if (value) return (
+                <div key={tokenName}>
+                  <em
+                    style={{
+                      color: colorScale?.(tokenName),
+                      textDecoration: tooltipData?.nearestDatum?.key === tokenName ? 'underline' : undefined,
+                    }}
+                  >
+                    {tokenName}
+                  </em>{' '}
+                  {/* Display the value of the series */}
+                  {value.toFixed(2)}
+                </div>
+              );
+            })}
+          </>
+        )}
+      />
+    </XYChart>
+
   );
 }
 
