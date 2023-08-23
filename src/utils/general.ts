@@ -45,7 +45,11 @@ export const formatNumber = (num: number, sigFig: number = 3, fixed?: boolean) =
     return rounded.toString();
   };
 
-  if (absNum >= 1000000) {
+  if (absNum >= 1000000000000) {
+    return sign + (absNum / 1000000000000).toFixed(1).replace(/\.0$/, '') + 'T';
+  } else if (absNum >= 1000000000) {
+    return sign + (absNum / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+  } else if (absNum >= 1000000) {
     return sign + (absNum / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
   } else if (absNum >= 1000) {
     return sign + (absNum / 1000).toFixed(1).replace(/\.0$/, '') + 'K';

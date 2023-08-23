@@ -18,16 +18,16 @@ interface ITokenSortProps {
 }
 
 const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
-  const handleToggle = (event: React.MouseEvent<HTMLElement>, newValue: 'dec' | 'asc') => {
+  const handleToggle = (event: React.MouseEvent<HTMLElement>, newValue: 'Desc' | 'Asc') => {
     if (newValue !== null) setSorting(prevSort => ({
       ...prevSort,
-      sortOrder: newValue,
+      sort_order: newValue,
     }));
   }
   const handleSortSelection = (event: SelectChangeEvent) => {
     setSorting(prevSort => ({
       ...prevSort,
-      sortBy: event.target.value,
+      sort_by: event.target.value,
     }));
   };
 
@@ -38,7 +38,7 @@ const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
           <Select
             id="sort-select-box"
             variant="filled"
-            value={sorting.sortBy}
+            value={sorting.sort_by}
             onChange={handleSortSelection}
             aria-label="Select sorting item"
           >
@@ -46,7 +46,7 @@ const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
             <MenuItem value={"liquidity"}>Liquidity</MenuItem>
             <MenuItem value={"mktCap"}>Market Cap</MenuItem>
             <MenuItem value={"pctChange"}>Percent Change</MenuItem>
-            <MenuItem value={"vol"}>Volume</MenuItem>
+            <MenuItem value={"Volume"}>Volume</MenuItem>
             <MenuItem value={"sells"}>Sells</MenuItem>
             <MenuItem value={"buys"}>Buys</MenuItem>
             <MenuItem value={"totalTransactions"}>Total transactions</MenuItem>
@@ -54,9 +54,9 @@ const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
           </Select>
         </Grid>
         <Grid>
-          <ToggleButtonGroup value={sorting.sortOrder} exclusive onChange={handleToggle}>
-            <ToggleButton value="asc" aria-label="Sort by ascending">Asc</ToggleButton>
-            <ToggleButton value="dec" aria-label="Sort by descending">Dec</ToggleButton>
+          <ToggleButtonGroup value={sorting.sort_order} exclusive onChange={handleToggle}>
+            <ToggleButton value="Asc" aria-label="Sort by ascending">Asc</ToggleButton>
+            <ToggleButton value="Desc" aria-label="Sort by descending">Dec</ToggleButton>
           </ToggleButtonGroup>
         </Grid>
       </Grid>
