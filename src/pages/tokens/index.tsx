@@ -8,7 +8,8 @@ import {
   useMediaQuery,
   Button,
   ToggleButtonGroup,
-  ToggleButton
+  ToggleButton,
+  Avatar
 } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
 import TokenSort from '@components/tokens/SortBy'
@@ -17,6 +18,7 @@ import { formatNumber } from '@src/utils/general';
 import { useRouter } from 'next/router';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
+import { currencies, Currencies } from '@src/utils/currencies';
 
 export interface ITokenData {
   name: string;
@@ -24,15 +26,40 @@ export interface ITokenData {
   tokenId: string;
   icon: string;
   price: number;
-  pctChange1hr: number;
-  pctChange4hr: number;
-  pctChange12hr: number;
-  pctChange24hr: number;
+  pctChange1h: number;
+  pctChange1d: number;
+  pctChange1w: number;
+  pctChange1m: number;
   vol: number;
   liquidity: number;
   buys: number;
   sells: number;
   mktCap: number;
+}
+
+interface IApiTokenData {
+  id: string;
+  ticker: string;
+  name: string;
+  exchanges: string[];
+  price_erg: number;
+  erg_price_usd: number;
+  hour_change_erg: number;
+  hour_change_usd: number;
+  day_change_erg: number;
+  day_change_usd: number;
+  week_change_erg: number;
+  week_change_usd: number;
+  month_change_erg: number;
+  month_change_usd: number;
+  volume: number;
+  liquidity: number;
+  market_cap: number;
+  buys: number;
+  sells: number;
+  unique_buys: number;
+  unique_sells: number;
+  created: number;
 }
 
 export interface IFilters {
@@ -53,8 +80,8 @@ export interface IFilters {
 }
 
 export interface ISorting {
-  sortBy?: string;
-  sortOrder?: 'dec' | 'asc';
+  sort_by?: string;
+  sort_order?: 'Desc' | 'Asc';
 }
 
 export interface IQueries {
@@ -63,7 +90,7 @@ export interface IQueries {
 }
 
 export interface ITimeframe {
-  selectedPeriod?: '1hr' | '4hr' | '12hr' | '24hr';
+  selectedPeriod?: '1h' | '1d' | '1w' | '1m';
 }
 
 const Tokens: FC = () => {
@@ -71,16 +98,25 @@ const Tokens: FC = () => {
   const router = useRouter()
   const upSm = useMediaQuery(theme.breakpoints.up('sm'))
   const [loading, setLoading] = useState(false)
+  const [currency, setCurrency] = useState<Currencies>('USD')
+  const [ergExchange, setErgExchange] = useState(1)
+  const [apiTokenData, setApiTokenData] = useState<IApiTokenData[]>([])
   const [filteredTokens, setFilteredTokens] = useState<ITokenData[]>([])
   const [filters, setFilters] = useState<IFilters>({})
-  const [sorting, setSorting] = useState<ISorting>({ sortBy: 'vol', sortOrder: 'dec' })
+  const [sorting, setSorting] = useState<ISorting>({ sort_by: 'Volume', sort_order: 'Desc' })
   const [queries, setQueries] = useState<IQueries>({ limit: 100, offset: 0 });
-  const [timeframe, setTimeframe] = useState<ITimeframe>({ selectedPeriod: '24hr' });
+  const [timeframe, setTimeframe] = useState<ITimeframe>({ selectedPeriod: '1d' });
   const [filterModalOpen, setFilterModalOpen] = useState(false)
+
+  const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
+    if (value !== null) {
+      setCurrency(value);
+    }
+  };
 
   const handleTimeframeChange = (
     event: React.MouseEvent<HTMLElement>,
-    newTimeframe: '1hr' | '4hr' | '12hr' | '24hr',
+    newTimeframe: '1h' | '1d' | '1w' | '1m',
   ) => {
     if (newTimeframe !== null) setTimeframe({ selectedPeriod: newTimeframe });
   };
@@ -90,32 +126,87 @@ const Tokens: FC = () => {
     sorting: ISorting,
     queries: IQueries,
     timeframe: ITimeframe
-  ) {
-    setLoading(true)
+  ): Promise<IApiTokenData[]> {
+    setLoading(true);
     try {
-      const combinedParams = { ...filters, ...sorting, ...queries, ...timeframe };
-      const queryString = Object.entries(combinedParams)
-        .reduce((acc, [key, value]) => {
-          if (value !== undefined) {
-            acc.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
-          }
-          return acc;
-        }, [] as string[])
-        .join('&')
-      console.log(queryString)
-      const response = await fetch(`/api/mocks/tokens?${queryString}`);
-      const data = await response.json();
-      setFilteredTokens(data);
+      const endpoint = `${process.env.CRUX_API}/spectrum/token_list`;
+      const payload = {
+        // ...filters,
+        ...sorting,
+        ...queries,
+        // ...timeframe
+      };
+      console.log(JSON.stringify(payload));
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      console.log(response);
+      const data: IApiTokenData[] = await response.json();
+      setApiTokenData(data);
+      return data;
     } catch (error) {
       console.error('Error fetching token data:', error);
+      return [];
     } finally {
       setLoading(false);
     }
   }
 
+  const mapApiDataToTokenData = ({
+    name,
+    ticker,
+    id,
+    volume,
+    liquidity,
+    buys,
+    sells,
+    market_cap,
+    price_erg,
+    erg_price_usd,
+    ...item
+  }: IApiTokenData): ITokenData => {
+    const hourChangeKey = currency === "USD" ? "hour_change_usd" : "hour_change_erg";
+    const dayChangeKey = currency === "USD" ? "day_change_usd" : "day_change_erg";
+    const weekChangeKey = currency === "USD" ? "week_change_usd" : "week_change_erg";
+    const monthChangeKey = currency === "USD" ? "month_change_usd" : "month_change_erg";
+
+    return {
+      name,
+      ticker,
+      tokenId: id,
+      icon: 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/' + id + '.svg',
+      price: price_erg,
+      pctChange1h: item[hourChangeKey],
+      pctChange1d: item[dayChangeKey],
+      pctChange1w: item[weekChangeKey],
+      pctChange1m: item[monthChangeKey],
+      vol: volume,
+      liquidity,
+      buys,
+      sells,
+      mktCap: market_cap,
+    };
+  };
+
   useEffect(() => {
-    fetchTokenData(filters, sorting, queries, timeframe);
+    const fetchData = async () => {
+      const apiDataArray = await fetchTokenData(filters, sorting, queries, timeframe);
+      const mappedDataArray = apiDataArray.map(mapApiDataToTokenData);
+      setErgExchange(apiDataArray[0].erg_price_usd)
+      setFilteredTokens(mappedDataArray);
+    };
+
+    fetchData();
   }, [filters, sorting, queries, timeframe]);
+
+  useEffect(() => {
+    const mappedDataArray = apiTokenData.map(mapApiDataToTokenData);
+    setFilteredTokens(mappedDataArray);
+  }, [currency])
 
   const numberFilters = Math.round(Object.keys(filters).length / 2)
 
@@ -133,42 +224,57 @@ const Tokens: FC = () => {
 
   return (
     <Container>
-      <Grid container alignItems="center" sx={{ mb: 2 }} spacing={2}>
+      <Grid container justifyContent="space-between" alignItems="flex-end" sx={{ mb: 2 }}>
         <Grid>
-          <TokenSort sorting={sorting} setSorting={setSorting} />
+          <Grid container alignItems="center" sx={{ mb: 2 }} spacing={2}>
+            <Grid>
+              <TokenSort sorting={sorting} setSorting={setSorting} />
+            </Grid>
+            <Grid>
+              <ToggleButtonGroup
+                exclusive
+                value={timeframe.selectedPeriod}
+                onChange={handleTimeframeChange}
+              >
+                <ToggleButton value="1h">
+                  H
+                </ToggleButton>
+                <ToggleButton value="1d">
+                  D
+                </ToggleButton>
+                <ToggleButton value="1w">
+                  W
+                </ToggleButton>
+                <ToggleButton value="1m">
+                  M
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Grid>
+
+            <Grid>
+              <Button
+                variant="contained"
+                onClick={() => setFilterModalOpen(!filterModalOpen)}
+                startIcon={<FilterAltIcon />}
+              >
+                Filters {numberFilters > 0 && '(' + numberFilters + ')'}
+              </Button>
+            </Grid>
+          </Grid>
         </Grid>
-        <Grid>
+        <Grid sx={{ textAlign: 'right' }}>
           <ToggleButtonGroup
+            value={currency}
             exclusive
-            value={timeframe.selectedPeriod}
-            onChange={handleTimeframeChange}
+            onChange={handleCurrencyChange}
+            sx={{ mb: 1 }}
+            size="small"
           >
-            <ToggleButton value="1hr">
-              1h
-            </ToggleButton>
-            <ToggleButton value="4hr">
-              4h
-            </ToggleButton>
-            <ToggleButton value="12hr">
-              12h
-            </ToggleButton>
-            <ToggleButton value="24hr">
-              24h
-            </ToggleButton>
+            <ToggleButton value="USD">USD</ToggleButton>
+            <ToggleButton value="ERG">Erg</ToggleButton>
           </ToggleButtonGroup>
         </Grid>
-
-        <Grid>
-          <Button
-            variant="contained"
-            onClick={() => setFilterModalOpen(!filterModalOpen)}
-            startIcon={<FilterAltIcon />}
-          >
-            Filters {numberFilters > 0 && '(' + numberFilters + ')'}
-          </Button>
-        </Grid>
       </Grid>
-
 
       <TokenFilterOptions filters={filters} setFilters={setFilters} open={filterModalOpen} setOpen={setFilterModalOpen} />
 
@@ -181,22 +287,24 @@ const Tokens: FC = () => {
         >
           <Grid container spacing={1} alignItems="center">
             <Grid xs={3}>
-              Token
+              <Typography sx={{ ml: 2 }}>
+                Token
+              </Typography>
             </Grid>
             <Grid xs={2}>
               Price
             </Grid>
             <Grid xs={1}>
-              1h
+              H
             </Grid>
             <Grid xs={1}>
-              4h
+              D
             </Grid>
             <Grid xs={1}>
-              12h
+              W
             </Grid>
             <Grid xs={1}>
-              24h
+              M
             </Grid>
             <Grid xs={1}>
               <Typography>
@@ -241,39 +349,43 @@ const Tokens: FC = () => {
                 router.push(`/tokens/${token.tokenId}`)
               }}
             >
-              <Grid container spacing={1} alignItems="center">
-                <Grid xs={1}>
-                  {token.icon}
+              <Grid container spacing={2} alignItems="center">
+                <Grid xs={3}>
+                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
+                    <Box sx={{ display: 'flex' }}>
+                      <Avatar src={token.icon} sx={{ width: '48px', height: '48px' }} />
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                      <Typography>
+                        {token.name}
+                      </Typography>
+                      <Typography>
+                        {token.ticker.toUpperCase()}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Grid>
                 <Grid xs={2}>
+                  {currencies[currency] + formatNumber(currency === 'USD' ? token.price * ergExchange : token.price, 4)}
+                </Grid>
+                <Grid xs={1}>
+                  {formatPercent(token.pctChange1h * 100)}
+                </Grid>
+                <Grid xs={1}>
+                  {formatPercent(token.pctChange1d * 100)}
+                </Grid>
+                <Grid xs={1}>
+                  {formatPercent(token.pctChange1w * 100)}
+                </Grid>
+                <Grid xs={1}>
+                  {formatPercent(token.pctChange1m * 100)}
+                </Grid>
+                <Grid xs={1}>
                   <Typography>
-                    {token.name}
+                    V {currencies[currency] + formatNumber(currency === 'USD' ? token.vol * ergExchange : token.vol, 2)}
                   </Typography>
                   <Typography>
-                    {token.ticker.toUpperCase()}
-                  </Typography>
-                </Grid>
-                <Grid xs={2}>
-                  ${token.price}
-                </Grid>
-                <Grid xs={1}>
-                  {formatPercent(token.pctChange1hr)}
-                </Grid>
-                <Grid xs={1}>
-                  {formatPercent(token.pctChange4hr)}
-                </Grid>
-                <Grid xs={1}>
-                  {formatPercent(token.pctChange12hr)}
-                </Grid>
-                <Grid xs={1}>
-                  {formatPercent(token.pctChange24hr)}
-                </Grid>
-                <Grid xs={1}>
-                  <Typography>
-                    V ${formatNumber(token.vol)}
-                  </Typography>
-                  <Typography>
-                    L ${formatNumber(token.liquidity)}
+                    L {currencies[currency] + formatNumber(currency === 'USD' ? token.liquidity * ergExchange : token.liquidity, 2)}
                   </Typography>
                 </Grid>
                 <Grid xs={1}>
@@ -281,7 +393,7 @@ const Tokens: FC = () => {
                     T {token.buys + token.sells}
                   </Typography>
                   <Typography>
-                    M ${formatNumber(token.mktCap)}
+                    M {currencies[currency] + formatNumber(currency === 'USD' ? token.mktCap * ergExchange : token.mktCap, 2)}
                   </Typography>
                 </Grid>
                 <Grid xs={1}>

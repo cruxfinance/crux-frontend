@@ -20,7 +20,8 @@ import BouncingDotsLoader from "../DotLoader";
 export interface ITrade {
   time: number;
   action_type: 'Buy' | 'Sell' | 'Liquidity Removal' | 'Liquidity Provision';
-  price: number;
+  price_in_ergo: number;
+  ergo_price: number;
   action_amount: string;
   user_address: string;
 }
@@ -34,8 +35,7 @@ export interface PropsType {
 
 const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTicker }) => {
   const theme = useTheme();
-  const router = useRouter()
-  const upMd = useMediaQuery(theme.breakpoints.up("md"));
+  // const upMd = useMediaQuery(theme.breakpoints.up("md"));
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [tradeHistory, setTradeHistory] = useState<ITrade[]>([])
@@ -152,19 +152,25 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                 </Grid>
                 <Grid xs={2}>
                   <Typography sx={{ color: itemColor }}>
-                    {item.price && currencies[currency] + formatNumber(item.price, 4)}
+                    {currencies[currency]}{currency === 'USD' ? formatNumber(item.price_in_ergo * item.ergo_price, 4) : formatNumber(item.price_in_ergo, 4)}
                   </Typography>
                 </Grid>
                 <Grid xs={2}>
                   <Typography sx={{ color: itemColor }}>
                     {item.action_type.includes('Liquidity')
-                      ? formatNumber(Number(item.action_amount.split(', ')[1]), 2, true)
-                      : formatNumber(Number(item.action_amount), 2, true)}
+                      ? formatNumber(Math.abs(Number(item.action_amount.split(', ')[1])), 2, true)
+                      : formatNumber(Math.abs(Number(item.action_amount)), 2, true)}
                   </Typography>
                 </Grid>
                 <Grid xs={2}>
                   <Typography sx={{ color: itemColor }}>
-                    {item.price && currencies[currency] + formatNumber(Number(item.action_amount) * item.price, 2, true)}
+                    {currencies[currency]}{currency === 'USD'
+                      ? formatNumber(Math.abs(Number(
+                        item.action_type.includes('Liquidity') ? item.action_amount.split(', ')[1] : item.action_amount
+                      )) * item.price_in_ergo * item.ergo_price, 2, true)
+                      : formatNumber(Math.abs(Number(
+                        item.action_type.includes('Liquidity') ? item.action_amount.split(', ')[1] : item.action_amount
+                      )) * item.price_in_ergo, 2, true)}
                   </Typography>
                 </Grid>
                 <Grid xs={2}>
