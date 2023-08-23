@@ -24,7 +24,7 @@ export const TVChartContainer = (props: Partial<ChartingLibraryWidgetOptions>) =
       fullscreen: props.fullscreen,
       autosize: props.autosize,
       theme: 'dark',
-      debug: true
+      debug: false
     };
 
     const tvWidget = new widget(widgetOptions);

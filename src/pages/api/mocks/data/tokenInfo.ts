@@ -18,9 +18,9 @@ export const tokenData: ITokenData[] = [
     "mktCap": 3203920
   },
   {
-    "name": "Nextron",
-    "ticker": "NEX",
-    "tokenId": "XPGDHqAItHE4Hgss5WG8ynFVLdUoVGLCCbf73T9eD2lkBLI48mIOu5TALQ16x47y",
+    "name": "Paideia",
+    "ticker": "PAI",
+    "tokenId": "1fd6e032e8476c4aa54c18c1a308dce83940e8f4a28f576440513ed7326ad489",
     "icon": "",
     "price": 0.002,
     "pctChange1hr": -566,
@@ -34,9 +34,9 @@ export const tokenData: ITokenData[] = [
     "mktCap": 400000
   },
   {
-    "name": "Futurix",
-    "ticker": "FTRX",
-    "tokenId": "HouwYc4JvQiivT2h7tRnTw0jeSy0nmKYdKLHTxBBh3r69TCFrAK9drW0HjifVt8z",
+    "name": "Cyberverse",
+    "ticker": "CYPX",
+    "tokenId": "01dce8a5632d19799950ff90bca3b5d0ca3ebfa8aaafd06f0cc6dd1e97150e7f",
     "icon": "",
     "price": 0.0085,
     "pctChange1hr": 12,
