@@ -169,13 +169,15 @@ const Portfolio = () => {
         </Grid>
         <Grid xs={12} md={9}>
           <Paper sx={{ p: 3, width: '100%', height: '100%' }}>
-            <Button onClick={() => setAreaChart(!areaChart)}>Switch Area</Button>
-            <XyChart
-              height={600}
-              tokenList={sortedFilteredTokensList}
-              areaChart={areaChart} // false for line chart
-              totalValue={totalValue}
-            />
+            <Button variant="contained" onClick={() => setAreaChart(!areaChart)}>Stacked chart</Button>
+            <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
+              <XyChart
+                height={600}
+                tokenList={sortedFilteredTokensList}
+                areaChart={areaChart} // false for line chart
+                totalValue={totalValue}
+              />
+            </Box>
           </Paper>
         </Grid>
       </Grid>

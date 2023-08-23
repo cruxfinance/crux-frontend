@@ -12,7 +12,7 @@ import {
   AnimatedGrid
 } from '@visx/xychart';
 import { curveCardinal, curveLinear } from '@visx/curve';
-import { useTheme } from '@mui/material';
+import { Box, CircularProgress, Typography, useTheme } from '@mui/material';
 import { generateGradient } from '@utils/color';
 import { GradientOrangeRed, LinearGradient } from '@visx/gradient';
 
@@ -52,6 +52,7 @@ type Accessors = {
 };
 
 const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue }) => {
+  const theme = useTheme()
   const [tokenData, setTokenData] = useState<ITransformedResponses[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
@@ -151,6 +152,7 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true)
         const historyData = await getHistory(tokenList, from, resolution, 100);
         const transformedData = transformedTokensData(historyData);
 
@@ -187,7 +189,7 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
   } as const;
   const valueScaleConfig = { type: 'linear' } as const;
 
-  const theme = useTheme()
+
   const customTheme = buildChartTheme({
     // colors
     backgroundColor: theme.palette.background.paper, // used by Tooltip, Annotation
@@ -212,73 +214,86 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
   });
 
   return (
-    <XYChart
-      theme={customTheme}
-      xScale={dateScaleConfig}
-      yScale={valueScaleConfig}
-      height={height}
-    >
-      <AnimatedAxis
-        key={`date-axis-min`}
-        orientation={'bottom'}
-        numTicks={12}
-        animationTrajectory={'min'}
-        tickFormat={(date) => date.toLocaleDateString()}
-      />
-      <AnimatedAxis
-        key={`value-axis-min`}
-        // label={'Value'}
-        orientation={'left'}
-        numTicks={4}
-        animationTrajectory={'min'}
-        hideAxisLine
-      // tickFormat={}
-      />
-      <AnimatedGrid
-        key={`grid-min`} // force animate on update
-        rows={true}
-        columns={true}
-        animationTrajectory={'min'}
-        numTicks={8}
-      />
-
-      {tokenData.map((item, i) => {
-        const idString = `stacked-area-${item.name}`
-        return (
-          <LinearGradient
-            key={idString}
-            id={idString}
-            to={customTheme.colors[i]}
-            from={customTheme.colors[i]}
-            fromOpacity={1}
-            toOpacity={0.2}
-            rotate="12"
-          />
+    <>
+      {loading
+        ? (
+          <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+            <Box sx={{ mb: 2 }}>
+              <CircularProgress size={60} />
+            </Box>
+            <Typography>
+              Loading chart...
+            </Typography>
+          </Box>
         )
-      }
-      )}
-      {areaChart && (
-        <AnimatedAreaStack curve={curveLinear} offset='none' renderLine={true}>
-          {tokenData.map((token, i) => {
-            const idString = `stacked-area-${token.name}`
-            return (
-              <AnimatedAreaSeries
-                key={idString}
-                dataKey={token.name}
-                data={token.transformedHistory}
-                xAccessor={datum => datum.date}
-                yAccessor={datum => datum.value}
-                // fillOpacity={1}
-                fill={`url(#${idString})`}
-              />
-            )
-          }
-          )}
-        </AnimatedAreaStack>
-      )}
-      {!areaChart && (
-        <>
-          {/* {tokenData.map(token => (
+        : (
+          <XYChart
+            theme={customTheme}
+            xScale={dateScaleConfig}
+            yScale={valueScaleConfig}
+            height={height}
+          >
+            <AnimatedAxis
+              key={`date-axis-min`}
+              orientation={'bottom'}
+              numTicks={12}
+              animationTrajectory={'min'}
+              tickFormat={(date) => date.toLocaleDateString()}
+            />
+            <AnimatedAxis
+              key={`value-axis-min`}
+              // label={'Value'}
+              orientation={'left'}
+              numTicks={4}
+              animationTrajectory={'min'}
+              hideAxisLine
+            // tickFormat={}
+            />
+            <AnimatedGrid
+              key={`grid-min`} // force animate on update
+              rows={true}
+              columns={true}
+              animationTrajectory={'min'}
+              numTicks={8}
+            />
+
+            {tokenData.map((item, i) => {
+              const idString = `stacked-area-${item.name}`
+              return (
+                <LinearGradient
+                  key={idString}
+                  id={idString}
+                  to={customTheme.colors[i]}
+                  from={customTheme.colors[i]}
+                  fromOpacity={1}
+                  toOpacity={0.2}
+                  rotate="12"
+                />
+              )
+            }
+            )}
+            {areaChart && (
+              <AnimatedAreaStack curve={curveLinear} offset='none' renderLine={true}>
+                {tokenData.map((token, i) => {
+                  const idString = `stacked-area-${token.name}`
+                  return (
+                    <AnimatedAreaSeries
+                      key={idString}
+                      dataKey={token.name}
+                      data={token.transformedHistory}
+                      xAccessor={datum => datum.date}
+                      yAccessor={datum => datum.value}
+                      // fillOpacity={1}
+                      fill={`url(#${idString})`}
+                    />
+                  )
+                }
+                )}
+              </AnimatedAreaStack>
+            )}
+            {!areaChart && (
+              <>
+                {/* {tokenData.map(token => (
             <AnimatedLineSeries
               key={token.name}
               dataKey={token.name}
@@ -288,59 +303,60 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
               curve={curveLinear}
             />
           ))} */}
-          {tokenData.map(token => {
-            const idString = `stacked-area-${token.name}`
-            return (
-              <AnimatedAreaSeries
-                key={token.name}
-                dataKey={token.name}
-                data={token.transformedHistory}
-                xAccessor={datum => datum.date}
-                yAccessor={datum => datum.value}
-                fillOpacity={1}
-                fill={`url(#${idString})`}
-              />
-            )
-          })}
-        </>
-      )}
+                {tokenData.map(token => {
+                  const idString = `stacked-area-${token.name}`
+                  return (
+                    <AnimatedAreaSeries
+                      key={token.name}
+                      dataKey={token.name}
+                      data={token.transformedHistory}
+                      xAccessor={datum => datum.date}
+                      yAccessor={datum => datum.value}
+                      fillOpacity={1}
+                      fill={`url(#${idString})`}
+                    />
+                  )
+                })}
+              </>
+            )}
 
-      <Tooltip<Accessors>
-        showHorizontalCrosshair={false}
-        showVerticalCrosshair={true}
-        snapTooltipToDatumX={areaChart ? true : false}
-        snapTooltipToDatumY={false}
-        showSeriesGlyphs={true}
-        renderTooltip={({ tooltipData, colorScale }) => (
-          <>
-            {(tooltipData?.nearestDatum?.datum &&
-              new Date(accessors.date(tooltipData?.nearestDatum?.datum)).toLocaleDateString()) ||
-              'No date'}
-            <br />
-            <br />
-            {Object.keys(tooltipData?.datumByKey ?? {}).map((tokenName) => {
-              const datum = tooltipData?.datumByKey[tokenName]?.datum;
-              const value = accessors.y[tokenName](datum);
-              if (value) return (
-                <div key={tokenName}>
-                  <em
-                    style={{
-                      color: colorScale?.(tokenName),
-                      textDecoration: tooltipData?.nearestDatum?.key === tokenName ? 'underline' : undefined,
-                    }}
-                  >
-                    {tokenName}
-                  </em>{' '}
-                  {/* Display the value of the series */}
-                  {value.toFixed(2)}
-                </div>
-              );
-            })}
-          </>
+            <Tooltip<Accessors>
+              showHorizontalCrosshair={false}
+              showVerticalCrosshair={true}
+              snapTooltipToDatumX={areaChart ? true : false}
+              snapTooltipToDatumY={false}
+              showSeriesGlyphs={true}
+              renderTooltip={({ tooltipData, colorScale }) => (
+                <>
+                  {(tooltipData?.nearestDatum?.datum &&
+                    new Date(accessors.date(tooltipData?.nearestDatum?.datum)).toLocaleDateString()) ||
+                    'No date'}
+                  <br />
+                  <br />
+                  {Object.keys(tooltipData?.datumByKey ?? {}).map((tokenName) => {
+                    const datum = tooltipData?.datumByKey[tokenName]?.datum;
+                    const value = accessors.y[tokenName](datum);
+                    if (value) return (
+                      <div key={tokenName}>
+                        <em
+                          style={{
+                            color: colorScale?.(tokenName),
+                            textDecoration: tooltipData?.nearestDatum?.key === tokenName ? 'underline' : undefined,
+                          }}
+                        >
+                          {tokenName}
+                        </em>{' '}
+                        {/* Display the value of the series */}
+                        {value.toFixed(2)}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            />
+          </XYChart>
         )}
-      />
-    </XYChart>
-
+    </>
   );
 }
 
