@@ -192,8 +192,8 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
           )
         })}
       </Box>
-      {loading && <BouncingDotsLoader />}
       <div ref={ref}></div>
+      {loading && <BouncingDotsLoader />}
     </>
   );
 };

@@ -76,7 +76,7 @@ export default (req: NextApiRequest, res: NextApiResponse) => {
   const convertedHistory = cachedTradeHistory.map(trade => ({
     ...trade,
     price: trade.price ? trade.price * rate : undefined,
-    totalExchange: trade.totalExchange ? trade.totalExchange * rate : undefined,
+    // totalExchange: trade.totalExchange ? trade.totalExchange * rate : undefined,
   }));
 
   // Apply limit and offset
