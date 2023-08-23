@@ -19,8 +19,7 @@ import { tokenListInfo } from '@utils/assetsNew';
 import { INftItem } from '@components/portfolio/NftList';
 import ValueLocked from '@components/portfolio/ValueLocked';
 import { Currencies } from '@utils/currencies';
-import XyChart from '@components/charts/xyChart/XyChart';
-import ParentSize from '@visx/responsive/lib/components/ParentSize';
+import XyChart from '@src/components/charts/XyChart';
 import { adjustDecimals } from '@src/utils/general';
 
 export interface IExtendedToken extends IPieToken {
