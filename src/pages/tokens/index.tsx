@@ -96,7 +96,7 @@ export interface ITimeframe {
 const Tokens: FC = () => {
   const theme = useTheme()
   const router = useRouter()
-  const upSm = useMediaQuery(theme.breakpoints.up('sm'))
+  const upLg = useMediaQuery(theme.breakpoints.up('lg'))
   const [loading, setLoading] = useState(false)
   const [currency, setCurrency] = useState<Currencies>('USD')
   const [ergExchange, setErgExchange] = useState(1)
@@ -280,134 +280,219 @@ const Tokens: FC = () => {
 
 
       <Paper>
-        <Box sx={{
-          py: 1,
-
-        }}
-        >
-          <Grid container spacing={1} alignItems="center">
-            <Grid xs={3}>
-              <Typography sx={{ ml: 2 }}>
-                Token
-              </Typography>
-            </Grid>
-            <Grid xs={2}>
-              Price
-            </Grid>
-            <Grid xs={1}>
-              H
-            </Grid>
-            <Grid xs={1}>
-              D
-            </Grid>
-            <Grid xs={1}>
-              W
-            </Grid>
-            <Grid xs={1}>
-              M
-            </Grid>
-            <Grid xs={1}>
-              <Typography>
-                Volume
-              </Typography>
-              <Typography>
-                Liquidity
-              </Typography>
-            </Grid>
-            <Grid xs={1}>
-              <Typography>
-                Transactions
-              </Typography>
-              <Typography>
-                Market Cap
-              </Typography>
-            </Grid>
-            <Grid xs={1}>
-              <Typography>
-                Buys
-              </Typography>
-              <Typography>
-                Sells
-              </Typography>
-            </Grid>
-          </Grid>
-        </Box>
-        {filteredTokens.map((token, i) => {
-          return (
-            <Box key={token.name}
-              sx={{
-                py: 1,
-                background: i % 2 ? '' : theme.palette.background.paper,
-                userSelect: 'none',
-                '&:hover': {
-                  background: theme.palette.background.hover,
-                  cursor: 'pointer'
-                }
-              }}
-              onClick={(e) => {
-                e.preventDefault()
-                router.push(`/tokens/${token.tokenId}`)
-              }}
-            >
-              <Grid container spacing={2} alignItems="center">
-                <Grid xs={3}>
-                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
-                    <Box sx={{ display: 'flex' }}>
-                      <Avatar src={token.icon} sx={{ width: '48px', height: '48px' }} />
+        {upLg
+          ? (
+            <>
+              <Box sx={{ py: 1 }}>
+                <Grid container spacing={1} alignItems="center">
+                  <Grid xs={3}>
+                    <Typography sx={{ ml: 2 }}>
+                      Token
+                    </Typography>
+                  </Grid>
+                  <Grid xs={2}>
+                    Price
+                  </Grid>
+                  <Grid xs={1}>
+                    H
+                  </Grid>
+                  <Grid xs={1}>
+                    D
+                  </Grid>
+                  <Grid xs={1}>
+                    W
+                  </Grid>
+                  <Grid xs={1}>
+                    M
+                  </Grid>
+                  <Grid xs={1}>
+                    <Typography>
+                      Volume
+                    </Typography>
+                    <Typography>
+                      Liquidity
+                    </Typography>
+                  </Grid>
+                  <Grid xs={1}>
+                    <Typography>
+                      Transactions
+                    </Typography>
+                    <Typography>
+                      Market Cap
+                    </Typography>
+                  </Grid>
+                  <Grid xs={1}>
+                    <Typography>
+                      Buys
+                    </Typography>
+                    <Typography>
+                      Sells
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+              <Box sx={{ height: '65vh', overflowY: 'scroll', overflowX: 'hidden' }}>
+                {filteredTokens.map((token, i) => {
+                  return (
+                    <Box key={token.name}
+                      sx={{
+                        py: 1,
+                        background: i % 2 ? '' : theme.palette.background.paper,
+                        userSelect: 'none',
+                        '&:hover': {
+                          background: theme.palette.background.hover,
+                          cursor: 'pointer'
+                        }
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        router.push(`/tokens/${token.tokenId}`)
+                      }}
+                    >
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid xs={3}>
+                          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
+                            <Box sx={{ display: 'flex' }}>
+                              <Avatar src={token.icon} sx={{ width: '48px', height: '48px' }} />
+                            </Box>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {token.name}
+                              </Typography>
+                              <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {token.ticker.toUpperCase()}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                        <Grid xs={2}>
+                          {currencies[currency] + formatNumber(currency === 'USD' ? token.price * ergExchange : token.price, 4)}
+                        </Grid>
+                        <Grid xs={1}>
+                          {formatPercent(token.pctChange1h * 100)}
+                        </Grid>
+                        <Grid xs={1}>
+                          {formatPercent(token.pctChange1d * 100)}
+                        </Grid>
+                        <Grid xs={1}>
+                          {formatPercent(token.pctChange1w * 100)}
+                        </Grid>
+                        <Grid xs={1}>
+                          {formatPercent(token.pctChange1m * 100)}
+                        </Grid>
+                        <Grid xs={1}>
+                          <Typography>
+                            V {currencies[currency] + formatNumber(currency === 'USD' ? token.vol * ergExchange : token.vol, 2)}
+                          </Typography>
+                          <Typography>
+                            L {currencies[currency] + formatNumber(currency === 'USD' ? token.liquidity * ergExchange : token.liquidity, 2)}
+                          </Typography>
+                        </Grid>
+                        <Grid xs={1}>
+                          <Typography>
+                            T {token.buys + token.sells}
+                          </Typography>
+                          <Typography>
+                            M {currencies[currency] + formatNumber(currency === 'USD' ? token.mktCap * ergExchange : token.mktCap, 2)}
+                          </Typography>
+                        </Grid>
+                        <Grid xs={1}>
+                          <Typography sx={{ color: theme.palette.up.main }}>
+                            B {token.buys}
+                          </Typography>
+                          <Typography sx={{ color: theme.palette.down.main }}>
+                            S {token.sells}
+                          </Typography>
+                        </Grid>
+                      </Grid>
                     </Box>
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                      <Typography>
-                        {token.name}
-                      </Typography>
-                      <Typography>
-                        {token.ticker.toUpperCase()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid xs={2}>
-                  {currencies[currency] + formatNumber(currency === 'USD' ? token.price * ergExchange : token.price, 4)}
-                </Grid>
-                <Grid xs={1}>
-                  {formatPercent(token.pctChange1h * 100)}
-                </Grid>
-                <Grid xs={1}>
-                  {formatPercent(token.pctChange1d * 100)}
-                </Grid>
-                <Grid xs={1}>
-                  {formatPercent(token.pctChange1w * 100)}
-                </Grid>
-                <Grid xs={1}>
-                  {formatPercent(token.pctChange1m * 100)}
-                </Grid>
-                <Grid xs={1}>
-                  <Typography>
-                    V {currencies[currency] + formatNumber(currency === 'USD' ? token.vol * ergExchange : token.vol, 2)}
-                  </Typography>
-                  <Typography>
-                    L {currencies[currency] + formatNumber(currency === 'USD' ? token.liquidity * ergExchange : token.liquidity, 2)}
-                  </Typography>
-                </Grid>
-                <Grid xs={1}>
-                  <Typography>
-                    T {token.buys + token.sells}
-                  </Typography>
-                  <Typography>
-                    M {currencies[currency] + formatNumber(currency === 'USD' ? token.mktCap * ergExchange : token.mktCap, 2)}
-                  </Typography>
-                </Grid>
-                <Grid xs={1}>
-                  <Typography sx={{ color: theme.palette.up.main }}>
-                    B {token.buys}
-                  </Typography>
-                  <Typography sx={{ color: theme.palette.down.main }}>
-                    S {token.sells}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
+                  )
+                })}
+              </Box>
+            </>
           )
-        })}
+          : (
+            <>
+              <Box sx={{ py: 1 }}>
+                <Grid container spacing={1} alignItems="center">
+                  <Grid xs={4} sm={6}>
+                    <Typography sx={{ ml: 2 }}>
+                      Token
+                    </Typography>
+                  </Grid>
+                  <Grid xs={4} sm={3}>
+                    <Typography>
+                      Price
+                    </Typography>
+                    <Typography>
+                      Percent Change
+                    </Typography>
+                  </Grid>
+                  <Grid xs={4} sm={3}>
+                    <Typography>
+                      Volume
+                    </Typography>
+                    <Typography>
+                      Transactions
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+              {filteredTokens.map((token, i) => {
+                return (
+                  <Box key={token.name}
+                    sx={{
+                      py: 1,
+                      background: i % 2 ? '' : theme.palette.background.paper,
+                      userSelect: 'none',
+                      '&:hover': {
+                        background: theme.palette.background.hover,
+                        cursor: 'pointer'
+                      }
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      router.push(`/tokens/${token.tokenId}`)
+                    }}
+                  >
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid xs>
+                        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
+                          <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
+                            <Avatar src={token.icon} sx={{ width: '36px', height: '36px' }} />
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {token.name}
+                            </Typography>
+                            <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {token.ticker.toUpperCase()}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Grid>
+                      <Grid xs={4} sm={3}>
+                        <Typography>
+                          {currencies[currency] + formatNumber(currency === 'USD' ? token.price * ergExchange : token.price, 4)}
+                        </Typography>
+                        <Typography>
+                          {formatPercent(token.pctChange1d * 100)}
+                        </Typography>
+                      </Grid>
+                      <Grid xs={4} sm={3}>
+                        <Typography>
+                          V {currencies[currency] + formatNumber(currency === 'USD' ? token.vol * ergExchange : token.vol, 2)}
+                        </Typography>
+                        <Typography>
+                          T {token.buys + token.sells}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                )
+              })}
+            </>
+          )}
       </Paper>
     </Container>
   )

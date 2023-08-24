@@ -6,7 +6,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Layout from "@components/layout/Layout";
 import Head from "next/head";
-import { ThemeContext } from "@contexts/ThemeContext";
+// import { ThemeContext } from "@contexts/ThemeContext";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import AlertWrapper, { IAlertMessages } from "@components/AlertWrapper";
@@ -35,20 +35,20 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
       <SessionProvider session={session}>
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <ThemeProvider theme={theme}>
-            <ThemeContext.Provider value={{ theme, setTheme }}>
-              <CssBaseline enableColorScheme />
-              <Layout>
-                <Component {...pageProps} />
-              </Layout>
-              <AlertWrapper
-                alerts={alert}
-                close={(i: number) => {
-                  setAlert((prevState) =>
-                    prevState.filter((_item, idx) => idx !== i)
-                  );
-                }}
-              />
-            </ThemeContext.Provider>
+            {/* <ThemeContext.Provider value={{ theme, setTheme }}> */}
+            <CssBaseline enableColorScheme />
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+            <AlertWrapper
+              alerts={alert}
+              close={(i: number) => {
+                setAlert((prevState) =>
+                  prevState.filter((_item, idx) => idx !== i)
+                );
+              }}
+            />
+            {/* </ThemeContext.Provider> */}
           </ThemeProvider>
         </LocalizationProvider>
       </SessionProvider>

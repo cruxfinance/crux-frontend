@@ -1,5 +1,5 @@
 import React, { FC, useContext } from "react";
-import { Grid, Link } from "@mui/material";
+import { Grid, Link, useTheme } from "@mui/material";
 import TelegramIcon from "@components/svgs/TelegramIcon";
 import YoutubeIcon from "@components/svgs/YoutubeIcon";
 import MediumIcon from "@components/svgs/MediumIcon";
@@ -7,7 +7,7 @@ import TwitterIcon from "@components/svgs/TwitterIcon";
 import DiscordIcon from "@components/svgs/DiscordIcon";
 import RedditIcon from "@components/svgs/RedditIcon";
 import LinkedinIcon from "@components/svgs/LinkedinIcon";
-import { ThemeContext } from "@contexts/ThemeContext";
+// import { ThemeContext } from "@contexts/ThemeContext";
 import GithubIcon from "@components/svgs/GithubIcon";
 
 interface Props {
@@ -24,7 +24,7 @@ interface Props {
 }
 
 const SocialGrid: FC<Props> = (props) => {
-  const { 
+  const {
     hoverColor,
     iconColor,
     reddit,
@@ -35,8 +35,9 @@ const SocialGrid: FC<Props> = (props) => {
     twitter,
     youtube,
     github
-   } = props;
-  const { theme } = useContext(ThemeContext);
+  } = props;
+  // const { theme } = useContext(ThemeContext);
+  const theme = useTheme()
   const iconLinkStyles = {
     color: iconColor ? iconColor : theme.palette.text.primary,
     fontSize: "inherit",

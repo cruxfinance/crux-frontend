@@ -232,7 +232,7 @@ const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen,
       <IconButton
         onClick={(e) =>
           isLg
-            ? handleClick(e)
+            ? !anchorEl ? handleClick(e) : handleClose()
             : dialogOpen
               ? handleDialogClose()
               : handleDialogOpen()
@@ -242,6 +242,7 @@ const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen,
             background: theme.palette.background.hover
           },
           borderRadius: '8px',
+          zIndex: 103
         }}
       >
         {open || dialogOpen
@@ -265,7 +266,7 @@ const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen,
             left: 0,
             bottom: 0,
             right: 0,
-            zIndex: "102",
+            zIndex: 102,
             background: theme.palette.background.default,
             mt: "60px",
             p: "16px",
