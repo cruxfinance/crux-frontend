@@ -75,10 +75,17 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
         </Grid>
       </Grid>
 
-      <Grid container spacing={4}>
+      <Grid container spacing={4} direction={{ xs: 'column', md: 'row' }}>
         <Grid>
-          <Box ref={pieChartRef}>
-            <PieChart totalValue={totalValue} tokens={reducedTokensList} currency={currency} colors={colors} activeSymbol={activeSymbol} setActiveSymbol={setActiveSymbol} />
+          <Box ref={pieChartRef} sx={{ textAlign: 'center' }}>
+            <PieChart
+              totalValue={totalValue}
+              tokens={reducedTokensList}
+              currency={currency}
+              colors={colors}
+              activeSymbol={activeSymbol}
+              setActiveSymbol={setActiveSymbol}
+            />
           </Box>
         </Grid>
         <Grid xs>

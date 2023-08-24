@@ -24,6 +24,7 @@ const lightSecondaryMain = '#FF8E53'
 const mainTheme = [{
   typography: {
     fontFamily: '"Bai Jamjuree", sans-serif',
+    fontSize: '16px',
     h1: {
       fontWeight: "700",
     },
@@ -69,11 +70,9 @@ const mainTheme = [{
     //   fontSize: '0.75rem',
     //   display: 'inline-block',
     // },
-    body1: {
-
-    },
+    // body1: {
+    // },
     body2: {
-      fontSize: '1.1667rem',
       lineHeight: '1.5',
       marginBottom: '24px',
     },
@@ -317,13 +316,6 @@ let lightTheme = createTheme({
       main: '',
     }
   },
-  typography: {
-    fontFamily: '"Bai Jamjuree", sans-serif',
-    fontSize: 16,
-    body2: {
-      color: 'rgba(51,51,51,1)',
-    }
-  },
   components: {
     MuiLink: {
       styleOverrides: {
@@ -395,16 +387,6 @@ let darkTheme = createTheme({
     },
     divider: 'rgba(120,150,150,0.25)',
     contrastThreshold: 4.5,
-  },
-  typography: {
-    fontFamily: '"Bai Jamjuree", sans-serif',
-    fontSize: 16,
-    body2: {
-      color: 'rgba(228,228,228,1)',
-    },
-    button: {
-
-    }
   },
   components: {
     MuiPaper: {

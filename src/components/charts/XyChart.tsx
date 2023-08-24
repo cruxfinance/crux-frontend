@@ -9,10 +9,10 @@ import {
   XYChart,
   darkTheme,
   AnimatedAxis,
-  AnimatedGrid
+  AnimatedGrid,
 } from '@visx/xychart';
 import { curveCardinal, curveLinear } from '@visx/curve';
-import { Box, CircularProgress, Typography, useTheme } from '@mui/material';
+import { Box, CircularProgress, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { generateGradient } from '@utils/color';
 import { GradientOrangeRed, LinearGradient } from '@visx/gradient';
 
@@ -53,6 +53,7 @@ type Accessors = {
 
 const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue }) => {
   const theme = useTheme()
+  const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const [tokenData, setTokenData] = useState<ITransformedResponses[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
@@ -236,7 +237,7 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
             <AnimatedAxis
               key={`date-axis-min`}
               orientation={'bottom'}
-              numTicks={12}
+              numTicks={upSm ? 12 : 3}
               animationTrajectory={'min'}
               tickFormat={(date) => date.toLocaleDateString()}
             />
@@ -254,7 +255,7 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
               rows={true}
               columns={true}
               animationTrajectory={'min'}
-              numTicks={8}
+              numTicks={upSm ? 8 : 3}
             />
 
             {tokenData.map((item, i) => {

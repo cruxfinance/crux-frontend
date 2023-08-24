@@ -10,11 +10,12 @@ import {
   IconButton,
   Button,
   Avatar,
-  useMediaQuery
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import Box from "@mui/material/Box";
-import Link from '@mui/material/Link'
-import { ThemeContext } from "@contexts/ThemeContext";
+import Link from '@components/Link'
+// import { ThemeContext } from "@contexts/ThemeContext";
 import Logo from '@components/svgs/Logo';
 import NotificationsMenu from '@components/notifications/NotificationsMenu'
 import UserMenu from '@components/user/UserMenu';
@@ -43,7 +44,7 @@ const pages = [
   },
   {
     name: "Trading Floor",
-    link: "/trading"
+    link: "/trading-floor"
   },
   {
     name: "Accounting",
@@ -66,10 +67,11 @@ interface IHeaderProps {
 }
 
 const Header: FC<IHeaderProps> = ({ }) => {
-  const {
-    theme,
-    // setTheme 
-  } = useContext(ThemeContext);
+  // const {
+  //   theme,
+  //   // setTheme 
+  // } = useContext(ThemeContext);
+  const theme = useTheme()
   const [navbarOpen, setNavbarOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
 
@@ -176,7 +178,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
         position="fixed"
         elevation={12}
         sx={{
-          zIndex: 101,
+          zIndex: 10001,
           border: 'none',
           top: trigger ? '-60px' : 0,
           // borderBottom: `1px solid ${theme.palette.divider}`,
@@ -247,7 +249,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 spacing={2}
               >
                 {pages.map((page, i) => (
-                  <NavigationListItem size={13} key={i} page={page} fontWeight={700} />
+                  <NavigationListItem size={16} key={i} page={page} fontWeight={700} />
                 ))}
               </Grid>
             </Grid>
@@ -287,7 +289,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
             width: "100vw",
             position: "fixed",
             top: 0,
-            zIndex: "102",
+            zIndex: 10002,
             background: theme.palette.background.default,
             mt: "60px",
             p: "16px",

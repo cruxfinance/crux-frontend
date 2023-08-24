@@ -8,7 +8,9 @@ import {
   Paper,
   Divider,
   CircularProgress,
-  Button
+  Button,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import Balance from '@components/portfolio/Balance';
@@ -35,6 +37,10 @@ export interface IReducedToken extends IPieToken {
 }
 
 const Portfolio = () => {
+  const theme = useTheme()
+  const upSm = useMediaQuery(theme.breakpoints.up("sm"));
+  const upMd = useMediaQuery(theme.breakpoints.up("md"));
+
   const [boxHeight, setBoxHeight] = useState('auto');
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({
     tokenSummary: true
@@ -131,17 +137,17 @@ const Portfolio = () => {
         }} />
       </Box>
       <Grid container alignItems="stretch" spacing={3}>
-        <Grid xs={12} md={9}>
+        <Grid xs={12} lg={9}>
           <Paper sx={{ p: 3, width: '100%' }}>
-            <Grid container spacing={4}>
-              <Grid xs={12} sm={4} >
+            <Grid container spacing={4} direction={{ xs: 'column', md: 'row' }}>
+              <Grid xs={12} md={4} >
                 <Balance />
                 {/* <Button onClick={() => setCurrency(currency === 'USD' ? 'ERG' : 'USD')}>
                   Currency
                 </Button> */}
               </Grid>
-              <Grid xs={12} sm={8} container>
-                <Grid><Divider orientation="vertical" /></Grid>
+              <Grid xs={12} md={8} container direction={{ xs: 'column', md: 'row' }}>
+                <Grid>{upMd ? <Divider orientation="vertical" /> : <Divider />}</Grid>
                 <Grid xs>
                   <TokenSummary
                     totalValue={totalValue}
@@ -156,20 +162,22 @@ const Portfolio = () => {
             </Grid>
           </Paper>
         </Grid>
-        <Grid xs={12} md={3}>
+        <Grid xs={12} sm={6} lg={3}>
           <Paper sx={{ p: 3, width: '100%', height: '100%' }}>
             <NftList tokenList={filteredNfts} boxHeight={boxHeight} setBoxHeight={setBoxHeight} />
           </Paper>
         </Grid>
-        <Grid xs={12} md={3} sx={{ position: 'relative', zIndex: 10 }}>
+        <Grid xs={12} sm={6} lg={3} sx={{ position: 'relative', zIndex: 10 }}>
           <Paper sx={{ p: 3, width: '100%', height: '100%' }}>
             <ValueLocked currency={currency} />
           </Paper>
         </Grid>
-        <Grid xs={12} md={9}>
-          <Paper sx={{ p: 3, width: '100%', height: '100%' }}>
-            <Button variant="contained" onClick={() => setAreaChart(!areaChart)}>Stacked chart</Button>
-            <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
+        <Grid xs={12} lg={9}>
+          <Paper sx={{ py: 3, px: upSm ? 3 : 0, width: '100%', height: '100%' }}>
+            <Box sx={{ px: upSm ? 0 : 3 }}>
+              <Button variant="contained" onClick={() => setAreaChart(!areaChart)}>Stacked chart</Button>
+            </Box>
+            <Box sx={{ height: '600px', width: upSm ? '100%' : '100vw', ml: upSm ? 0 : -1, position: 'relative' }}>
               <XyChart
                 height={600}
                 tokenList={sortedFilteredTokensList}

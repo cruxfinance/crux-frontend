@@ -30,7 +30,7 @@ export interface IPieChartProps {
 export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeSymbol, setActiveSymbol, totalValue }) => {
   const [active, setActive] = useState<IActiveToken>(null);
   const [tokensWithAngles, setTokensWithAngles] = useState<IAngledPieToken[]>([])
-  const width = 200;
+  const width = 250;
   const half = width / 2;
   const currencySymbol = currencies[currency]
 
@@ -70,7 +70,7 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
               return half - size;
             }}
             innerRadius={({ data }) => {
-              const size = active && active.name == data.name ? 20 : 16;
+              const size = active && active.name == data.name ? 26 : 20;
               return half - size;
             }}
             padAngle={0.02}
