@@ -48,14 +48,13 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
   const limit = 40;
 
   useEffect(() => {
-    if (inView && !loading) {
+    if (inView && !loading && initialLoading === false) {
+      console.log('reload')
       fetchTradeHistory(tokenId, offset);
-      setOffset(prevOffset => prevOffset + limit);
     }
   }, [inView]);
 
   async function fetchTradeHistory(tokenId: string, currentOffset: number) {
-    if (currentOffset === 0) { setInitialLoading(true) }
     setLoading(true);
     try {
       const endpoint = `${process.env.CRUX_API}/spectrum/actions`;
@@ -77,6 +76,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
       console.error('Error fetching token data:', error);
     } finally {
       if (initialLoading === true) setInitialLoading(false)
+      setOffset(prevOffset => prevOffset + limit);
       setLoading(false);
     }
   }
@@ -86,7 +86,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
       setOffset(0); // Reset the offset
       fetchTradeHistory(tokenId, 0); // Start from the beginning
     }
-  }, [tokenId, currency]);
+  }, [tokenId]);
 
   return (
     <>
