@@ -25,18 +25,18 @@ interface ITokenFilterProps {
 type FilterKey =
   'price' |
   'liquidity' |
-  'mktCap' |
-  'pctChange' |
-  'vol' |
+  'market_cap' |
+  'pct_change' |
+  'volume' |
   'buys' |
   'sells';
 
 const filterConfig: { title: string; variableName: FilterKey }[] = [
   { title: "Price", variableName: "price" },
   { title: "Liquidity", variableName: "liquidity" },
-  { title: "Market Cap", variableName: "mktCap" },
-  { title: "Percent Change", variableName: "pctChange" },
-  { title: "Volume", variableName: "vol" },
+  { title: "Market Cap", variableName: "market_cap" },
+  { title: "Percent Change", variableName: "pct_change" },
+  { title: "Volume", variableName: "volume" },
   { title: "Buys", variableName: "buys" },
   { title: "Sells", variableName: "sells" },
 ];

@@ -40,7 +40,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
   const [initialLoading, setInitialLoading] = useState(true)
   const [tradeHistory, setTradeHistory] = useState<ITrade[]>([])
 
-  const [ref, inView] = useInView({
+  const [view, inView] = useInView({
     threshold: 0,
   });
 
@@ -198,7 +198,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
           )
         })}
       </Box>
-      <div ref={ref}></div>
+      <div ref={view}></div>
       {loading && <BouncingDotsLoader />}
     </>
   );

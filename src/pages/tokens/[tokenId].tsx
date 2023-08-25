@@ -43,24 +43,7 @@ const Charts: FC = () => {
   const [tokenInfo, setTokenInfo] = useState<ITokenData | null>(null)
   const [currency, setCurrency] = useState<Currencies>('USD')
   const [exchangeRate, setExchangeRate] = useState(1)
-
-  const defaultWidgetProps: Partial<ChartingLibraryWidgetOptions> | undefined = useMemo(() => {
-    if (tokenInfo !== null && tokenInfo.name !== undefined) {
-      return {
-        symbol: tokenInfo.name?.toUpperCase(),
-        interval: "D" as ResolutionString,
-        library_path: "/static/charting_library/",
-        locale: "en",
-        charts_storage_url: "https://saveload.tradingview.com",
-        charts_storage_api_version: "1.1",
-        client_id: "tradingview.com",
-        user_id: "public_user_id",
-        fullscreen: false,
-        autosize: true,
-      }
-    }
-  }, [tokenInfo?.name]);
-
+  const [defaultWidgetProps, setDefaultWidgetProps] = useState<Partial<ChartingLibraryWidgetOptions> | undefined>(undefined)
 
   // {
   //   "action_amount": "-20000",
@@ -93,7 +76,7 @@ const Charts: FC = () => {
 
       const dataArray = await response.json();
       const data = dataArray[0]
-      const tokenInfo = {
+      const thisTokenInfo = {
         name: data.quote_token,
         ticker: data.quote_token,
         tokenId: tokenId,
@@ -110,7 +93,21 @@ const Charts: FC = () => {
         mktCap: 0
       };
       setExchangeRate(data.ergo_price)
-      setTokenInfo(tokenInfo);
+      if (thisTokenInfo !== null && thisTokenInfo.name !== undefined) {
+        setDefaultWidgetProps({
+          symbol: thisTokenInfo.name?.toUpperCase(),
+          interval: "D" as ResolutionString,
+          library_path: "/static/charting_library/",
+          locale: "en",
+          charts_storage_url: "https://saveload.tradingview.com",
+          charts_storage_api_version: "1.1",
+          client_id: "tradingview.com",
+          user_id: "public_user_id",
+          fullscreen: false,
+          autosize: true,
+        })
+      }
+      setTokenInfo(thisTokenInfo);
     } catch (error) {
       console.error('Error fetching token data:', error);
     } finally {
