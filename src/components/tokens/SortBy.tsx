@@ -42,15 +42,14 @@ const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
             onChange={handleSortSelection}
             aria-label="Select sorting item"
           >
-            <MenuItem value={"price"}>Price</MenuItem>
-            <MenuItem value={"liquidity"}>Liquidity</MenuItem>
-            <MenuItem value={"mktCap"}>Market Cap</MenuItem>
-            <MenuItem value={"pctChange"}>Percent Change</MenuItem>
+            <MenuItem value={"Price"}>Price</MenuItem>
+            <MenuItem value={"Liquidity"}>Liquidity</MenuItem>
+            <MenuItem value={"MarketCap"}>Market Cap</MenuItem>
+            <MenuItem value={"PercentChange"}>Percent Change</MenuItem>
             <MenuItem value={"Volume"}>Volume</MenuItem>
-            <MenuItem value={"sells"}>Sells</MenuItem>
-            <MenuItem value={"buys"}>Buys</MenuItem>
-            <MenuItem value={"totalTransactions"}>Total transactions</MenuItem>
-
+            <MenuItem value={"Sells"}>Sells</MenuItem>
+            <MenuItem value={"Buys"}>Buys</MenuItem>
+            <MenuItem value={"TotalTransactions"}>Total transactions</MenuItem>
           </Select>
         </Grid>
         <Grid>
