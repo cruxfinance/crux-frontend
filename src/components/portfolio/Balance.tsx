@@ -5,12 +5,19 @@ import {
   Box
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
+import { currencies, Currencies } from '@utils/currencies';
+import { formatNumber } from '@utils/general';
 
-interface IBalance {
 
+export interface IBalance {
+  balance: number;
+  currency: Currencies;
+  tvl: number;
+  apy: number;
+  pctChange: number;
 }
 
-const Balance: FC<IBalance> = ({ }) => {
+const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange }) => {
   return (
     <Grid container spacing={2} alignItems="space-between" sx={{ height: '100%' }}>
       <Grid xs={12}>
@@ -21,12 +28,12 @@ const Balance: FC<IBalance> = ({ }) => {
             </Typography>
           </Grid>
           <Grid>
-            4.5%
+            {pctChange}%
           </Grid>
         </Grid>
 
         <Typography variant="h4" sx={{ mb: 4 }}>
-          USD 16,093.23
+          {currency} {Number(balance.toFixed(2)).toLocaleString()}
         </Typography>
       </Grid>
       <Grid container xs={12}>
@@ -35,7 +42,7 @@ const Balance: FC<IBalance> = ({ }) => {
             TVL
           </Typography>
           <Typography>
-            USD 9,354.23
+            {currencies[currency]}{formatNumber(tvl, 2, true)}
           </Typography>
         </Grid>
         <Grid xs={6}>
@@ -43,7 +50,7 @@ const Balance: FC<IBalance> = ({ }) => {
             Estimated APY
           </Typography>
           <Typography>
-            42%
+            {apy}%
           </Typography>
         </Grid>
       </Grid>

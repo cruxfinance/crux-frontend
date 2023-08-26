@@ -139,8 +139,8 @@ const Filter: FC<{
               variant="filled"
               id={`${variableName}-min-filter`}
               placeholder={`Min`}
-              name={`${variableName}Min`}
-              value={inputValues[`${variableName}Min`] || ''}
+              name={`${variableName}_min`}
+              value={inputValues[`${variableName}_min`] || ''}
               onChange={(e: any) => handleChangeFilters(e)}
             />
           </Grid>
@@ -150,8 +150,8 @@ const Filter: FC<{
               variant="filled"
               id={`${variableName}-max-filter`}
               placeholder={`Max`}
-              name={`${variableName}Max`}
-              value={inputValues[`${variableName}Max`] || ''}
+              name={`${variableName}_max`}
+              value={inputValues[`${variableName}_max`] || ''}
               onChange={(e: any) => handleChangeFilters(e)}
             />
           </Grid>

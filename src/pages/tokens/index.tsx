@@ -9,7 +9,8 @@ import {
   Button,
   ToggleButtonGroup,
   ToggleButton,
-  Avatar
+  Avatar,
+  CircularProgress
 } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
 import TokenSort from '@components/tokens/SortBy'
@@ -109,6 +110,7 @@ const Tokens: FC = () => {
   const [timeframe, setTimeframe] = useState<ITimeframe>({ filter_window: 'Day' });
   const [filterModalOpen, setFilterModalOpen] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [noMore, setNoMore] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
   const [view, inView] = useInView({
     threshold: 0,
@@ -135,6 +137,7 @@ const Tokens: FC = () => {
   ) {
     setLoading(true);
     try {
+      setError(undefined)
       const endpoint = `${process.env.CRUX_API}/spectrum/token_list`;
       const payload = {
         ...filters,
@@ -150,8 +153,11 @@ const Tokens: FC = () => {
         },
         body: JSON.stringify(payload)
       });
-      // console.log(response);
+
       const data: IApiTokenData[] = await response.json();
+      // console.log(data);
+      if (data.length === 0) setNoMore(true)
+      else setNoMore(false)
       if (queries.offset === 0) {
         setFilteredTokens(data.map(mapApiDataToTokenData))
         setErgExchange(data[0].erg_price_usd)
@@ -165,12 +171,13 @@ const Tokens: FC = () => {
           offset: prevQueries.offset + 20
         }
       })
-      if (initialLoading === true) setInitialLoading(false)
+      // setInitialLoading(false)
     } catch (error) {
       console.error('Error fetching token data:', error);
       setError('Error loading tokens')
     } finally {
       setLoading(false);
+      setInitialLoading(false)
     }
   }
 
@@ -212,6 +219,7 @@ const Tokens: FC = () => {
 
   const fetchData = async (reset?: boolean) => {
     if (reset) {
+
       setQueries(prevQueries => {
         return {
           ...prevQueries,
@@ -219,7 +227,7 @@ const Tokens: FC = () => {
         }
       })
       setFilteredTokens([])
-      fetchTokenData(filters, sorting, { ...queries, offset: 0 }, timeframe);
+      await fetchTokenData(filters, sorting, { ...queries, offset: 0 }, timeframe);
     }
     else fetchTokenData(filters, sorting, queries, timeframe);
   };
@@ -236,6 +244,7 @@ const Tokens: FC = () => {
   // Reset the query to 0 and load the new list with appropriate filters and sorting
   useEffect(() => {
     if (!initialLoading) {
+      setInitialLoading(true)
       // console.log('fetching filters or sorting or timeframe')
       fetchData(true);
     }
@@ -243,15 +252,17 @@ const Tokens: FC = () => {
 
   // grab the next 20 items as the user scrolls to the bottom
   useEffect(() => {
-    if (inView && !loading) {
-      // console.log('reload')
+    if (inView && !loading && !noMore) {
       fetchData();
     }
     // console.log('inView')
   }, [inView]);
 
   useEffect(() => {
-    fetchData(true);
+    if (!initialLoading) {
+      setInitialLoading(true)
+      fetchData(true);
+    }
   }, [currency])
 
   const numberFilters = Math.round(Object.keys(filters).length / 2)
@@ -380,88 +391,112 @@ const Tokens: FC = () => {
               <Box sx={{ height: 'calc(100vh - 346px)', overflowY: 'scroll', overflowX: 'hidden' }}>
                 {loading && initialLoading
                   ? (
-                    <Box>Initial Loading...</Box>
-                  ) : (
-                    <>
-                      {filteredTokens.map((token, i) => {
-                        return (
-                          <Box key={token.name}
-                            sx={{
-                              py: 1,
-                              background: i % 2 ? '' : theme.palette.background.paper,
-                              userSelect: 'none',
-                              '&:hover': {
-                                background: theme.palette.background.hover,
-                                cursor: 'pointer'
-                              }
-                            }}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              router.push(`/tokens/${token.tokenId}`)
-                            }}
-                          >
-                            <Grid container spacing={2} alignItems="center">
-                              <Grid xs={3}>
-                                <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
-                                  <Box sx={{ display: 'flex' }}>
-                                    <Avatar src={token.icon} sx={{ width: '48px', height: '48px' }} />
+                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                      <Box sx={{ mb: 2 }}>
+                        <CircularProgress size={60} />
+                      </Box>
+                      <Typography>
+                        Loading assets...
+                      </Typography>
+                    </Box>
+                  ) : error ? (
+                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                      <Typography sx={{ mb: 2 }}>
+                        {error}
+                      </Typography>
+                      <Button variant="outlined" onClick={() => window.location.reload()}>
+                        Reload the page
+                      </Button>
+                    </Box>
+                  )
+                    : (
+                      <>
+                        {filteredTokens.map((token, i) => {
+                          return (
+                            <Box key={token.name}
+                              sx={{
+                                py: 1,
+                                background: i % 2 ? '' : theme.palette.background.paper,
+                                userSelect: 'none',
+                                '&:hover': {
+                                  background: theme.palette.background.hover,
+                                  cursor: 'pointer'
+                                }
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                router.push(`/tokens/${token.tokenId}`)
+                              }}
+                            >
+                              <Grid container spacing={2} alignItems="center">
+                                <Grid xs={3}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
+                                    <Box sx={{ display: 'flex' }}>
+                                      <Avatar src={token.icon} sx={{ width: '48px', height: '48px' }} />
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                      <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {token.name}
+                                      </Typography>
+                                      <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {token.ticker.toUpperCase()}
+                                      </Typography>
+                                    </Box>
                                   </Box>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                    <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {token.name}
-                                    </Typography>
-                                    <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {token.ticker.toUpperCase()}
-                                    </Typography>
-                                  </Box>
-                                </Box>
+                                </Grid>
+                                <Grid xs={2}>
+                                  {currencies[currency] + formatNumber(currency === 'USD' ? token.price * ergExchange : token.price, 4)}
+                                </Grid>
+                                <Grid xs={1}>
+                                  {formatPercent(token.pctChange1h * 100)}
+                                </Grid>
+                                <Grid xs={1}>
+                                  {formatPercent(token.pctChange1d * 100)}
+                                </Grid>
+                                <Grid xs={1}>
+                                  {formatPercent(token.pctChange1w * 100)}
+                                </Grid>
+                                <Grid xs={1}>
+                                  {formatPercent(token.pctChange1m * 100)}
+                                </Grid>
+                                <Grid xs={1}>
+                                  <Typography>
+                                    V {currencies[currency] + formatNumber(currency === 'USD' ? token.vol * ergExchange : token.vol, 2)}
+                                  </Typography>
+                                  <Typography>
+                                    L {currencies[currency] + formatNumber(currency === 'USD' ? token.liquidity * ergExchange : token.liquidity, 2)}
+                                  </Typography>
+                                </Grid>
+                                <Grid xs={1}>
+                                  <Typography>
+                                    T {token.buys + token.sells}
+                                  </Typography>
+                                  <Typography>
+                                    M {currencies[currency] + formatNumber(currency === 'USD' ? token.mktCap * ergExchange : token.mktCap, 2)}
+                                  </Typography>
+                                </Grid>
+                                <Grid xs={1}>
+                                  <Typography sx={{ color: theme.palette.up.main }}>
+                                    B {token.buys}
+                                  </Typography>
+                                  <Typography sx={{ color: theme.palette.down.main }}>
+                                    S {token.sells}
+                                  </Typography>
+                                </Grid>
                               </Grid>
-                              <Grid xs={2}>
-                                {currencies[currency] + formatNumber(currency === 'USD' ? token.price * ergExchange : token.price, 4)}
-                              </Grid>
-                              <Grid xs={1}>
-                                {formatPercent(token.pctChange1h * 100)}
-                              </Grid>
-                              <Grid xs={1}>
-                                {formatPercent(token.pctChange1d * 100)}
-                              </Grid>
-                              <Grid xs={1}>
-                                {formatPercent(token.pctChange1w * 100)}
-                              </Grid>
-                              <Grid xs={1}>
-                                {formatPercent(token.pctChange1m * 100)}
-                              </Grid>
-                              <Grid xs={1}>
-                                <Typography>
-                                  V {currencies[currency] + formatNumber(currency === 'USD' ? token.vol * ergExchange : token.vol, 2)}
-                                </Typography>
-                                <Typography>
-                                  L {currencies[currency] + formatNumber(currency === 'USD' ? token.liquidity * ergExchange : token.liquidity, 2)}
-                                </Typography>
-                              </Grid>
-                              <Grid xs={1}>
-                                <Typography>
-                                  T {token.buys + token.sells}
-                                </Typography>
-                                <Typography>
-                                  M {currencies[currency] + formatNumber(currency === 'USD' ? token.mktCap * ergExchange : token.mktCap, 2)}
-                                </Typography>
-                              </Grid>
-                              <Grid xs={1}>
-                                <Typography sx={{ color: theme.palette.up.main }}>
-                                  B {token.buys}
-                                </Typography>
-                                <Typography sx={{ color: theme.palette.down.main }}>
-                                  S {token.sells}
-                                </Typography>
-                              </Grid>
-                            </Grid>
-                          </Box>
-                        )
-                      })}
-                      <div ref={view} style={{ height: '20px' }}>{loading && <BouncingDotsLoader />}</div>
-                    </>
-                  )}
+                            </Box>
+                          )
+                        })}
+                        <Box ref={view} sx={{ minHeight: '24px' }}>
+                          {noMore &&
+                            <Typography color="text.secondary" sx={{ my: 2, textAlign: 'center', fontStyle: 'italic' }}>
+                              All tokens loaded.
+                            </Typography>
+                          }
+                          {loading && <BouncingDotsLoader />}
+                        </Box>
+                      </>
+                    )}
               </Box>
             </>
           )
@@ -495,64 +530,90 @@ const Tokens: FC = () => {
               <Box sx={{ height: 'calc(100vh - 346px)', overflowY: 'scroll', overflowX: 'hidden' }}>
                 {loading && initialLoading
                   ? (
-                    <Box>Initial Loading...</Box>
-                  ) : (
-                    <>
-                      {filteredTokens.map((token, i) => {
-                        return (
-                          <Box key={token.name}
-                            sx={{
-                              py: 1,
-                              background: i % 2 ? '' : theme.palette.background.paper,
-                              userSelect: 'none',
-                              '&:hover': {
-                                background: theme.palette.background.hover,
-                                cursor: 'pointer'
-                              }
-                            }}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              router.push(`/tokens/${token.tokenId}`)
-                            }}
-                          >
-                            <Grid container spacing={2} alignItems="center">
-                              <Grid xs>
-                                <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
-                                  <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
-                                    <Avatar src={token.icon} sx={{ width: '36px', height: '36px' }} />
+                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                      <Box sx={{ mb: 2 }}>
+                        <CircularProgress size={60} />
+                      </Box>
+                      <Typography>
+                        Loading assets...
+                      </Typography>
+                    </Box>
+                  ) :
+
+                  error ? (
+                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                      <Typography sx={{ mb: 2 }}>
+                        {error}
+                      </Typography>
+                      <Button variant="outlined" onClick={() => window.location.reload()}>
+                        Reload the page
+                      </Button>
+                    </Box>
+                  )
+                    : (
+                      <>
+                        {filteredTokens.map((token, i) => {
+                          return (
+                            <Box key={token.name}
+                              sx={{
+                                py: 1,
+                                background: i % 2 ? '' : theme.palette.background.paper,
+                                userSelect: 'none',
+                                '&:hover': {
+                                  background: theme.palette.background.hover,
+                                  cursor: 'pointer'
+                                }
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                router.push(`/tokens/${token.tokenId}`)
+                              }}
+                            >
+                              <Grid container spacing={2} alignItems="center">
+                                <Grid xs>
+                                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
+                                    <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
+                                      <Avatar src={token.icon} sx={{ width: '36px', height: '36px' }} />
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                      <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {token.name}
+                                      </Typography>
+                                      <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {token.ticker.toUpperCase()}
+                                      </Typography>
+                                    </Box>
                                   </Box>
-                                  <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                    <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {token.name}
-                                    </Typography>
-                                    <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {token.ticker.toUpperCase()}
-                                    </Typography>
-                                  </Box>
-                                </Box>
+                                </Grid>
+                                <Grid xs={4} sm={3}>
+                                  <Typography>
+                                    {currencies[currency] + formatNumber(currency === 'USD' ? token.price * ergExchange : token.price, 4)}
+                                  </Typography>
+                                  <Typography>
+                                    {formatPercent(token.pctChange1d * 100)}
+                                  </Typography>
+                                </Grid>
+                                <Grid xs={4} sm={3}>
+                                  <Typography>
+                                    V {currencies[currency] + formatNumber(currency === 'USD' ? token.vol * ergExchange : token.vol, 2)}
+                                  </Typography>
+                                  <Typography>
+                                    T {token.buys + token.sells}
+                                  </Typography>
+                                </Grid>
                               </Grid>
-                              <Grid xs={4} sm={3}>
-                                <Typography>
-                                  {currencies[currency] + formatNumber(currency === 'USD' ? token.price * ergExchange : token.price, 4)}
-                                </Typography>
-                                <Typography>
-                                  {formatPercent(token.pctChange1d * 100)}
-                                </Typography>
-                              </Grid>
-                              <Grid xs={4} sm={3}>
-                                <Typography>
-                                  V {currencies[currency] + formatNumber(currency === 'USD' ? token.vol * ergExchange : token.vol, 2)}
-                                </Typography>
-                                <Typography>
-                                  T {token.buys + token.sells}
-                                </Typography>
-                              </Grid>
-                            </Grid>
-                          </Box>
-                        )
-                      })}
-                      <div ref={view} style={{ height: '20px' }}>{loading && <BouncingDotsLoader />}</div>
-                    </>)}
+                            </Box>
+                          )
+                        })}
+                        <Box ref={view} sx={{ minHeight: '24px' }}>
+                          {noMore &&
+                            <Typography color="text.secondary" sx={{ my: 2, textAlign: 'center', fontStyle: 'italic' }}>
+                              All tokens loaded.
+                            </Typography>
+                          }
+                          {loading && <BouncingDotsLoader />}
+                        </Box>
+                      </>)}
               </Box>
             </>
           )}
