@@ -106,14 +106,14 @@ const mainTheme = [{
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '24px',
+          borderRadius: '6px',
           // verticalAlign: 'top',
           textTransform: 'none',
         },
         contained: {
           '&:not([disabled])': {
             // color: '#ffffff',
-            padding: '0 12px',
+            padding: '4px 12px',
             border: `2px solid ${lightPrimaryMain}`,
             background: `linear-gradient(60deg, ${lightPrimaryMain} 30%, ${lightSecondaryMain} 90%)`,
             transition: 'transform .2s ease-out, background .1s ease-out, box-shadow .1s ease-in-out',
@@ -125,7 +125,7 @@ const mainTheme = [{
           },
         },
         outlined: {
-          padding: '2px 12px'
+          padding: '6px 12px'
         }
       },
     },
@@ -146,8 +146,8 @@ const mainTheme = [{
           borderStyle: 'solid',
           borderWidth: '1px',
           '& input': {
-            paddingTop: '10px',
-            paddingBottom: '10px',
+            paddingTop: '7px',
+            paddingBottom: '7px',
           },
           '&::before': {
             display: 'none',
@@ -466,7 +466,30 @@ let darkTheme = createTheme({
     MuiFilledInput: {
       styleOverrides: {
         root: {
-          borderColor: 'rgba(255, 255, 255, 0.12)'
+          borderColor: 'rgba(200, 225, 255, 0.2)',
+          background: 'radial-gradient(at right top, rgba(16,20,34,0.9), rgba(1, 4, 10, 0.9))',
+          backdropFilter: "blur(10px)",
+          boxShadow: `10px 10px 20px 5px rgba(0,0,0,0.8)`,
+          '&:before': {
+            content: '""',
+            position: 'absolute',
+            zIndex: -1,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            // height: '1px',
+            padding: '1px',
+            borderRadius: '15px',
+            background: 'linear-gradient(to right, rgba(16,20,34,0.4), rgba(76,32,70,0.1), rgba(120,20,70,0.1), rgba(16,20,34,0.4))',
+            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude'
+          },
+          '&:hover': {
+            borderColor: lightPrimaryMain
+          }
         }
       }
     },

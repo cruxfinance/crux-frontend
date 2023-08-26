@@ -1,4 +1,4 @@
-import React, { FC, useEffect } from "react";
+import React, { FC, useEffect, useState } from "react";
 import {
   Button,
   Dialog,
@@ -12,9 +12,24 @@ import {
   ListItemAvatar,
   Avatar,
   ListItemText,
-  ListItemButton
+  ListItemButton,
+  Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box
 } from "@mui/material";
 import { signIn } from "next-auth/react"; // Import signIn from next-auth
+import nautilusIcon from "@public/icons/nautilus.png";
+import githubIcon from "@public/icons/github-mark-white.png";
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
+
+declare global {
+  interface Window {
+    ergoConnector: any;
+  }
+}
 
 interface ISignIn {
   open: boolean;
@@ -22,11 +37,14 @@ interface ISignIn {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const VESPR_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbDpzcGFjZT0icHJlc2VydmUiIHZpZXdCb3g9IjAgMCA2NDAgNjQwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJyZ2JhKDksIDE0LCAyMiwgMSkiIHJ4PSIxMDAiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJtNDU1LjUxOCAxNzguMDQwOC0xMzUuMjQzNiAxODIuNzV2LS43Mzk2TDE4NC45NjIgMTc3LjE4MDhINzAuOTI2bDM1LjE3NCA0Ny41NThoMzMuOTE4NEwzMjAuMjA1NiA0NjIuMTE2di45NjMybDE4MC4yNTYtMjM3LjQ5NzZINTM0LjM4bDM1LjE3NC00Ny41NDA4SDQ1NS41MTh6Ii8+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgZD0iTTMwMC45OTkgMTAyaC4wMDIiLz48L3N2Zz4='
-
 export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const [isNautilusAvailable, setNautilusAvailable] = useState(false);
+
+  useEffect(() => {
+    setNautilusAvailable(!!window.ergoConnector?.nautilus);
+  }, []);
 
   const handleClose = () => {
     setOpen(false)
@@ -34,7 +52,7 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
 
   const handleConnect = (walletName: string) => {
     setLoading(true)
-    // walletContext.connect(walletName)
+    window.ergoConnector[walletName].connect()
     handleClose()
   }
 
@@ -63,41 +81,50 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
         <DialogTitle
           sx={{
             textAlign: "center",
-            fontWeight: "800",
+            // fontWeight: "800",
             fontSize: "32px",
           }}
         >
-          {/* {walletContext.connected ? "Wallet Connected" : "Connect Wallet"} */}
+          Choose a provider
         </DialogTitle>
-        <DialogContent sx={{ minWidth: '350px', pb: 0 }}>
-          {/* {walletContext.connecting ? (
-            <CircularProgress sx={{ ml: 2, color: "black" }} size={"1.2rem"} />
-          ) : ( */}
+        <DialogContent sx={{ minWidth: '250px', pb: 0 }}>
+          <Box sx={{ mb: 2 }}>
+            <Accordion sx={{ border: `1px solid ${theme.palette.divider}`, boxShadow: 'none', background: 'rgba(150,150,150,0.03)' }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                New users: read this first
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography sx={{ mb: 2 }}>
+                  The auth provider you select will be your login on all devices. If you choose to create your account with an Ergo wallet, please make sure you have access to it on all devices.
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  It is OK to login with Nautilus on desktop and mobile wallet on your phone, as long as you have the same address available on both devices.
+                </Typography>
+                <Typography sx={{ mb: 2 }}>
+                  You may add multiple wallets to your account with Premium membership, but the one you select now will be your master login.
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
+          </Box>
+
           {(
             <List>
-              {/* {wallets.map((wallet, i) => {
-                if (wallet.icon === VESPR_ICON && i > 0) return null
-                return (
-                  <ListItemButton key={i} onClick={() => handleConnect(wallet.name)}>
-                    <ListItemAvatar>
-                      <Avatar
-                        alt={
-                          wallet.icon === VESPR_ICON ? 'Vespr Icon' : wallet.name + ' Icon'
-                        }
-                        src={wallet.icon}
-                        sx={{ height: '24px', width: '24px' }}
-                        variant="square"
-                      />
-                    </ListItemAvatar>
-                    <ListItemText primary={
-                      wallet.icon === VESPR_ICON ? 'Vespr' : wallet.name
-                    } />
-                  </ListItemButton>
-                )
-              })}*/}
+              {isNautilusAvailable && (
+                <ListItemButton onClick={() => handleConnect('nautilus')}>
+                  <ListItemAvatar>
+                    <Avatar
+                      alt='Nautilus wallet icon'
+                      src={nautilusIcon.src}
+                      sx={{ height: '24px', width: '24px' }}
+                      variant="square"
+                    />
+                  </ListItemAvatar>
+                  <ListItemText primary="Nautilus wallet" />
+                </ListItemButton>
+              )}
               <ListItemButton onClick={() => handleProviderSignIn("github")}>
                 <ListItemAvatar>
-                  <Avatar alt="GitHub Icon" src="/path/to/github-icon.png" sx={{ height: "24px", width: "24px" }} variant="square" />
+                  <Avatar alt="GitHub Icon" src={githubIcon.src} sx={{ height: "24px", width: "24px" }} variant="square" />
                 </ListItemAvatar>
                 <ListItemText primary="GitHub" />
               </ListItemButton>
