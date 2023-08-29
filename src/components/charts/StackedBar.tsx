@@ -80,6 +80,7 @@ const StackedBar: React.FC<IStacked> = ({
                   height: '100%',
                   transition: 'transform 0.3s ease, width 500ms linear',
                   zIndex: 1,
+                  borderRadius: '2px 0 0 2px',
                   transform: 'scaleY(1)',
                   '&:hover': {
                     zIndex: 2,
@@ -103,10 +104,11 @@ const StackedBar: React.FC<IStacked> = ({
               >
                 <Box
                   sx={{
-                    background: `linear-gradient(45deg, rgb(200, 216, 235) 10%, rgb(130, 219, 243) 90%)`,
+                    background: `linear-gradient(45deg, rgba(249, 51, 247, 0.75) 10%, rgb(249, 51, 247) 90%)`,
                     height: '100%',
                     transition: 'transform 0.3s ease, width 500ms linear',
                     zIndex: 1,
+                    borderRadius: '0 2px 2px 0',
                     transform: 'scaleY(1)',
                     '&:hover': {
                       zIndex: 2,

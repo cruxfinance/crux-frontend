@@ -7,6 +7,9 @@ import { currencies, Currencies } from '@src/utils/currencies';
 import { IActiveToken } from "../portfolio/TokenSummary";
 import { formatNumber } from "@src/utils/general";
 
+// REFACTOR NEEDED
+// Token ID instead of name
+
 export interface IPieToken {
   name: string;
   amount: number;

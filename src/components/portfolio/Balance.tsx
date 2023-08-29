@@ -2,12 +2,14 @@ import React, { FC, useState, useEffect } from 'react';
 import {
   Typography,
   Container,
-  Box
+  Box,
+  useTheme
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { currencies, Currencies } from '@utils/currencies';
 import { formatNumber } from '@utils/general';
-
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 export interface IBalance {
   balance: number;
@@ -18,6 +20,7 @@ export interface IBalance {
 }
 
 const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange }) => {
+  const theme = useTheme()
   return (
     <Grid container spacing={2} alignItems="space-between" sx={{ height: '100%' }}>
       <Grid xs={12}>
@@ -28,7 +31,27 @@ const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange }) => {
             </Typography>
           </Grid>
           <Grid>
-            {pctChange}%
+            <Box
+              sx={{
+                color: pctChange > 0
+                  ? theme.palette.up.main
+                  : pctChange < 0
+                    ? theme.palette.down.main
+                    : '#9475d8',
+                flexDirection: 'row',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              {pctChange > 0
+                ? <ArrowUpwardIcon />
+                : pctChange < 0
+                && <ArrowDownwardIcon />}
+              <Typography>
+                {pctChange}%
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
 
@@ -42,7 +65,7 @@ const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange }) => {
             TVL
           </Typography>
           <Typography>
-            {currencies[currency]}{formatNumber(tvl, 2, true)}
+            {currencies[currency]}{tvl.toLocaleString()}
           </Typography>
         </Grid>
         <Grid xs={6}>
@@ -50,7 +73,7 @@ const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange }) => {
             Estimated APY
           </Typography>
           <Typography>
-            {apy}%
+            {apy !== 0 ? apy : '-'}%
           </Typography>
         </Grid>
       </Grid>
