@@ -36,12 +36,16 @@ export interface IExtendedToken extends IPieToken {
 
 export interface IReducedToken extends IPieToken {
   tokenId: string;
+  description?: string;
   pctChange?: number;
+  wrappedTokenNames?: string[];
+  wrappedTokenIds?: string[];
+  wrappedTokenAmounts?: number[];
 }
 
 interface IPortfolioToken {
   token_amount: number;
-  wrapped_tokens: [];
+  wrapped_tokens: IPortfolioToken[];
   token_id: string;
   token_name: string;
   token_description: string;
@@ -66,6 +70,7 @@ const Portfolio = () => {
   const [sortedFilteredTokensList, setSortedFilteredTokensList] = useState<IReducedToken[]>([])
   // const [tokenList, setTokenList] = useState<IPortfolioToken[]>([])
   const [addressList, setAddressList] = useState<string[]>([])
+  const [totalValueLocked, setTotalValueLocked] = useState<number | undefined>(undefined)
   const [balanceProps, setBalanceProps] = useState<IBalance>({
     balance: 0,
     currency: 'USD',
@@ -75,67 +80,113 @@ const Portfolio = () => {
   })
 
   async function fetchTokenData(): Promise<IPortfolioToken[]> {
-    try {
-      setLoading(
-        prev => {
-          return {
-            ...prev,
-            fetchPortfolio: true
+    if (addressList.length > 0) {
+      try {
+        setLoading(
+          prev => {
+            return {
+              ...prev,
+              fetchPortfolio: true
+            }
           }
-        }
-      );
-      console.log('fetch')
-      const endpoint = `${process.env.CRUX_API}/crux/portfolio`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json'
-        },
-        body: JSON.stringify({ "addresses": addressList })
-      });
+        );
+        console.log('fetch')
+        const endpoint = `${process.env.CRUX_API}/crux/portfolio`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json'
+          },
+          body: JSON.stringify({ "addresses": addressList })
+        });
 
-      const data: IPortfolioToken[] = await response.json();
-      console.log(data);
-      // setTokenList(data)
-      // setInitialLoading(false)
-      setLoading(
-        prev => {
-          return {
-            ...prev,
-            fetchPortfolio: false
+        const data: IPortfolioToken[] = await response.json();
+        console.log(data);
+        // setTokenList(data)
+        // setInitialLoading(false)
+        setLoading(
+          prev => {
+            return {
+              ...prev,
+              fetchPortfolio: false
+            }
           }
-        }
-      );
-      return data
-    } catch (error) {
-      console.error('Error fetching token data:', error);
-      setLoading(
-        prev => {
-          return {
-            ...prev,
-            fetchPortfolio: false
+        );
+        return data
+      } catch (error) {
+        console.error('Error fetching token data:', error);
+        setLoading(
+          prev => {
+            return {
+              ...prev,
+              fetchPortfolio: false
+            }
           }
-        }
-      );
-      return []
+        );
+        return []
+      }
     }
+    else return []
   }
+
+  const calculateWrappedTokensValue = (token: IPortfolioToken) => {
+    let totalValue = 0;
+
+    // if there are wrapped tokens, check each of them for value
+    if (token.wrapped_tokens && token.wrapped_tokens.length) {
+      token.wrapped_tokens.forEach(wrappedToken => {
+        totalValue += calculateWrappedTokensValue(wrappedToken);
+      });
+    }
+
+    // If the totalValue from wrapped tokens is still 0, then consider the parent token's value
+    if (totalValue === 0 && token.value_in_erg > 0) {
+      totalValue += adjustDecimals(token.token_amount, token.decimals) * token.value_in_erg;
+    }
+
+    return totalValue;
+  };
 
   async function fetchData() {
     const data = await fetchTokenData()
 
     // remove NFTs & tokens with no dex value
-    const mainList = data.filter((item) => item.value_in_erg > 0).map((item, i) => {
-      return item
-    })
+    const mainList = data.filter((item) => calculateWrappedTokensValue(item) > 0)
 
-    // do this to make the value of each token have the correct number of decimals
-    const transformAmounts: IReducedToken[] = mainList.map(({ decimals, ...item }) => {
+    // This is meant to adjust token amounts with correct decimals
+    // It also gathers the over-all value of any tokens which contained locked value in wrapped tokens
+    const transformAmounts: IReducedToken[] = mainList.map((item) => {
+      if (item.token_name.includes("Stake Key") || item.token_name.includes("Vesting Key")) {
+        const newItem = {
+          name: item.token_name.includes("Stake Key")
+            ? item.token_name.split(' ')[0] + ' (Staked)'
+            : item.wrapped_tokens[0].token_name + ' (Vested)',
+          description: item.token_description,
+          amount: adjustDecimals(item.wrapped_tokens[0].token_amount, item.wrapped_tokens[0].decimals),
+          value: item.wrapped_tokens[0].value_in_erg,
+          tokenId: item.token_id,
+          wrappedTokenIds: [item.wrapped_tokens[0].token_id],
+          wrappedTokenNames: [item.wrapped_tokens[0].token_name],
+          wrappedTokenAmounts: [adjustDecimals(item.wrapped_tokens[0].token_amount, item.wrapped_tokens[0].decimals)]
+        }
+        return newItem
+      }
       const newItem = {
         name: item.token_name,
-        amount: adjustDecimals(item.token_amount, decimals),
-        value: item.value_in_erg, // UPDATE: currency
-        tokenId: item.token_id
+        description: item.token_description,
+        amount: adjustDecimals(item.token_amount, item.decimals),
+        value: calculateWrappedTokensValue(item) / adjustDecimals(item.token_amount, item.decimals),
+        tokenId: item.token_id,
+        wrappedTokenIds: item.wrapped_tokens.length > 0
+          ? item.wrapped_tokens.map(item => item.token_id)
+          : undefined,
+        wrappedTokenNames: item.wrapped_tokens.length > 0
+          ? item.wrapped_tokens.map(item => item.token_name)
+          : undefined,
+        wrappedTokenAmounts: item.wrapped_tokens.length > 0
+          ? item.wrapped_tokens.map((item, i) =>
+            adjustDecimals(item.wrapped_tokens[i].token_amount, item.wrapped_tokens[i].decimals))
+          : undefined,
       }
       return newItem
     })
@@ -144,11 +195,16 @@ const Portfolio = () => {
     const totalTokensValue = transformAmounts.reduce((acc, token) => acc + token.amount * token.value, 0);
     setTotalValue(totalTokensValue)
 
+    const totalValueLocked = transformAmounts
+      .filter(item => item.wrappedTokenIds?.length && item.wrappedTokenIds?.length > 0)
+      .reduce((acc, token) => acc + token.amount * token.value, 0);
+    setTotalValueLocked(totalValueLocked)
+
     setBalanceProps({
       balance: totalTokensValue,
       currency: currency,
-      tvl: 150.23,
-      apy: 42.3,
+      tvl: Number(totalValueLocked.toFixed(2)),
+      apy: 0,
       pctChange: 1.2
     })
 
@@ -247,9 +303,9 @@ const Portfolio = () => {
             <Grid container spacing={4} direction={{ xs: 'column', md: 'row' }}>
               <Grid xs={12} md={4} >
                 <Balance {...balanceProps} />
-                {/* <Button onClick={() => setCurrency(currency === 'USD' ? 'ERG' : 'USD')}>
+                <Button onClick={() => setCurrency(currency === 'USD' ? 'ERG' : 'USD')}>
                   Currency
-                </Button> */}
+                </Button>
               </Grid>
               <Grid xs={12} md={8} container direction={{ xs: 'column', md: 'row' }}>
                 <Grid>{upMd ? <Divider orientation="vertical" /> : <Divider />}</Grid>
@@ -257,7 +313,7 @@ const Portfolio = () => {
                   <TokenSummary
                     totalValue={totalValue}
                     tokenList={sortedFilteredTokensList}
-                    currency="USD"
+                    currency={currency}
                     boxHeight={boxHeight}
                     setBoxHeight={setBoxHeight}
                     setLoading={setLoading}

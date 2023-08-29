@@ -43,8 +43,21 @@ const Charts: FC = () => {
   const [tokenInfo, setTokenInfo] = useState<ITokenData | null>(null)
   const [currency, setCurrency] = useState<Currencies>('USD')
   const [exchangeRate, setExchangeRate] = useState(1)
+  // const [isScriptReady, setIsScriptReady] = useState(false)
   const [defaultWidgetProps, setDefaultWidgetProps] = useState<Partial<ChartingLibraryWidgetOptions> | undefined>(undefined)
 
+  // let defaultWidgetProps: Partial<ChartingLibraryWidgetOptions> = {
+  //   symbol: tokenInfo?.name?.toUpperCase(),
+  //   interval: "1D" as ResolutionString,
+  //   library_path: "/static/charting_library/",
+  //   locale: "en",
+  //   // charts_storage_url: "https://saveload.tradingview.com",
+  //   // charts_storage_api_version: "1.1",
+  //   // client_id: "tradingview.com",
+  //   // user_id: "public_user_id",
+  //   fullscreen: false,
+  //   autosize: true,
+  // }
   // {
   //   "action_amount": "-20000",
   //   "action_type": "Sell",
@@ -96,13 +109,13 @@ const Charts: FC = () => {
       if (thisTokenInfo !== null && thisTokenInfo.name !== undefined) {
         setDefaultWidgetProps({
           symbol: thisTokenInfo.name?.toUpperCase(),
-          interval: "D" as ResolutionString,
+          interval: "1D" as ResolutionString,
           library_path: "/static/charting_library/",
           locale: "en",
-          charts_storage_url: "https://saveload.tradingview.com",
-          charts_storage_api_version: "1.1",
-          client_id: "tradingview.com",
-          user_id: "public_user_id",
+          // charts_storage_url: "https://saveload.tradingview.com",
+          // charts_storage_api_version: "1.1",
+          // client_id: "tradingview.com",
+          // user_id: "public_user_id",
           fullscreen: false,
           autosize: true,
         })
@@ -192,14 +205,14 @@ const Charts: FC = () => {
                 mb: 2
               }}>
                 {/* <Script
-              src="/static/datafeeds/udf/dist/bundle.js"
-              strategy="lazyOnload"
-              onReady={() => {
-                setIsScriptReady(true);
-              }}
-            />
-            {isScriptReady &&  */}
-                {defaultWidgetProps !== undefined
+                  src="/static/datafeeds/udf/dist/bundle.js"
+                  strategy="lazyOnload"
+                  onReady={() => {
+                    setIsScriptReady(true);
+                  }}
+                />
+                {isScriptReady && */}
+                {defaultWidgetProps !== undefined && tokenInfo.name !== undefined
                   ? <TVChartContainer {...defaultWidgetProps} />
                   : 'Chart loading'
                 }

@@ -109,7 +109,13 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
                   key={i + ':' + item.tokenId}
                 >
                   <Box sx={{ pt: '2px' }}>
-                    <Avatar src={ICON_URL + item.tokenId + '.svg'} sx={{ width: '24px', height: '24px' }} />
+                    <Avatar src={ICON_URL +
+                      (
+                        item.wrappedTokenIds && (item.wrappedTokenIds as string[]).length > 0
+                          ? item.wrappedTokenIds[0]
+                          : item.tokenId
+                      )
+                      + '.svg'} sx={{ width: '24px', height: '24px' }} />
                   </Box>
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography sx={{
@@ -121,7 +127,7 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
                     <Typography
                       sx={{ color: theme.palette.text.secondary }}
                     >
-                      {item.name}
+                      {item.name.slice(0, 4).toUpperCase()}
                     </Typography>
                   </Box>
                   <Box sx={{ textAlign: 'right' }}>
