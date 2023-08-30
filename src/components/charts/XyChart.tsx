@@ -15,8 +15,11 @@ import { curveCardinal, curveLinear } from '@visx/curve';
 import { Box, CircularProgress, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { generateGradient } from '@utils/color';
 import { GradientOrangeRed, LinearGradient } from '@visx/gradient';
+import { Currencies } from '@utils/currencies';
 
 export type XYChartProps = {
+  currency: Currencies;
+  exchangeRate: number;
   height: number;
   tokenList: IReducedToken[];
   areaChart: boolean;
@@ -51,7 +54,7 @@ type Accessors = {
   date: AccessorFunction;
 };
 
-const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue }) => {
+const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, areaChart, totalValue }) => {
   const theme = useTheme()
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const [tokenData, setTokenData] = useState<ITransformedResponses[]>([]);
@@ -117,16 +120,49 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
     const results = [];
 
     for (const token of tokens) {
-      let combinedHistory: TradingViewHistoryResponse | null = null;
-
       if (token.wrappedTokenNames && token.wrappedTokenNames.length > 0) {
-        const wrappedHistories: TradingViewHistoryResponse[] = await Promise.all(token.wrappedTokenNames.map((wrappedTokenName, idx) => {
-          const url = `${process.env.CRUX_API}/trading_view/history?symbol=${wrappedTokenName.toLowerCase()}&from=${from}&to=${Math.floor(new Date().getTime() / 1000)}&resolution=${resolution}&countback=${countback}`;
-          return fetch(url).then(res => res.json());
+        const fetchHistory = async (wrappedTokenName: string) => {
+          const tokenName = wrappedTokenName === 'erg' ? 'SigUSD' : wrappedTokenName;
+          const url = `${process.env.CRUX_API}/trading_view/history?symbol=${tokenName.toLowerCase()}&from=${from}&to=${Math.floor(new Date().getTime() / 1000)}&resolution=${resolution}&countback=${countback}`;
+          const response = await fetch(url);
+          const data: TradingViewHistoryResponse = await response.json();
+
+          if (wrappedTokenName === 'erg') {
+            const transformedData = {
+              ...data,
+              c: data.c.map(item => {
+                return currency === 'ERG' ? 1 : 1 * exchangeRate
+              })
+            }
+            return transformedData
+          }
+
+          if (currency !== 'ERG') {
+            const transformedData = {
+              ...data,
+              c: data.c.map(item => {
+                return item * exchangeRate
+              })
+            }
+            return transformedData
+          }
+
+          return data;
+        };
+
+        const wrappedHistories = await Promise.all(token.wrappedTokenNames.map((wrappedTokenName, idx) => {
+          return fetchHistory(wrappedTokenName);
         }));
 
+        // const filterNoData = wrappedHistories.filter((item) => item.s !== "no_data")
         // Once we have all wrapped histories, combine them to get one for the parent token
-        combinedHistory = combineTradingViewResponsesWithWeights(wrappedHistories, token.wrappedTokenAmounts!);
+        // combinedHistory = combineTradingViewResponsesWithWeights(wrappedHistories, token.wrappedTokenAmounts!);
+
+        const pairs = wrappedHistories.map((history, index) => ({ history, weight: token.wrappedTokenAmounts![index] }));
+        const filteredPairs = pairs.filter(pair => pair.history.s !== "no_data");
+        const filteredHistories = filteredPairs.map(pair => pair.history);
+        const filteredWeights = filteredPairs.map(pair => pair.weight);
+        const combinedHistory = combineTradingViewResponsesWithWeights(filteredHistories, filteredWeights);
 
         results.push({
           ...token,
@@ -165,9 +201,9 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
     histories.forEach((history, historyIndex) => {
       const weight = weights[historyIndex];
       history.c.forEach((value, idx) => {
-        combined.c[idx] += value * weight;
+        if (value) combined.c[idx] += value * weight;
       });
-      // Again, if you need to consider other arrays like `o`, `h`, `l`, `v`, you'd add them here
+      // If need to consider other arrays like `o`, `h`, `l`, `v`, add here
     });
 
     return combined;
@@ -233,7 +269,6 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
     paddingInner: 0.3
   } as const;
   const valueScaleConfig = { type: 'linear' } as const;
-
 
   const customTheme = buildChartTheme({
     // colors
@@ -304,7 +339,7 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
 
             {tokenData.map((token, i) => {
               const fillId = `${token.name.split(' ')[0].toLowerCase()}${i}`
-              console.log(`Gradient ${i}: ${fillId}`)
+              // console.log(`Gradient ${i}: ${fillId}`)
               return (
                 <LinearGradient
                   key={fillId}
@@ -322,7 +357,7 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
               <AnimatedAreaStack curve={curveLinear} offset='none' renderLine={true}>
                 {tokenData.map((token, i) => {
                   const fillId = `${token.name.split(' ')[0].toLowerCase()}${i}`
-                  console.log(`Area ${i}: ${fillId}`)
+                  // console.log(`Area ${i}: ${fillId}`)
                   return (
                     <AnimatedAreaSeries
                       key={fillId}
@@ -352,7 +387,7 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
           ))} */}
                 {tokenData.map((token, i) => {
                   const fillId = `${token.name.split(' ')[0].toLowerCase()}${i}`
-                  console.log(`Line ${i}: ${fillId}`)
+                  // console.log(`Line ${i}: ${fillId}`)
                   return (
                     <AnimatedAreaSeries
                       key={fillId}
@@ -360,7 +395,7 @@ const XyChart: FC<XYChartProps> = ({ height, tokenList, areaChart, totalValue })
                       data={token.transformedHistory}
                       xAccessor={datum => datum.date}
                       yAccessor={datum => datum.value}
-                      fillOpacity={1}
+                      fillOpacity={0.2}
                       fill={`url(#${fillId})`}
                     />
                   )

@@ -23,9 +23,9 @@ import { tokenListInfo } from '@utils/assetsNew';
 import { INftItem } from '@components/portfolio/NftList';
 import ValueLocked from '@components/portfolio/ValueLocked';
 import { Currencies } from '@utils/currencies';
-import XyChart from '@src/components/charts/XyChart';
-import { adjustDecimals } from '@src/utils/general';
+import { adjustDecimals } from '@utils/general';
 import { IBalance } from '@components/portfolio/Balance';
+import HistoricValues from '@components/portfolio/HistoricValues';
 
 export interface IExtendedToken extends IPieToken {
   tokenId: string;
@@ -63,7 +63,6 @@ const Portfolio = () => {
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({
     tokenSummary: true
   })
-  const [areaChart, setAreaChart] = useState(true)
   const [currency, setCurrency] = useState<Currencies>('USD')
   const [filteredNfts, setFilteredNfts] = useState<INftItem[]>([])
   const [totalValue, setTotalValue] = useState<number>(0)
@@ -71,13 +70,59 @@ const Portfolio = () => {
   // const [tokenList, setTokenList] = useState<IPortfolioToken[]>([])
   const [addressList, setAddressList] = useState<string[]>([])
   const [totalValueLocked, setTotalValueLocked] = useState<number | undefined>(undefined)
+  const [exchangeRate, setExchangeRate] = useState(1)
   const [balanceProps, setBalanceProps] = useState<IBalance>({
     balance: 0,
-    currency: 'USD',
+    currency: currency,
     tvl: 0,
     apy: 0,
     pctChange: 0
   })
+
+  const getExchange = async () => {
+    try {
+      setLoading(
+        prev => {
+          return {
+            ...prev,
+            fetchExchangeRate: true
+          }
+        }
+      );
+      console.log('fetch')
+      const endpoint = `${process.env.CRUX_API}/coingecko/erg_price`;
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-type': 'application/json'
+        },
+      });
+
+      const data = await response.json();
+      setExchangeRate(data.price)
+      setLoading(
+        prev => {
+          return {
+            ...prev,
+            fetchExchangeRate: false
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Error fetching exchange rate:', error);
+      setLoading(
+        prev => {
+          return {
+            ...prev,
+            fetchExchangeRate: false
+          }
+        }
+      );
+    }
+  }
+  useEffect(() => {
+    getExchange()
+  }, [])
 
   async function fetchTokenData(): Promise<IPortfolioToken[]> {
     if (addressList.length > 0) {
@@ -101,7 +146,7 @@ const Portfolio = () => {
         });
 
         const data: IPortfolioToken[] = await response.json();
-        console.log(data);
+        // console.log(data);
         // setTokenList(data)
         // setInitialLoading(false)
         setLoading(
@@ -171,6 +216,25 @@ const Portfolio = () => {
         }
         return newItem
       }
+      if (item.token_name.includes("Spectrum YF staking bundle")) {
+        const newItem = {
+          name: item.wrapped_tokens[0].token_name.split('_')[1] + '/' + item.wrapped_tokens[0].token_name.split('_')[0] + ' Spectrum YF',
+          description: item.token_description,
+          amount: adjustDecimals(item.token_amount, item.decimals),
+          value: calculateWrappedTokensValue(item) / adjustDecimals(item.token_amount, item.decimals),
+          tokenId: item.token_id,
+          wrappedTokenIds: item.wrapped_tokens.length > 0
+            ? flattenTokenIdsFromWrappedTokens(item.wrapped_tokens)
+            : undefined,
+          wrappedTokenNames: item.wrapped_tokens.length > 0
+            ? flattenTokenNamesFromWrappedTokens(item.wrapped_tokens)
+            : undefined,
+          wrappedTokenAmounts: item.wrapped_tokens.length > 0
+            ? flattenTokenAmountsFromWrappedTokens(item.wrapped_tokens)
+            : undefined,
+        }
+        return newItem
+      }
       const newItem = {
         name: item.token_name,
         description: item.token_description,
@@ -178,14 +242,14 @@ const Portfolio = () => {
         value: calculateWrappedTokensValue(item) / adjustDecimals(item.token_amount, item.decimals),
         tokenId: item.token_id,
         wrappedTokenIds: item.wrapped_tokens.length > 0
-          ? item.wrapped_tokens.map(item => item.token_id)
+          ? item.wrapped_tokens.map(token => token.token_id)
           : undefined,
         wrappedTokenNames: item.wrapped_tokens.length > 0
-          ? item.wrapped_tokens.map(item => item.token_name)
+          ? item.wrapped_tokens.map(token => token.token_name)
           : undefined,
         wrappedTokenAmounts: item.wrapped_tokens.length > 0
-          ? item.wrapped_tokens.map((item, i) =>
-            adjustDecimals(item.wrapped_tokens[i].token_amount, item.wrapped_tokens[i].decimals))
+          ? item.wrapped_tokens.map((token) =>
+            adjustDecimals(token.token_amount, token.decimals))
           : undefined,
       }
       return newItem
@@ -330,22 +394,12 @@ const Portfolio = () => {
         </Grid>
         <Grid xs={12} sm={6} lg={3} sx={{ position: 'relative', zIndex: 10 }}>
           <Paper sx={{ p: 3, width: '100%', height: '100%' }}>
-            <ValueLocked currency={currency} />
+            <ValueLocked currency={currency} exchangeRate={exchangeRate} tokenList={sortedFilteredTokensList} />
           </Paper>
         </Grid>
         <Grid xs={12} lg={9}>
           <Paper sx={{ py: 3, px: upSm ? 3 : 0, width: '100%', height: '100%' }}>
-            <Box sx={{ px: upSm ? 0 : 3 }}>
-              <Button variant="contained" onClick={() => setAreaChart(!areaChart)}>Stacked chart</Button>
-            </Box>
-            <Box sx={{ height: '600px', width: upSm ? '100%' : '100vw', ml: upSm ? 0 : -1, position: 'relative' }}>
-              <XyChart
-                height={600}
-                tokenList={sortedFilteredTokensList}
-                areaChart={areaChart} // false for line chart
-                totalValue={totalValue}
-              />
-            </Box>
+            <HistoricValues tokenList={sortedFilteredTokensList} totalValue={totalValue} currency={currency} exchangeRate={exchangeRate} />
           </Paper>
         </Grid>
       </Grid>
@@ -355,10 +409,45 @@ const Portfolio = () => {
 
 export default Portfolio;
 
+// helper functions
+
 const chunkArray = (array: any[], chunkSize: number) => {
   return Array.from({ length: Math.ceil(array.length / chunkSize) }, (_, index) => {
     const start = index * chunkSize;
     const end = start + chunkSize;
     return array.slice(start, end);
   });
+}
+
+const flattenTokenIdsFromWrappedTokens = (wrappedTokens: IPortfolioToken[]) => {
+  let ids: string[] = [];
+  for (const token of wrappedTokens) {
+    ids.push(token.token_id);
+    if (token.wrapped_tokens.length > 0) {
+      ids = ids.concat(flattenTokenIdsFromWrappedTokens(token.wrapped_tokens));
+    }
+  }
+  return ids;
+}
+
+const flattenTokenNamesFromWrappedTokens = (wrappedTokens: IPortfolioToken[]) => {
+  let names: string[] = [];
+  for (const token of wrappedTokens) {
+    names.push(token.token_name);
+    if (token.wrapped_tokens.length > 0) {
+      names = names.concat(flattenTokenNamesFromWrappedTokens(token.wrapped_tokens));
+    }
+  }
+  return names;
+}
+
+const flattenTokenAmountsFromWrappedTokens = (wrappedTokens: IPortfolioToken[]) => {
+  let amounts: number[] = [];
+  for (const token of wrappedTokens) {
+    amounts.push(adjustDecimals(token.token_amount, token.decimals));
+    if (token.wrapped_tokens.length > 0) {
+      amounts = amounts.concat(flattenTokenAmountsFromWrappedTokens(token.wrapped_tokens));
+    }
+  }
+  return amounts;
 }
