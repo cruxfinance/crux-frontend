@@ -9,6 +9,7 @@ import Grid from '@mui/system/Unstable_Grid/Grid';
 interface IStacked extends ITvl {
   currency: Currencies;
   longestBar: number;
+  exchangeRate: number;
 }
 
 const StackedBar: React.FC<IStacked> = ({
@@ -21,7 +22,8 @@ const StackedBar: React.FC<IStacked> = ({
   name,
   type,
   issuer,
-  apyPct
+  apyPct,
+  exchangeRate
 }) => {
   const theme = useTheme()
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,7 +35,7 @@ const StackedBar: React.FC<IStacked> = ({
       const barLengthPct = totalValue / longestBar * 100
       const timer = setTimeout(() => {
         setContainerWidth(`${barLengthPct}%`); // this should match the desired width of the bar.
-      }, 1000); // wait for 1 second after component mounts.
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
@@ -42,14 +44,21 @@ const StackedBar: React.FC<IStacked> = ({
   const initialTokenTooltip = () => {
     const tokenAmt = totalTokens - (earnedTokens || 0)
     const worth = currencies[currency] + formatNumber(tokenAmt * value)
-    return formatNumber(tokenAmt) + ' (' + worth + ') ' + name + ' tokens added'
+    return formatNumber(tokenAmt) + ' (' + worth + ') ' + name
+      + (type.includes('YF') ? ' LP' : '')
+      + (type.includes('Staked')
+        ? ' initial tokens'
+        : type.includes('Vested')
+          ? ' tokens remaining'
+          : ' tokens')
   }
   const earnedTokensTooltip = () => {
     if (earnedTokens) {
       const worth = currencies[currency] + formatNumber(earnedTokens * value)
-      return formatNumber(earnedTokens) + ' (' + worth + ') ' + name + ' tokens earned'
+      return formatNumber(earnedTokens) + ' (' + worth + ') ' + name + ' tokens earned or added'
     }
   }
+
   return (
     <Grid container justifyContent="space-between">
       <Grid xs>
@@ -80,7 +89,7 @@ const StackedBar: React.FC<IStacked> = ({
                   height: '100%',
                   transition: 'transform 0.3s ease, width 500ms linear',
                   zIndex: 1,
-                  borderRadius: '2px 0 0 2px',
+                  borderRadius: earnedTokens ? '2px 0 0 2px' : '2px',
                   transform: 'scaleY(1)',
                   '&:hover': {
                     zIndex: 2,
@@ -90,7 +99,7 @@ const StackedBar: React.FC<IStacked> = ({
               />
             </Box>
           </Tooltip>
-          {earnedTokens && (
+          {earnedTokens !== undefined && earnedTokens > 0 && (
             <Tooltip
               title={earnedTokensTooltip()}
               arrow
@@ -104,7 +113,7 @@ const StackedBar: React.FC<IStacked> = ({
               >
                 <Box
                   sx={{
-                    background: `linear-gradient(45deg, rgba(249, 51, 247, 0.75) 10%, rgb(249, 51, 247) 90%)`,
+                    background: `linear-gradient(45deg, rgb(225, 195, 125) 10%, rgb(255, 195, 96) 90%)`,
                     height: '100%',
                     transition: 'transform 0.3s ease, width 500ms linear',
                     zIndex: 1,
@@ -122,16 +131,18 @@ const StackedBar: React.FC<IStacked> = ({
         </Box>
       </Grid>
       <Grid>
-        <Typography
-          sx={{
-            fontSize: '14px !important',
-            color: theme.palette.up.main,
-            textAlign: 'right',
-            ml: 2
-          }}
-        >
-          {apyPct && apyPct * 0.01 + '%'}
-        </Typography>
+        {apyPct && (
+          <Typography
+            sx={{
+              fontSize: '14px !important',
+              color: theme.palette.up.main,
+              textAlign: 'right',
+              ml: 2
+            }}
+          >
+            {apyPct * 0.01 + '%'}
+          </Typography>
+        )}
       </Grid>
     </Grid>
 

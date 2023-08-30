@@ -41,14 +41,17 @@ const pages = [
   {
     name: "Alerts",
     link: "/alerts",
+    disabled: true
   },
   {
     name: "Trading Floor",
-    link: "/trading-floor"
+    link: "/trading-floor",
+    disabled: true
   },
   {
     name: "Accounting",
-    link: "/accounting"
+    link: "/accounting",
+    disabled: true
   },
 ];
 
