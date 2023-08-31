@@ -234,7 +234,25 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
     const fetchData = async () => {
       try {
         setLoading(true)
-        const historyData = await getHistory(tokenList, from, resolution, 100);
+        const aggregatedTokens: IReducedToken[] = tokenList.reduce((acc: IReducedToken[], token) => {
+          const existingToken = acc.find(t => t.name === token.name);
+          if (existingToken) {
+            existingToken.amount += token.amount;
+            const newWrapped = existingToken.wrappedTokenAmounts?.map((item, i) => {
+              return item += token.wrappedTokenAmounts![i]
+            })
+            existingToken.wrappedTokenAmounts = newWrapped
+          } else {
+            acc.push({ ...token });
+          }
+
+          return acc;
+        }, []);
+
+        const sortedAggregateTokens = aggregatedTokens.sort((a, b) =>
+          b.amount * b.value - a.amount * a.value
+        )
+        const historyData = await getHistory(sortedAggregateTokens, from, resolution, 100);
         const transformedData = transformedTokensData(historyData);
 
         // Get all unique dates and fill missing values

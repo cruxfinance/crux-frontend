@@ -25,15 +25,40 @@ interface IValueLocked {
   currency: Currencies;
   exchangeRate: number;
   tokenList: IReducedToken[];
+  boxHeight: string;
 }
 
-const ValueLocked: FC<IValueLocked> = ({ currency, exchangeRate, tokenList }) => {
+const ValueLocked: FC<IValueLocked> = ({ currency, exchangeRate, tokenList, boxHeight }) => {
   const theme = useTheme()
   const [longestBarValue, setLongestBarValue] = useState(0)
   const [reducedTvlList, setReducedTvlList] = useState<ITvl[]>([])
 
   useEffect(() => {
-    const wrappedTokenList = tokenList.filter((item) => item.wrappedTokenIds?.length !== undefined && item.wrappedTokenIds?.length > 0)
+    const aggregatedTokens: IReducedToken[] = tokenList.reduce((acc: IReducedToken[], token) => {
+      const existingToken = acc.find(t => t.name === token.name);
+
+      if (existingToken) {
+        existingToken.amount += token.amount;
+        const newWrapped = existingToken.wrappedTokenAmounts?.map((item, i) => {
+          return item += token.wrappedTokenAmounts![i]
+        })
+        existingToken.wrappedTokenAmounts = newWrapped
+        if (existingToken.description?.includes("originalAmountStaked")) {
+          const current = JSON.parse(existingToken.description).originalAmountStaked
+          const newStaked = token.description && JSON.parse(token.description).originalAmountStaked
+          existingToken.description = `{"originalAmountStaked": "${current + newStaked}"}`
+        }
+      } else {
+        acc.push({ ...token });
+      }
+
+      return acc;
+    }, []);
+
+    const sortedAggregateTokens = aggregatedTokens.sort((a, b) =>
+      b.amount * b.value - a.amount * a.value
+    )
+    const wrappedTokenList = sortedAggregateTokens.filter((item) => item.wrappedTokenIds?.length !== undefined && item.wrappedTokenIds?.length > 0)
     const reducedTokens = wrappedTokenList.map((item) => {
       const rest = item.name.includes('(Staked)')
         ? { type: '(Staked)', issuer: 'Ergopad', name: item.name.split(' ')[0] }
@@ -42,16 +67,14 @@ const ValueLocked: FC<IValueLocked> = ({ currency, exchangeRate, tokenList }) =>
           : item.name.includes('Spectrum YF')
             ? { type: '(YF)', issuer: 'Spectrum', name: item.name.split(' ')[0] }
             : item.name.includes('Lend Token')
-              ? { type: '(Loan)', issuer: 'Duckpools', name: item.name.split(' ')[0] }
+              ? { type: '(Loan)', issuer: 'Duckpools', name: item.name.split(' ')[2] }
               : { type: '', issuer: '', name: item.name }
       return {
         value: item.value,
         totalTokens: item.amount,
         earnedTokens: item.description?.includes('originalAmountStaked')
           ? item.amount - JSON.parse(item.description).originalAmountStaked
-          : item.description?.includes('Total vested')
-            ? item.amount - JSON.parse(item.description)['Total vested']
-            : undefined,
+          : undefined,
         ...rest
       }
     })
@@ -74,34 +97,36 @@ const ValueLocked: FC<IValueLocked> = ({ currency, exchangeRate, tokenList }) =>
       <Grid container alignItems="center" sx={{ mb: 2 }}>
         <Grid xs>
           <Typography variant="h6">
-            Locked Value Summary
+            Locked Value
           </Typography>
         </Grid>
         <Grid>
 
         </Grid>
       </Grid>
-      {reducedTvlList.map((item, i) => {
-        return (
-          <Box key={`${i}-${item.name}-${item.type}`} sx={{ mb: 1 }}>
-            <Grid container justifyContent="space-between" alignItems="flex-end" spacing={3}>
-              <Grid>
-                <Typography sx={{ fontSize: '15px !important', fontWeight: 600 }}>
-                  {item.name}, {item.type}
-                </Typography>
+      <Box sx={{ overflowY: 'auto', height: { xs: boxHeight, lg: '600px' }, mr: -2, pr: 2 }}>
+        {reducedTvlList.map((item, i) => {
+          return (
+            <Box key={`${i}-${item.name}-${item.type}`} sx={{ mb: 1 }}>
+              <Grid container justifyContent="space-between" alignItems="flex-end" spacing={3}>
+                <Grid>
+                  <Typography sx={{ fontSize: '15px !important', fontWeight: 600 }}>
+                    {item.name}, {item.type}
+                  </Typography>
+                </Grid>
+                <Grid xs>
+                  <Typography color="text.secondary" sx={{ fontSize: '14px !important', textAlign: 'right', overflow: 'hidden' }}>
+                    {item.issuer}
+                  </Typography>
+                </Grid>
               </Grid>
-              <Grid xs>
-                <Typography color="text.secondary" sx={{ fontSize: '14px !important', textAlign: 'right', overflow: 'hidden' }}>
-                  {item.issuer}
-                </Typography>
-              </Grid>
-            </Grid>
 
-            <StackedBar {...item} currency={currency} longestBar={longestBarValue} exchangeRate={exchangeRate} />
+              <StackedBar {...item} currency={currency} longestBar={longestBarValue} exchangeRate={exchangeRate} />
 
-          </Box>
-        )
-      })}
+            </Box>
+          )
+        })}
+      </Box>
     </Box>
   );
 };

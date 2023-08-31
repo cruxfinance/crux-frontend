@@ -115,7 +115,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
           </Grid>
         </Grid>
       </Box>
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 2, maxHeight: '75vh', overflowY: 'scroll', overflowX: 'hidden' }}>
         {!initialLoading && tradeHistory.map((item, i) => {
           const itemColor =
             item.action_type === 'Buy'
@@ -197,9 +197,11 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
             </Box>
           )
         })}
+        <Box ref={view} sx={{ minHeight: '24px' }}>
+          {loading && <BouncingDotsLoader />}
+        </Box>
       </Box>
-      <div ref={view}></div>
-      {loading && <BouncingDotsLoader />}
+
     </>
   );
 };
