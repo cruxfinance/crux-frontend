@@ -32,7 +32,7 @@ export interface PropsType {
   tokenInfo: ITokenData;
 }
 
-const TradeHistory: FC<PropsType> = ({ currency, tokenInfo }) => {
+const TokenStats: FC<PropsType> = ({ currency, tokenInfo }) => {
   const theme = useTheme();
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
 
@@ -79,7 +79,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tokenInfo }) => {
   );
 };
 
-export default TradeHistory;
+export default TokenStats;
 
 
 

@@ -142,7 +142,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
               {page.name}
             </Typography>
           ) : (
-            <Box>
+            <Box onClick={() => setNavbarOpen(false)}>
               <Link
                 href={page.link}
                 sx={{
@@ -151,6 +151,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                     color: theme.palette.primary.main,
                   },
                 }}
+
               >
                 <Typography
                   sx={{

@@ -41,7 +41,7 @@ const Charts: FC = () => {
   const tradingPair = undefined
   const [loading, setLoading] = useState(true)
   const [tokenInfo, setTokenInfo] = useState<ITokenData | null>(null)
-  const [currency, setCurrency] = useState<Currencies>('USD')
+  const [currency, setCurrency] = useState<Currencies>('ERG')
   const [exchangeRate, setExchangeRate] = useState(1)
   // const [isScriptReady, setIsScriptReady] = useState(false)
   const [defaultWidgetProps, setDefaultWidgetProps] = useState<Partial<ChartingLibraryWidgetOptions> | undefined>(undefined)
@@ -196,7 +196,7 @@ const Charts: FC = () => {
               </Paper>
             </Box>
           )}
-          <Box sx={{ display: 'flex', gap: 2, alignItems: upLg ? 'flex-start' : 'stretch' }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
             <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
               <Paper sx={{
                 p: 2,
@@ -226,9 +226,11 @@ const Charts: FC = () => {
             </Box>
             {upMd && (
               <Box sx={{ display: 'flex', flex: '0 0 300px', mb: 2 }}>
-                <Paper sx={{ p: 2, width: '100%' }}>
-                  <TokenStats currency={currency} tokenInfo={tokenInfo} />
-                </Paper>
+                <Box sx={{ width: '100%', }}>
+                  <Paper sx={{ p: 2, width: '100%', position: 'sticky', top: '16px', height: { md: '100%', lg: 'calc(100vh - 32px)' }, maxHeight: '100%', mb: { md: 0, lg: -2 } }}>
+                    <TokenStats currency={currency} tokenInfo={tokenInfo} />
+                  </Paper>
+                </Box>
               </Box>
             )}
           </Box>

@@ -79,6 +79,15 @@ const Portfolio = () => {
     pctChange: 0
   })
 
+  useEffect(() => {
+    const getAddresses = localStorage.getItem('crux_portfolio_address_list')
+    if (getAddresses && JSON.parse(getAddresses).length > 0) {
+      getExchange()
+      setAddressList(JSON.parse(getAddresses))
+      fetchData(JSON.parse(getAddresses));
+    }
+  }, [])
+
   const getExchange = async () => {
     try {
       setLoading(
@@ -120,12 +129,10 @@ const Portfolio = () => {
       );
     }
   }
-  useEffect(() => {
-    getExchange()
-  }, [])
 
-  async function fetchTokenData(): Promise<IPortfolioToken[]> {
-    if (addressList.length > 0) {
+
+  async function fetchTokenData(thisAddressList: string[]): Promise<IPortfolioToken[]> {
+    if (thisAddressList.length > 0) {
       try {
         setLoading(
           prev => {
@@ -142,7 +149,7 @@ const Portfolio = () => {
           headers: {
             'Content-type': 'application/json'
           },
-          body: JSON.stringify({ "addresses": addressList })
+          body: JSON.stringify({ "addresses": thisAddressList })
         });
 
         const data: IPortfolioToken[] = await response.json();
@@ -192,8 +199,8 @@ const Portfolio = () => {
     return totalValue;
   };
 
-  async function fetchData() {
-    const data = await fetchTokenData()
+  async function fetchData(thisAddressList: string[]) {
+    const data = await fetchTokenData(thisAddressList)
 
     // remove NFTs & tokens with no dex value
     const mainList = data.filter((item) => calculateWrappedTokensValue(item) > 0)
@@ -306,11 +313,11 @@ const Portfolio = () => {
     for (const chunk of chunks) {
       await fetchDataChunk(chunk);
     }
+
+    localStorage.setItem('crux_portfolio_address_list', JSON.stringify(thisAddressList))
   }
 
-  useEffect(() => {
-    fetchData();
-  }, [])
+
 
   const isLoading = Object.values(loading).some(value => value === true)
 
@@ -332,7 +339,7 @@ const Portfolio = () => {
           />
         </Grid>
         <Grid xs="auto">
-          <Button variant="contained" onClick={() => fetchData()}>
+          <Button variant="contained" onClick={() => fetchData(addressList)}>
             Submit
           </Button>
         </Grid>
@@ -394,7 +401,7 @@ const Portfolio = () => {
         </Grid>
         <Grid xs={12} sm={6} lg={3} sx={{ position: 'relative', zIndex: 10 }}>
           <Paper sx={{ p: 3, width: '100%', height: '100%' }}>
-            <ValueLocked currency={currency} exchangeRate={exchangeRate} tokenList={sortedFilteredTokensList} />
+            <ValueLocked currency={currency} exchangeRate={exchangeRate} tokenList={sortedFilteredTokensList} boxHeight={boxHeight} />
           </Paper>
         </Grid>
         <Grid xs={12} lg={9}>

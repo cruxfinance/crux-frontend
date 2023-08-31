@@ -110,7 +110,7 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
           {active ? (
             <>
               <Text textAnchor="middle" fill="#fff" fontSize={40} dy={0}>
-                {`${currencySymbol}${Math.floor(active.amount * active.value)}`}
+                {`${currencySymbol}${Math.floor(active.amount * active.value).toLocaleString()}`}
               </Text>
               <Text
                 textAnchor="middle"
@@ -118,15 +118,33 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
                 fontSize={20}
                 dy={30}
               >
-                {`${formatNumber(active.amount)} ${active.name}`}
+                {formatNumber(active.amount)}
               </Text>
+              <Text
+                textAnchor="middle"
+                fill={active.color}
+                fontSize={15}
+                dy={50}
+              >
+                {active.name !== 'small values' ? active.name.split(' ')[0] : active.name}
+              </Text>
+              {active.name !== 'small values' && (
+                <Text
+                  textAnchor="middle"
+                  fill={active.color}
+                  fontSize={15}
+                  dy={70}
+                >
+                  {active.name.split(' ').slice(1).join(' ')}
+                </Text>
+              )}
             </>
           ) : (
             <>
               <Text textAnchor="middle" fill="#fff" fontSize={40} dy={10}>
                 {`${currencySymbol}${Math.floor(
                   tokens.reduce((acc, coin) => acc + coin.amount * coin.value, 0)
-                )}`}
+                ).toLocaleString()}`}
               </Text>
 
               {/* <Text textAnchor="middle" fill="#aaa" fontSize={20} dy={30}>

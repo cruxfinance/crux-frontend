@@ -29,6 +29,15 @@ const HistoricValues: FC<IHistoricValues> = ({ currency, exchangeRate, tokenList
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const [areaChart, setAreaChart] = useState('area')
 
+  // const areaChartRef = useRef<HTMLElement | null>(null);
+
+  // useEffect(() => {
+  //   if (areaChartRef.current) {
+  //     const height = areaChartRef.current.offsetHeight;
+  //     setAreaHeight(`${height}px`);
+  //   }
+  // }, [areaChartRef]);
+
   const handleChartToggle = (
     event: React.MouseEvent<HTMLElement>,
     newAreaChart: string | null,
