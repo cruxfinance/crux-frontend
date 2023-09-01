@@ -52,7 +52,7 @@ const HistoricValues: FC<IHistoricValues> = ({ currency, exchangeRate, tokenList
       <Grid container alignItems="flex-start" sx={{ mb: 2 }}>
         <Grid xs>
           <Typography variant="h6">
-            Portfolio History
+            Portfolio History (ERG)
           </Typography>
         </Grid>
         <Grid>

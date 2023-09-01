@@ -179,8 +179,9 @@ const UserMenu: FC<IUserMenuProps> = () => {
         <Button
           onClick={() => setModalOpen(true)}
           variant="contained"
-          disabled={providerLoading}
+          // disabled={providerLoading}
           sx={{ my: '5px' }}
+          disabled
         >
           {providerLoading ? 'Loading...' : 'Sign in'}
         </Button>

@@ -388,7 +388,7 @@ const Tokens: FC = () => {
                   </Grid>
                 </Grid>
               </Box>
-              <Box sx={{ height: 'calc(100vh - 346px)', overflowY: 'scroll', overflowX: 'hidden' }}>
+              <Box sx={{ height: 'calc(100vh - 362px)', overflowY: 'scroll', overflowX: 'hidden' }}>
                 {loading && initialLoading
                   ? (
                     <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
@@ -527,7 +527,7 @@ const Tokens: FC = () => {
                   </Grid>
                 </Grid>
               </Box>
-              <Box sx={{ height: 'calc(100vh - 346px)', overflowY: 'scroll', overflowX: 'hidden' }}>
+              <Box sx={{ height: 'calc(70vh)', overflowY: 'scroll', overflowX: 'hidden' }}>
                 {loading && initialLoading
                   ? (
                     <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
@@ -571,9 +571,11 @@ const Tokens: FC = () => {
                             >
                               <Grid container spacing={2} alignItems="center">
                                 <Grid xs>
-                                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
-                                    <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
-                                      <Avatar src={token.icon} sx={{ width: '36px', height: '36px' }} />
+                                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1, ml: 1 }}>
+                                    <Box
+                                    // sx={{ display: { xs: 'none', sm: 'flex' } }}
+                                    >
+                                      <Avatar src={token.icon} sx={{ width: { xs: '20px', sm: '36px' }, height: { xs: '20px', sm: '36px' } }} />
                                     </Box>
                                     <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                                       <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>

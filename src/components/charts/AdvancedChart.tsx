@@ -3,11 +3,17 @@ import { useEffect, useRef } from "react";
 import { ChartingLibraryWidgetOptions, LanguageCode, ResolutionString, widget } from "@utils/charts/charts/charting_library";
 import datafeed from "@utils/charts/datafeed";
 import { UDFCompatibleDatafeed } from "@utils/charts/charts/datafeeds/udf/src/udf-compatible-datafeed";
+import { useTheme, useMediaQuery } from "@mui/material";
 
 export const TVChartContainer = (props: Partial<ChartingLibraryWidgetOptions>) => {
+  const theme = useTheme();
+  const upSm = useMediaQuery(theme.breakpoints.up("sm"));
+
   const chartContainerRef =
     useRef<HTMLDivElement>() as React.MutableRefObject<HTMLInputElement>;
-
+  const disabledFeatures = upSm
+    ? ["header_symbol_search"]
+    : ["header_symbol_search", "left_toolbar"]
   useEffect(() => {
     const widgetOptions: ChartingLibraryWidgetOptions = {
       symbol: props.symbol,
@@ -16,7 +22,8 @@ export const TVChartContainer = (props: Partial<ChartingLibraryWidgetOptions>) =
       container: chartContainerRef.current,
       library_path: props.library_path,
       locale: props.locale as LanguageCode,
-      disabled_features: ["header_symbol_search"],
+      // @ts-ignore
+      disabled_features: disabledFeatures,
       // charts_storage_url: props.charts_storage_url,
       // charts_storage_api_version: props.charts_storage_api_version,
       // client_id: props.client_id,
