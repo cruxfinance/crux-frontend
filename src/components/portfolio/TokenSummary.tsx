@@ -25,16 +25,18 @@ interface ITokenSummary {
   totalValue: number;
   currency: Currencies;
   boxHeight: string;
+  exchangeRate: number;
   setBoxHeight: React.Dispatch<React.SetStateAction<string>>
   setLoading: React.Dispatch<React.SetStateAction<{ [key: string]: boolean }>>
 }
 
 const ICON_URL = 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/'
 
-const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBoxHeight, setLoading, totalValue }) => {
+const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBoxHeight, setLoading, totalValue, exchangeRate }) => {
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [reducedTokensList, setReducedTokensList] = useState<IPieToken[]>([])
   const [combinedTokensList, setCombinedTokensList] = useState<IReducedToken[]>([])
+  const [reducedTokensListUSD, setReducedTokensListUSD] = useState<IPieToken[]>([])
   const [colors, setColors] = useState<string[]>([])
   const [smallValuesExist, setSmallValuesExist] = useState(false)
   const theme = useTheme()
@@ -93,6 +95,12 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
     }
 
     setReducedTokensList(filteredTokens)
+    setReducedTokensListUSD(filteredTokens.map((item) => {
+      return {
+        ...item,
+        value: item.value * exchangeRate
+      }
+    }))
     setCombinedTokensList(sortedAggregateTokens)
 
     setColors(generateGradient(filteredTokens.length))
@@ -116,7 +124,7 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
           <Box ref={pieChartRef} sx={{ textAlign: 'center' }}>
             <PieChart
               totalValue={totalValue}
-              tokens={reducedTokensList}
+              tokens={currency === 'ERG' ? reducedTokensList : reducedTokensListUSD}
               currency={currency}
               colors={colors}
               activeSymbol={activeSymbol}
@@ -127,7 +135,7 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
         <Grid xs>
           <Box sx={{ overflowY: 'auto', height: boxHeight, mr: -2, pr: 2 }}>
             {combinedTokensList.map((item, i) => {
-              const thisName = item.amount * item.value < totalValue * 0.01 ? 'small values' : item.name
+              const thisName = item.amount * (currency === 'ERG' ? item.value : item.value * exchangeRate) < (currency === 'ERG' ? totalValue : totalValue * exchangeRate) * 0.01 ? 'small values' : item.name
               const thisActive = thisName === activeSymbol
               return (
                 <Box
@@ -176,7 +184,7 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
                   </Box>
                   <Box sx={{ textAlign: 'right' }}>
                     <Typography sx={{ fontSize: '16px !important', fontWeight: 700 }}>
-                      {formatNumber(item.amount)} ({currencySymbol + formatNumber(item.value * item.amount)})
+                      {formatNumber(item.amount)} ({currencySymbol + formatNumber((currency === 'ERG' ? item.value : item.value * exchangeRate) * item.amount)})
                     </Typography>
                     {item.pctChange && (
                       <Typography sx={{ fontSize: '16px !important', fontWeight: 700 }}>

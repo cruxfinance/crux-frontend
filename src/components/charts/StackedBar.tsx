@@ -31,7 +31,7 @@ const StackedBar: React.FC<IStacked> = ({
 
   useEffect(() => {
     if (longestBar) {
-      const totalValue = value * (totalTokens)
+      const totalValue = (currency === 'ERG' ? value : value * exchangeRate) * (totalTokens)
       const barLengthPct = totalValue / longestBar * 100
       const timer = setTimeout(() => {
         setContainerWidth(`${barLengthPct}%`); // this should match the desired width of the bar.
@@ -43,7 +43,7 @@ const StackedBar: React.FC<IStacked> = ({
 
   const initialTokenTooltip = () => {
     const tokenAmt = totalTokens - (earnedTokens || 0)
-    const worth = currencies[currency] + formatNumber(tokenAmt * value)
+    const worth = currencies[currency] + formatNumber(tokenAmt * (currency === 'ERG' ? value : value * exchangeRate))
     return formatNumber(tokenAmt) + ' (' + worth + ') ' + name
       + (type.includes('YF') ? ' LP' : '')
       + (type.includes('Staked')
@@ -54,7 +54,7 @@ const StackedBar: React.FC<IStacked> = ({
   }
   const earnedTokensTooltip = () => {
     if (earnedTokens) {
-      const worth = currencies[currency] + formatNumber(earnedTokens * value)
+      const worth = currencies[currency] + formatNumber(earnedTokens * (currency === 'ERG' ? value : value * exchangeRate))
       return formatNumber(earnedTokens) + ' (' + worth + ') ' + name + ' tokens earned or added'
     }
   }

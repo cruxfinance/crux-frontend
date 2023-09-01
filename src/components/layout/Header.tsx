@@ -259,7 +259,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
             </Grid>
             <Grid item>
 
-              <Grid container spacing={2}>
+              <Grid container spacing={2} alignItems="center">
                 {/* <IconButton onClick={toggleTheme} sx={{ color: theme.palette.text.primary }}>
                     {(theme === DarkTheme) ? <Brightness7Icon /> : <Brightness4Icon />}
                   </IconButton> */}

@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useMemo } from 'react';
+import React, { FC, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Container,
   Button,
@@ -9,7 +9,9 @@ import {
   useMediaQuery,
   ToggleButtonGroup,
   ToggleButton,
-  CircularProgress
+  CircularProgress,
+  BottomNavigation,
+  BottomNavigationAction
 } from '@mui/material';
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { useRouter } from 'next/router';
@@ -24,12 +26,13 @@ import {
   ResolutionString,
 } from "@utils/charts/charts/charting_library";
 import { ITokenData } from '.';
-
-const TVChartContainer = dynamic(
-  () =>
-    import("@components/charts/AdvancedChart").then((mod) => mod.TVChartContainer),
-  { ssr: false }
-);
+import CandlestickChartIcon from '@mui/icons-material/CandlestickChart';
+import InfoIcon from '@mui/icons-material/Info';
+import HistoryIcon from '@mui/icons-material/History';
+import { Link as ScrollLink } from "react-scroll";
+import * as Scroll from 'react-scroll';
+import { scroller } from 'react-scroll';
+import TvChart from '@components/tokenInfo/TvChart';
 
 const Charts: FC = () => {
   const router = useRouter();
@@ -45,31 +48,8 @@ const Charts: FC = () => {
   const [exchangeRate, setExchangeRate] = useState(1)
   // const [isScriptReady, setIsScriptReady] = useState(false)
   const [defaultWidgetProps, setDefaultWidgetProps] = useState<Partial<ChartingLibraryWidgetOptions> | undefined>(undefined)
+  const [navigation, setNavigation] = useState('stats')
 
-  // let defaultWidgetProps: Partial<ChartingLibraryWidgetOptions> = {
-  //   symbol: tokenInfo?.name?.toUpperCase(),
-  //   interval: "1D" as ResolutionString,
-  //   library_path: "/static/charting_library/",
-  //   locale: "en",
-  //   // charts_storage_url: "https://saveload.tradingview.com",
-  //   // charts_storage_api_version: "1.1",
-  //   // client_id: "tradingview.com",
-  //   // user_id: "public_user_id",
-  //   fullscreen: false,
-  //   autosize: true,
-  // }
-  // {
-  //   "action_amount": "-20000",
-  //   "action_type": "Sell",
-  //   "user_address": "9eZ9v2jpXHFyneqWZQbnFb1gZr6db6cdsKKJrztuAeTWKRVcnN6",
-  //   "time": 1692826330,
-  //   "quote_token": "ergopad",
-  //   "base_token": "erg",
-  //   "quote_id": "d71693c49a84fbbecd4908c94813b46514b18b67a99952dc1e6e4791556de413",
-  //   "base_id": "0000000000000000000000000000000000000000000000000000000000000000",
-  //   "price_in_ergo": 0.004836384676116727,
-  //   "ergo_price": 1.1206713914871216
-  // },
   async function fetchTradeHistory(tokenId: string) {
     setLoading(true);
     try {
@@ -142,7 +122,7 @@ const Charts: FC = () => {
   };
 
   return (
-    <Container maxWidth={false}>
+    <Container maxWidth={'xl'} id="stats">
       <Box
         sx={{
           position: 'fixed',
@@ -197,29 +177,20 @@ const Charts: FC = () => {
             </Box>
           )}
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
-            <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }}>
+            <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }} id="chart">
               <Paper sx={{
                 p: 2,
                 width: '100%',
                 maxWidth: upMd ? 'calc(100vw - 370px)' : upSm ? 'calc(100vw - 56px)' : 'calc(100vw - 40px)',
                 mb: 2
               }}>
-                {/* <Script
-                  src="/static/datafeeds/udf/dist/bundle.js"
-                  strategy="lazyOnload"
-                  onReady={() => {
-                    setIsScriptReady(true);
-                  }}
-                />
-                {isScriptReady && */}
-                {defaultWidgetProps !== undefined && tokenInfo.name !== undefined
-                  ? <TVChartContainer {...defaultWidgetProps} />
-                  : 'Chart loading'
-                }
+                {defaultWidgetProps !== undefined && (
+                  <TvChart defaultWidgetProps={defaultWidgetProps} />
+                )}
 
               </Paper>
               {upLg && (
-                <Paper sx={{ p: 2, width: '100%' }}>
+                <Paper sx={{ p: 2, width: '100%' }} id="history">
                   <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
                 </Paper>
               )}
@@ -235,13 +206,39 @@ const Charts: FC = () => {
             )}
           </Box>
           {!upLg && (
-            <Paper sx={{ p: 2, width: '100%' }}>
+            <Paper sx={{ p: 2, width: '100%' }} id="history">
               <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
             </Paper>
           )}
         </>
       )}
-
+      {!upSm && (
+        <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20000 }} elevation={3}>
+          <BottomNavigation
+            showLabels
+            value={navigation}
+            onChange={(event, newValue) => {
+              setNavigation(newValue);
+            }}
+          >
+            <BottomNavigationAction
+              label="Stats"
+              icon={<InfoIcon />}
+              onClick={() => scroller.scrollTo("stats", { duration: 500, offset: -50, smooth: true })}
+            />
+            <BottomNavigationAction
+              label="Chart"
+              icon={<CandlestickChartIcon />}
+              onClick={() => scroller.scrollTo("chart", { duration: 500, offset: -50, smooth: true })}
+            />
+            <BottomNavigationAction
+              label="Trade History"
+              icon={<HistoryIcon />}
+              onClick={() => scroller.scrollTo("history", { duration: 500, offset: -50, smooth: true })}
+            />
+          </BottomNavigation>
+        </Paper>
+      )}
     </Container>
   )
 }

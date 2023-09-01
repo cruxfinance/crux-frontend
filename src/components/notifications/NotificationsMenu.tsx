@@ -201,8 +201,9 @@ const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen,
                   )
                 }
               })
-              : <MenuItem>
-
+              : <MenuItem><Typography>
+                No notifications...
+              </Typography>
               </MenuItem>
             }
           </MenuList>
@@ -312,98 +313,98 @@ export default NotificationsMenu;
 // START SAMPLE DATA ///////////
 ////////////////////////////////
 
-const sampleMenuItems = [
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzjdfkkals1',
-    success: 'confirmed',
-    time: '8 minutes',
-    unread: true
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzjdfkkals2',
-    success: 'submitted to mempool',
-    time: '12 minutes',
-    unread: true
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'abcdalkdsjflkjasdf',
-    success: 'failed',
-    time: '2 hours',
-    unread: false
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzjdfkkals3',
-    success: 'confirmed',
-    time: '8 minutes',
-    unread: true
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzjdfkkal4s',
-    success: 'submitted to mempool',
-    time: '12 minutes',
-    unread: true
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'abcdalkd5sjflkjasdf',
-    success: 'failed',
-    time: '2 hours',
-    unread: false
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzjdfk6kals',
-    success: 'confirmed',
-    time: '8 minutes',
-    unread: true
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzjdfkkal7s',
-    success: 'submitted to mempool',
-    time: '12 minutes',
-    unread: true
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'abcdalkds8jflkjasdf',
-    success: 'failed',
-    time: '2 hours',
-    unread: false
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzjdfkka9ls',
-    success: 'confirmed',
-    time: '8 minutes',
-    unread: true
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzj99dfkkals',
-    success: 'submitted to mempool',
-    time: '12 minutes',
-    unread: true
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'abcdalkdsjf88lkjasdf',
-    success: 'failed',
-    time: '2 hours',
-    unread: false
-  },
-  {
-    txType: 'Purchase transaction',
-    txId: 'xyzjdfkk777als',
-    success: 'confirmed',
-    time: '8 minutes',
-    unread: true
-  }
+const sampleMenuItems: IImportMenuItem[] = [
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzjdfkkals1',
+  //   success: 'confirmed',
+  //   time: '8 minutes',
+  //   unread: true
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzjdfkkals2',
+  //   success: 'submitted to mempool',
+  //   time: '12 minutes',
+  //   unread: true
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'abcdalkdsjflkjasdf',
+  //   success: 'failed',
+  //   time: '2 hours',
+  //   unread: false
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzjdfkkals3',
+  //   success: 'confirmed',
+  //   time: '8 minutes',
+  //   unread: true
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzjdfkkal4s',
+  //   success: 'submitted to mempool',
+  //   time: '12 minutes',
+  //   unread: true
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'abcdalkd5sjflkjasdf',
+  //   success: 'failed',
+  //   time: '2 hours',
+  //   unread: false
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzjdfk6kals',
+  //   success: 'confirmed',
+  //   time: '8 minutes',
+  //   unread: true
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzjdfkkal7s',
+  //   success: 'submitted to mempool',
+  //   time: '12 minutes',
+  //   unread: true
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'abcdalkds8jflkjasdf',
+  //   success: 'failed',
+  //   time: '2 hours',
+  //   unread: false
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzjdfkka9ls',
+  //   success: 'confirmed',
+  //   time: '8 minutes',
+  //   unread: true
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzj99dfkkals',
+  //   success: 'submitted to mempool',
+  //   time: '12 minutes',
+  //   unread: true
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'abcdalkdsjf88lkjasdf',
+  //   success: 'failed',
+  //   time: '2 hours',
+  //   unread: false
+  // },
+  // {
+  //   txType: 'Purchase transaction',
+  //   txId: 'xyzjdfkk777als',
+  //   success: 'confirmed',
+  //   time: '8 minutes',
+  //   unread: true
+  // }
 ]
 
 ////////////////////////////////

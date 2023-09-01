@@ -63,21 +63,14 @@ const Portfolio = () => {
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({
     tokenSummary: true
   })
-  const [currency, setCurrency] = useState<Currencies>('USD')
+  const [currency, setCurrency] = useState<Currencies>('ERG')
   const [filteredNfts, setFilteredNfts] = useState<INftItem[]>([])
   const [totalValue, setTotalValue] = useState<number>(0)
   const [sortedFilteredTokensList, setSortedFilteredTokensList] = useState<IReducedToken[]>([])
   // const [tokenList, setTokenList] = useState<IPortfolioToken[]>([])
   const [addressList, setAddressList] = useState<string[]>([])
-  const [totalValueLocked, setTotalValueLocked] = useState<number | undefined>(undefined)
+  const [totalValueLocked, setTotalValueLocked] = useState<number>(0)
   const [exchangeRate, setExchangeRate] = useState(1)
-  const [balanceProps, setBalanceProps] = useState<IBalance>({
-    balance: 0,
-    currency: currency,
-    tvl: 0,
-    apy: 0,
-    pctChange: 0
-  })
 
   useEffect(() => {
     const getAddresses = localStorage.getItem('crux_portfolio_address_list')
@@ -271,14 +264,6 @@ const Portfolio = () => {
       .reduce((acc, token) => acc + token.amount * token.value, 0);
     setTotalValueLocked(totalValueLocked)
 
-    setBalanceProps({
-      balance: totalTokensValue,
-      currency: currency,
-      tvl: Number(totalValueLocked.toFixed(2)),
-      apy: 0,
-      pctChange: 1.2
-    })
-
     // sort tokens by decending value
     const sortedTokens = transformAmounts.sort((a, b) =>
       b.amount * b.value - a.amount * a.value
@@ -317,8 +302,6 @@ const Portfolio = () => {
     localStorage.setItem('crux_portfolio_address_list', JSON.stringify(thisAddressList))
   }
 
-
-
   const isLoading = Object.values(loading).some(value => value === true)
 
   const handleChangeAddressList = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -344,8 +327,6 @@ const Portfolio = () => {
           </Button>
         </Grid>
       </Grid>
-
-
       <Box
         sx={{
           position: 'fixed',
@@ -373,10 +354,15 @@ const Portfolio = () => {
           <Paper sx={{ p: 3, width: '100%' }}>
             <Grid container spacing={4} direction={{ xs: 'column', md: 'row' }}>
               <Grid xs={12} md={4} >
-                <Balance {...balanceProps} />
-                <Button onClick={() => setCurrency(currency === 'USD' ? 'ERG' : 'USD')}>
-                  Currency
-                </Button>
+                <Balance
+                  balance={totalValue}
+                  setCurrency={setCurrency}
+                  tvl={totalValueLocked}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                  apy={0}
+                  pctChange={1.2}
+                />
               </Grid>
               <Grid xs={12} md={8} container direction={{ xs: 'column', md: 'row' }}>
                 <Grid>{upMd ? <Divider orientation="vertical" /> : <Divider />}</Grid>
@@ -388,6 +374,7 @@ const Portfolio = () => {
                     boxHeight={boxHeight}
                     setBoxHeight={setBoxHeight}
                     setLoading={setLoading}
+                    exchangeRate={exchangeRate}
                   />
                 </Grid>
               </Grid>

@@ -102,13 +102,13 @@ export const getShortAddress = (address: string): string => {
 
   return shortAddress;
 };
-export const getShorterAddress = (address: string): string => {
+export const getShorterAddress = (address: string, substring?: number): string => {
   let shortAddress = address ? address : '';
   shortAddress =
     shortAddress.length < 5
       ? shortAddress
-      : shortAddress.substring(0, 3) + '..' +
-      shortAddress.substring(shortAddress.length - 3, shortAddress.length);
+      : shortAddress.substring(0, substring ? substring : 3) + '..' +
+      shortAddress.substring(shortAddress.length - (substring ? substring : 3), shortAddress.length);
 
   return shortAddress;
 };

@@ -3,7 +3,8 @@ import {
   Typography,
   Container,
   Box,
-  useTheme
+  useTheme,
+  Button
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { currencies, Currencies } from '@utils/currencies';
@@ -17,9 +18,11 @@ export interface IBalance {
   tvl: number;
   apy: number;
   pctChange: number;
+  setCurrency: React.Dispatch<React.SetStateAction<Currencies>>;
+  exchangeRate: number;
 }
 
-const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange }) => {
+const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange, exchangeRate, setCurrency }) => {
   const theme = useTheme()
   return (
     <Grid container spacing={2} alignItems="space-between" sx={{ height: '100%' }}>
@@ -44,20 +47,24 @@ const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange }) => {
                 gap: '4px'
               }}
             >
-              {pctChange > 0
+              {/* {pctChange > 0
                 ? <ArrowUpwardIcon />
                 : pctChange < 0
                 && <ArrowDownwardIcon />}
               <Typography>
                 {pctChange}%
-              </Typography>
+              </Typography> */}
             </Box>
           </Grid>
         </Grid>
-
-        <Typography variant="h4" sx={{ mb: 4 }}>
-          {currency} {Number(balance.toFixed(2)).toLocaleString()}
-        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, mb: 4 }}>
+          <Typography variant="h4">
+            {currencies[currency]}{Number((currency === 'ERG' ? balance : balance * exchangeRate).toFixed(2)).toLocaleString()}
+          </Typography>
+          <Button variant="outlined" onClick={() => { setCurrency(currency === 'ERG' ? 'USD' : 'ERG') }}>
+            {currency}
+          </Button>
+        </Box>
       </Grid>
       <Grid container xs={12}>
         <Grid xs={6}>
@@ -65,7 +72,7 @@ const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange }) => {
             TVL
           </Typography>
           <Typography>
-            {currencies[currency]}{tvl.toLocaleString()}
+            {currencies[currency]}{Number((currency === 'ERG' ? tvl : tvl * exchangeRate).toFixed(2)).toLocaleString()}
           </Typography>
         </Grid>
         <Grid xs={6}>
