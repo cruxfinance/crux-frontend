@@ -286,7 +286,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
           </Grid>
         </Container>
       </AppBar>
-      <Fade in={navbarOpen} style={{ transitionDuration: "200ms" }}>
+      <Fade in={navbarOpen} style={{ transitionDuration: "200ms" }} mountOnEnter unmountOnExit>
         <Box
           sx={{
             height: "calc(100vh - 60px)",
