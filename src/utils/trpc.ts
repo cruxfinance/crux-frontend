@@ -14,24 +14,22 @@ function getBaseUrl() {
 }
 
 export const trpc = createTRPCNext<AppRouter>({
-  config(opts) {
+  config({ ctx }) {
     return {
       transformer: superjson,
-      links: [
-        httpBatchLink({
-          /**
-           * If you want to use SSR, you need to use the server's full URL
-           * @link https://trpc.io/docs/ssr
-           **/
-          url: `${getBaseUrl()}/api/trpc`,
-          // You can pass any HTTP headers you wish here
-          async headers() {
-            return {
-              // authorization: getAuthCookie(),
-            };
-          },
-        }),
-      ],
+      links: [httpBatchLink({
+        /**
+         * If you want to use SSR, you need to use the server's full URL
+         * @link https://trpc.io/docs/ssr
+         **/
+        url: `${getBaseUrl()}/api/trpc`,
+      })],
+      headers() {
+        if (ctx?.req) {
+          return { ...ctx.req.headers }
+        }
+        else return {}
+      }
     };
   },
   /**

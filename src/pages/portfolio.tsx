@@ -314,7 +314,9 @@ const Portfolio = () => {
     <Container>
       <Grid container sx={{ mb: 2 }} spacing={2} alignItems="center">
         <Grid xs>
-          <FilledInput
+          <TextField
+            id="wallet-addresses"
+            variant="filled"
             value={addressList.join(", ")}
             onChange={handleChangeAddressList}
             fullWidth
@@ -349,9 +351,9 @@ const Portfolio = () => {
           transform: "translate(-50%, -50%)"
         }} />
       </Box>
-      <Grid container alignItems="stretch" spacing={3}>
+      <Grid container alignItems="stretch" spacing={3} sx={{ position: 'relative' }}>
         <Grid xs={12} lg={9}>
-          <Paper sx={{ p: 3, width: '100%' }}>
+          <Paper sx={{ p: 3, width: '100%', position: 'relative' }}>
             <Grid container spacing={4} direction={{ xs: 'column', md: 'row' }}>
               <Grid xs={12} md={4} >
                 <Balance
@@ -382,7 +384,7 @@ const Portfolio = () => {
           </Paper>
         </Grid>
         <Grid xs={12} sm={6} lg={3}>
-          <Paper sx={{ p: 3, width: '100%', height: '100%' }}>
+          <Paper sx={{ p: 3, width: '100%', height: '100%', position: 'relative' }}>
             <NftList tokenList={filteredNfts} boxHeight={boxHeight} setBoxHeight={setBoxHeight} />
           </Paper>
         </Grid>
@@ -392,7 +394,7 @@ const Portfolio = () => {
           </Paper>
         </Grid>
         <Grid xs={12} lg={9}>
-          <Paper sx={{ py: 3, px: upSm ? 3 : 0, width: '100%', height: '100%' }}>
+          <Paper sx={{ py: 3, px: upSm ? 3 : 0, width: '100%', height: '100%', position: 'relative' }}>
             <HistoricValues tokenList={sortedFilteredTokensList} totalValue={totalValue} currency={currency} exchangeRate={exchangeRate} />
           </Paper>
         </Grid>

@@ -13,6 +13,7 @@ import {
   Grow,
   List,
   ListItem,
+  TextField,
 } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 import { useInView } from "react-intersection-observer";
@@ -224,13 +225,25 @@ const Home: NextPage = () => {
               spacing={2}
               justifyContent="center"
             >
-              <ButtonLink variant="contained" href="https://ergopad.io/projects/cruxfinance">
+              <Button variant="contained" href="https://ergopad.io/projects/cruxfinance" target="_blank">
                 IDO Info
-              </ButtonLink>
-              <ButtonLink variant="contained" href="https://docs.cruxfinance.io">
+              </Button>
+              <Button variant="contained" href="https://docs.cruxfinance.io" target="_blank">
                 Whitepaper
-              </ButtonLink>
+              </Button>
             </Stack>
+            {/* <Box sx={{ mt: 2 }}>
+              <TextField
+                id="wallet-addresses"
+                label=""
+                name=""
+                // variant="outlined"
+                // value={addressList.join(", ")}
+                // onChange={handleChangeAddressList}
+                fullWidth
+                placeholder="Any number of wallet addresses, separated by commas"
+              />
+            </Box> */}
           </Paper>
           {/* <Box maxWidth='lg' sx={{ mx: 'auto' }}>
             <Typography variant="body1" sx={{ pt: 12, textTransform: 'uppercase' }} align="center" color="text.secondary" paragraph>
@@ -340,7 +353,7 @@ const Home: NextPage = () => {
       </Container>
 
       {/* Tokenomics */}
-      <Container sx={{ mb: 12 }} id="tokenomics">
+      <Container sx={{ mb: 12, position: 'relative', display: 'block' }} id="tokenomics">
         <Grid container sx={{ mb: 3 }}>
           <Grid item md={1}></Grid>
           <Grid item md={10}>
@@ -384,7 +397,7 @@ const Home: NextPage = () => {
             index: 0,
             aspect: '878 / 566'
           }} />
-        <Paper>
+        <Paper sx={{ position: 'relative' }}>
           <Tokenomics
             data={tokenomicsData}
             total={100000000}
