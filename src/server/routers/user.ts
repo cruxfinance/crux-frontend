@@ -1,6 +1,13 @@
-import { prisma } from '@server/prisma';
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from "../trpc";
+import { generateNonceForUser } from '../utils/nonce';
+
+// const isErgoMainnetAddress = (value: string): boolean => {
+//   const base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+//   return value.startsWith('9') &&
+//     value.length === 51 &&
+//     [...value].every(char => base58Chars.includes(char));
+// };
 
 export const userRouter = createTRPCRouter({
   getNonce: publicProcedure
@@ -14,30 +21,9 @@ export const userRouter = createTRPCRouter({
         return { nonce: null }; // Return a default value or error if the input is not defined
       }
 
-      // Check if a user with the given address already exists
-      let user = await prisma.user.findUnique({
-        where: { rewardAddress: userAddress },
-      });
+      const nonce = await generateNonceForUser(userAddress);
 
-      // If the user doesn't exist, create a new user model in the database
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            rewardAddress: userAddress,
-            // Include any other fields you want to set here
-          },
-        });
-      }
-
-      // const nonce = generateNonce('Sign to login: ');
-
-      // Update the user's nonce in the database
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {},
-      });
-
-      return {};
+      return { nonce };
     }),
   // getUserWalletType: protectedProcedure
   //   .input(z.object({})) // No input required if you're getting the userId from the session
@@ -57,4 +43,28 @@ export const userRouter = createTRPCRouter({
   //     // Return the default wallet type
   //     return user?.defaultWalletType;
   //   }),
+
+  // verifySignature: publicProcedure
+  //   .input(z.object({
+  //     addr: z.string(),
+  //     message: z.string(),
+  //     signature: z.string(),
+  //   }))
+  //   .query(async ({ input }) => {
+  //     const { addr, message, signature } = input;
+
+  //     if (!isErgoMainnetAddress(addr)) {
+  //       return { error: "Invalid Ergo mainnet address" };
+  //     }
+
+  //     const ergoAddress = ergoWasm.Address.from_mainnet_str(addr);
+  //     const textEncoder = new TextEncoder();
+  //     const isValid = ergoWasm.verify_signature(ergoAddress, textEncoder.encode(message), textEncoder.encode(signature));
+
+  //     if (isValid) {
+  //       return { authenticated: true };
+  //     } else {
+  //       return { authenticated: false };
+  //     }
+  //   })
 });

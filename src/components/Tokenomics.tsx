@@ -8,7 +8,8 @@ import {
   Paper,
   useMediaQuery,
   Typography,
-  useTheme
+  useTheme,
+  Box
 } from '@mui/material';
 import { Fragment } from 'react';
 import { useRouter } from 'next/router';
@@ -61,7 +62,7 @@ const Tokenomics: FC<TokenomicsProps> = ({ data, total, name, ticker }) => {
   });
 
   return (
-    <Paper sx={{ p: { xs: 2, sm: 4 }, borderRadius: 3 }}>
+    <Box sx={{ p: { xs: 2, sm: 4 }, borderRadius: 3 }}>
       <Typography color="text.secondary" sx={{ mb: 1 }}>
         Token Name:
         <Typography
@@ -184,7 +185,7 @@ const Tokenomics: FC<TokenomicsProps> = ({ data, total, name, ticker }) => {
           </TableBody>
         </Table>
       )}
-    </Paper>
+    </Box>
   );
 };
 

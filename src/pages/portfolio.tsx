@@ -91,7 +91,6 @@ const Portfolio = () => {
           }
         }
       );
-      console.log('fetch')
       const endpoint = `${process.env.CRUX_API}/coingecko/erg_price`;
       const response = await fetch(endpoint, {
         method: 'GET',

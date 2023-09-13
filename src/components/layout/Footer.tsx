@@ -6,6 +6,7 @@ import Link from "@mui/material/Link"
 import SocialGrid from "@components/layout/SocialGrid";
 import Logo from "@components/svgs/Logo";
 import { useMediaQuery, useTheme } from "@mui/material";
+import { useRouter } from "next/router";
 
 const titleFont = {
   fontFamily: ['"Space Grotesk"', "sans-serif"].join(","),
@@ -104,8 +105,17 @@ const LinkList: FC<IPageLinkList> = ({ title, links }) => {
 const Footer: FC = () => {
   const theme = useTheme()
   const upMd = useMediaQuery(theme.breakpoints.up('md'))
+  const router = useRouter()
   return (
-    <Container sx={{ display: 'block', position: 'relative', zIndex: 0, mt: '16px' }}>
+    <Container
+      sx={{
+        display: 'block',
+        position: 'relative',
+        zIndex: 0,
+        mt: '16px',
+        mb: router.pathname.includes('tokens') && router.pathname.length > 8 ? 6 : 1
+      }}
+    >
       {/* <Grid
         container
         spacing={{ xs: 3, md: 1 }}
@@ -217,6 +227,10 @@ const Footer: FC = () => {
         </Grid>
 
         <Grid item xs={12} md sx={{ textAlign: 'center' }}>
+          Charting solution provided by <Link href="https://www.tradingview.com/" target="_blank">Trading View</Link>
+        </Grid>
+
+        <Grid item xs={12} md sx={{ textAlign: 'center' }}>
           <Link
             href="/terms"
             sx={{
@@ -271,6 +285,7 @@ const Footer: FC = () => {
             />
           </Grid>
         </Grid>
+
       </Grid>
     </Container>
   );

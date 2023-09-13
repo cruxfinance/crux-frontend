@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect } from 'react';
+import React, { FC, useState, useEffect, useContext } from 'react';
 import {
   IconButton,
   Icon,
@@ -25,9 +25,7 @@ import { SxProps } from '@mui/system';
 import { useSession } from 'next-auth/react';
 import { trpc } from "@utils/trpc";
 import { signIn, signOut } from "next-auth/react"
-
-const WALLET_ADDRESS = "wallet_address_coinecta";
-const WALLET_NAME = "wallet_name_coinecta";
+import nautilusIcon from "@public/icons/nautilus.png";
 
 interface IWalletType {
   name: string;
@@ -42,119 +40,33 @@ const UserMenu: FC<IUserMenuProps> = () => {
   const theme = useTheme()
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false)
-  // const walletContext = useWallet()
-  // const connectedWalletAddress = useAddress();
-  const [rewardAddress, setRewardAddress] = useState<string | undefined>(undefined);
-  const result = trpc.user.getNonce.useQuery({ userAddress: rewardAddress }, { enabled: false, retry: false });
-  const [newNonce, setNewNonce] = useState<string | undefined>(undefined)
-  const [walletIcon, setWalletIcon] = useState<string | undefined>(undefined)
-  // const walletList = useWalletList();
   const { data: sessionData, status: sessionStatus } = useSession();
   const [providerLoading, setProviderLoading] = useState(true)
-  // const walletTypeQuery = trpc.user.getUserWalletType.useQuery({}, {
-  //   enabled: sessionStatus === 'authenticated', // Only run the query if this is true
-  // });
 
   useEffect(() => {
+    console.log('session: ' + sessionStatus);
     if (sessionStatus === 'authenticated' || sessionStatus === 'unauthenticated') {
-      setProviderLoading(false)
+      setProviderLoading(false);
     }
-    if (sessionStatus === 'authenticated' && sessionData.user.walletType) {
-      // walletContext.connect(sessionData.user.walletType)
 
+    if (sessionStatus === 'authenticated' && sessionData.user.walletType === 'nautilus') {
+      const checkDappConnection = async () => {
+        const isNautilusConnected = await window.ergoConnector.nautilus.isConnected();
+        if (!isNautilusConnected) {
+          console.log('Nautilus not connected')
+          // Add flow for when user is authenticated but nautilus was disconnected manually in the dapp
+          // 1. Ask user to connect to nautilus
+          // 2. Verify they chose a wallet with an address that matches the authenticated user
+          // 3. If not, ask them to a choose another wallet. Allow them to Log out and try again
+
+          // Or
+          // 1. Sign them out automatically
+          signOut()
+        }
+      }
+      checkDappConnection();
     }
-  }, [sessionStatus, setProviderLoading])
-
-  // useEffect(() => {
-  //   console.log('wallet type query: ' + walletTypeQuery.data)
-  //   console.log('session status: ' + sessionStatus)
-  //   if (walletTypeQuery.data && !walletContext.connected) {
-  //     // Connect to the user's Cardano wallet using the wallet type
-  //     walletContext.connect(walletTypeQuery.data)
-  //   }
-  // }, [walletTypeQuery.data]); // Depend on the query's data
-
-  // useEffect(() => {
-  //   if (walletContext.connected) {
-  //     async function getUserAddress() {
-  //       const address = await walletContext.wallet.getRewardAddresses();
-  //       const walletTypeObject: IWalletType[] = walletList.filter(item => item.name === walletContext.name);
-  //       setWalletIcon(walletTypeObject[0].icon)
-  //       // console.log('connected Wallet Address: ' + connectedWalletAddress)
-  //       // console.log('got user address: ' + address[0])
-  //       setRewardAddress(address[0]);
-  //     }
-  //     getUserAddress();
-  //   }
-  // }, [walletContext.connected]);
-
-  // useEffect(() => {
-  //   console.log('connected: ' + walletContext.connected)
-  //   console.log('rewardAddress: ' + rewardAddress)
-  //   if (rewardAddress && walletContext.connected && sessionStatus === 'unauthenticated') {
-  //     result.refetch()
-  //       .then((response: any) => {
-  //         console.log(response)
-  //       })
-  //       .catch((error: any) => {
-  //         console.error(error);
-  //       });
-  //     console.log('result refetched')
-  //   }
-  // }, [rewardAddress, sessionStatus]);
-
-  // useEffect(() => {
-  //   if (result?.data?.nonce !== null && result?.data?.nonce !== undefined && sessionStatus === 'unauthenticated') {
-  //     setNewNonce(result.data.nonce)
-  //   }
-  // }, [result.data, sessionStatus])
-
-  // useEffect(() => {
-  //   if (newNonce && rewardAddress) {
-  //     console.log('verifying ownership with nonce: ' + newNonce)
-  //     if (sessionStatus === 'unauthenticated') {
-  //       verifyOwnership(newNonce, rewardAddress)
-  //     }
-  //   }
-  // }, [newNonce, sessionStatus])
-
-  // const verifyOwnership = (nonce: string, address: string) => {
-  //   setProviderLoading(true)
-  //   console.log('nonce: ' + nonce)
-  //   console.log('address: ' + address)
-  //   walletContext.wallet.signData(address, nonce)
-  //     .then((signature: { key: string; signature: string; }) => {
-  //       console.log(signature)
-  //       return signIn("credentials", {
-  //         nonce,
-  //         rewardAddress: rewardAddress,
-  //         signature: JSON.stringify(signature),
-  //         wallet: JSON.stringify({
-  //           type: walletContext.name,
-  //           rewardAddress,
-  //           address: connectedWalletAddress,
-  //           icon: walletIcon
-  //         }),
-  //         redirect: false
-  //       });
-  //     })
-  //     .then((response: any) => {
-  //       if (response.status !== 200 || !response.status) {
-  //         console.log('disconnect')
-  //         setRewardAddress(undefined)
-  //         walletContext.disconnect()
-  //       }
-  //       console.log(response)
-  //       setProviderLoading(false)
-  //     })
-  //     .catch((error: any) => {
-  //       console.log('disconnect')
-  //       setRewardAddress(undefined)
-  //       walletContext.disconnect()
-  //       console.error(error);
-  //       setProviderLoading(false)
-  //     });
-  // }
+  }, [sessionStatus, setProviderLoading]);
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -166,43 +78,39 @@ const UserMenu: FC<IUserMenuProps> = () => {
   };
 
   const clearWallet = async () => {
-    localStorage.setItem(WALLET_ADDRESS, '');
-    localStorage.setItem(WALLET_NAME, '');
-    setRewardAddress(undefined)
-    // walletContext.disconnect()
+    window.ergoConnector.nautilus.disconnect();
     signOut()
   };
 
   return (
     <>
+      {/* {dappConnected ? 'connected to dapp' : 'not connected to dapp'} */}
       {(sessionStatus === 'unauthenticated' || sessionStatus === 'loading') && (
         <Button
           onClick={() => setModalOpen(true)}
           variant="contained"
-          // disabled={providerLoading}
+          disabled={providerLoading || !router.pathname.includes('hello')}
           sx={{ my: '5px' }}
-          disabled
+        // disabled
         >
           {providerLoading ? 'Loading...' : 'Sign in'}
         </Button>
       )}
       {sessionStatus === 'authenticated' && (
         <>
-          {sessionData.user.walletType}
+          {/* {sessionData.user.walletType} */}
           <IconButton
             sx={{
               color: theme.palette.text.primary,
-
-
             }}
             onClick={handleClick}
           >
             <Avatar src={sessionData.user.image} sx={{ width: '24px', height: '24px', mr: 1 }} variant="square" />
-            {/* {connectedWalletAddress &&
+            {sessionData.user.address &&
               <Typography>
-                {getShortAddress(connectedWalletAddress)}
+                {getShortAddress(sessionData.user.address)}
               </Typography>
-            } */}
+            }
           </IconButton>
           <Menu
             anchorEl={anchorEl}
@@ -270,7 +178,13 @@ const UserMenu: FC<IUserMenuProps> = () => {
           </Menu>
         </>
       )}
-      <SignIn open={modalOpen} setOpen={setModalOpen} setLoading={setProviderLoading} />
+      <SignIn
+        open={modalOpen}
+        setOpen={setModalOpen}
+        setLoading={setProviderLoading}
+      // setDappConnected={setDappConnected}
+      // connectDapp={dappConnection}
+      />
     </>
   );
 }

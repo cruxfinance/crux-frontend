@@ -10,7 +10,7 @@ function getBaseUrl() {
   if (process.env.VERCEL_URL !== "" || process.env.VERCEL_URL !== undefined)
     // reference for vercel.com
     return `https://${process.env.VERCEL_URL}`;
-  return `https://192.168.0.194:${process.env.PORT ?? 3000}`;
+  return `http://192.168.0.194:${process.env.PORT ?? 3000}`;
 }
 
 export const trpc = createTRPCNext<AppRouter>({

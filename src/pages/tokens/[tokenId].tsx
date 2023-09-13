@@ -213,7 +213,7 @@ const Charts: FC = () => {
         </>
       )}
       {!upSm && (
-        <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20000 }} elevation={3}>
+        <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 11500 }} elevation={3}>
           <BottomNavigation
             showLabels
             value={navigation}

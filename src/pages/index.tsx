@@ -15,7 +15,6 @@ import {
   ListItem,
   TextField,
 } from "@mui/material";
-import { v4 as uuidv4 } from "uuid";
 import { useInView } from "react-intersection-observer";
 import wideBg from "@public/city-tiltshift3.jpg";
 import Timeline, { ITimelineItem } from "@components/Timeline";
@@ -24,6 +23,9 @@ import MemoizedFeatureList from "@components/MemoizedFeatureList";
 import Feature, { IFeature } from '@components/Feature'
 import ButtonLink from "@components/ButtonLink";
 import Tokenomics, { TokenomicsData } from "@components/Tokenomics";
+import BlobHero from "@components/svgs/BlobHero";
+import Image from "next/image";
+import BlobTokenomics from "@components/svgs/BlobTokenomics";
 
 const timeline: ITimelineItem[] = [
   {
@@ -161,26 +163,27 @@ const Home: NextPage = () => {
   return (
     <>
       {/* Hero section */}
+
       <Box
         sx={{
-          "&:before": {
-            content: '""',
-            display: "inline-block",
-            width: "3440px",
-            height: "1485px",
-            backgroundImage: `url(${wideBg.src})`,
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "top center",
-            position: "absolute",
-            left: "50%",
-            transform: "translateX(-50%)",
-            top: "0",
-            backgroundSize: {
-              xs: "50%",
-              md: "70%",
-              xl: "100%",
-            },
-          },
+          // "&:before": {
+          //   content: '""',
+          //   display: "inline-block",
+          //   width: "3440px",
+          //   height: "1485px",
+          //   backgroundImage: `url(${wideBg.src})`,
+          //   backgroundRepeat: "no-repeat",
+          //   backgroundPosition: "top center",
+          //   position: "absolute",
+          //   left: "50%",
+          //   transform: "translateX(-50%)",
+          //   top: "0",
+          //   backgroundSize: {
+          //     xs: "50%",
+          //     md: "70%",
+          //     xl: "100%",
+          //   },
+          // },
           // backgroundColor: 'rgba(255,255,255,1)',
           // backgroundImage: `url(${wideBg.src})`,
           // backgroundRepeat: 'no-repeat',
@@ -193,58 +196,98 @@ const Home: NextPage = () => {
       >
         <Container
           sx={{
-            pt: "30vh",
+            pt: "40vh",
             minHeight: "100vh",
             // mb: 12
             position: "relative",
           }}
         >
-          <Paper
+          <BlobHero
             sx={{
-              mx: "auto",
-              p: 4,
-              maxWidth: "md",
+              position: 'absolute',
+              top: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: -2
             }}
-            elevation={12}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '75%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: -1,
+              height: '100vh'
+            }}
           >
-            <Typography
-              variant="h2"
-              fontWeight={700}
-              align="center"
-              gutterBottom
-            >
-              Feature rich DeFi tools for the Ergo Ecosystem
-            </Typography>
-            <Typography variant="h6" align="center" paragraph>
-              Track your portolio and interact with eUTXO DeFi in one place. Set
-              alerts, place orders, monitor P&L, and even print tax reports.
-            </Typography>
+            <Image src="/backgrounds/hero.png" width="597" height="551" alt={"background"} />
+          </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Box>
+              <Typography
+                variant="h2"
+                fontWeight={700}
+                gutterBottom
+                align="center"
+                sx={{
+                  background: `linear-gradient(90deg, ${theme.palette.secondary.dark} 10%, ${theme.palette.primary.dark} 80%)`,
+                  backgroundClip: 'text',
+                  textFillColor: 'transparent',
+                  mb: 5,
+                  maxWidth: '750px'
+                }}
+              >
+                Feature rich DeFi tools for the Ergo Ecosystem
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="h6" align="center" paragraph sx={{ maxWidth: '720px', mb: 5 }}>
+                Track your portolio and interact with eUTXO DeFi in one place. Set
+                alerts, place orders, monitor P&L, and even print tax reports.
+              </Typography>
+            </Box>
+
             <Stack
               sx={{ pt: 3 }}
               direction="row"
-              spacing={2}
+              spacing={4}
               justifyContent="center"
             >
-              <Button variant="contained" href="https://ergopad.io/projects/cruxfinance" target="_blank">
+              <Button
+                variant="contained"
+                href="https://ergopad.io/projects/cruxfinance"
+                target="_blank"
+                sx={{
+                  color: theme.palette.text.primary,
+                  padding: upMd ? '16px 40px !important' : '',
+                  fontSize: upMd ? '18px' : '16px',
+                  fontWeight: 700,
+                  borderRadius: '16px',
+                }}
+              >
                 IDO Info
               </Button>
-              <Button variant="contained" href="https://docs.cruxfinance.io" target="_blank">
+              <Button
+                variant="outlined"
+                href="https://docs.cruxfinance.io"
+                target="_blank"
+                sx={{
+                  padding: upMd ? '16px 40px !important' : '',
+                  fontSize: upMd ? '18px' : '16px',
+                  fontWeight: 700,
+                  borderRadius: '16px',
+                  borderWidth: '2px',
+                  '&:hover': {
+                    borderWidth: '2px'
+                  }
+                }}
+              >
                 Whitepaper
               </Button>
             </Stack>
-            {/* <Box sx={{ mt: 2 }}>
-              <TextField
-                id="wallet-addresses"
-                label=""
-                name=""
-                // variant="outlined"
-                // value={addressList.join(", ")}
-                // onChange={handleChangeAddressList}
-                fullWidth
-                placeholder="Any number of wallet addresses, separated by commas"
-              />
-            </Box> */}
-          </Paper>
+          </Box>
+
           {/* <Box maxWidth='lg' sx={{ mx: 'auto' }}>
             <Typography variant="body1" sx={{ pt: 12, textTransform: 'uppercase' }} align="center" color="text.secondary" paragraph>
               In partnership with:
@@ -330,7 +373,16 @@ const Home: NextPage = () => {
       {/* END features */}
 
       {/* Roadmap */}
-      <Container sx={{ mb: 24 }} id="roadmap">
+      <Container sx={{ mb: 24, position: 'relative' }} id="roadmap">
+        <BlobTokenomics
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: -2
+          }}
+        />
         <Grid container sx={{ mb: 3 }} ref={ref5}>
           <Grid item md={1}></Grid>
           <Grid item md={10}>
@@ -350,11 +402,13 @@ const Home: NextPage = () => {
             <Timeline timeline={timeline} />
           </Box>
         </Grow>
+
       </Container>
 
       {/* Tokenomics */}
       <Container sx={{ mb: 12, position: 'relative', display: 'block' }} id="tokenomics">
-        <Grid container sx={{ mb: 3 }}>
+
+        <Grid container sx={{ mb: 6 }}>
           <Grid item md={1}></Grid>
           <Grid item md={10}>
             <Typography
@@ -367,6 +421,16 @@ const Home: NextPage = () => {
             </Typography>
           </Grid>
           <Grid item md={1}></Grid>
+          <Grid item md={3}></Grid>
+          <Grid item md={6}>
+            <Typography
+              gutterBottom
+              sx={{ textAlign: "center" }}
+            >
+              The Crux token serves as the platform's primary payment option, providing subscribers a 30% discount, distributing 25% of revenue to staked token holders, and offering yield farming and a loyalty program based on user metrics.
+            </Typography>
+          </Grid>
+          <Grid item md={3}></Grid>
         </Grid>
         {/* <Box sx={{
             p: 2,
@@ -386,7 +450,7 @@ const Home: NextPage = () => {
               wordWrap: 'break-word'
             }}>Test Glass</Box>
           </Box> */}
-        <Feature
+        {/* <Feature
           {...{
             title: 'Overview',
             content: <Typography variant="subtitle1">
@@ -396,15 +460,22 @@ const Home: NextPage = () => {
             imageAlt: 'Crux Tokenomics Pie Chart',
             index: 0,
             aspect: '878 / 566'
-          }} />
-        <Paper sx={{ position: 'relative' }}>
-          <Tokenomics
-            data={tokenomicsData}
-            total={100000000}
-            name="Crux Finance"
-            ticker="CRUX"
-          />
-        </Paper>
+          }} /> */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Image src="/tokenomics.png" width="555" height="266" alt="tokenomics" />
+        </Box>
+        <Grid container>
+          <Grid item md={1}></Grid>
+          <Grid item xs={12} md={10}>
+            <Tokenomics
+              data={tokenomicsData}
+              total={100000000}
+              name="Crux Finance"
+              ticker="CRUX"
+            />
+          </Grid>
+          <Grid item md={1}></Grid>
+        </Grid>
       </Container>
     </>
   );
