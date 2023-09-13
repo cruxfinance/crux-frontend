@@ -335,8 +335,7 @@ const Tokens: FC = () => {
 
       <TokenFilterOptions filters={filters} setFilters={setFilters} open={filterModalOpen} setOpen={setFilterModalOpen} />
 
-
-      <Paper>
+      <Paper sx={{ position: 'relative' }}>
         {upLg
           ? (
             <>
@@ -619,8 +618,6 @@ const Tokens: FC = () => {
               </Box>
             </>
           )}
-
-
       </Paper>
     </Container >
   )

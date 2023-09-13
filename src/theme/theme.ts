@@ -21,6 +21,10 @@ declare module '@mui/material/styles' {
 const lightPrimaryMain = '#FE6B8B'
 const lightSecondaryMain = '#FF8E53'
 
+
+const lightPrimaryDark = "#FF2D85"
+const lightSecondaryDark = "#FF7235"
+
 const mainTheme = [{
   typography: {
     fontFamily: '"Bai Jamjuree", sans-serif',
@@ -70,8 +74,10 @@ const mainTheme = [{
     //   fontSize: '0.75rem',
     //   display: 'inline-block',
     // },
-    // body1: {
-    // },
+    body1: {
+      letterSpacing: '0.07em',
+      lineHeight: '1.5'
+    },
     body2: {
       lineHeight: '1.5',
       marginBottom: '24px',
@@ -115,12 +121,12 @@ const mainTheme = [{
             // color: '#ffffff',
             padding: '4px 12px',
             border: `2px solid ${lightPrimaryMain}`,
-            background: `linear-gradient(60deg, ${lightPrimaryMain} 30%, ${lightSecondaryMain} 90%)`,
-            transition: 'transform .2s ease-out, background .1s ease-out, box-shadow .1s ease-in-out',
+            background: `linear-gradient(60deg, ${lightSecondaryMain} 10%, ${lightPrimaryMain} 90%)`,
+            transition: 'transform .2s ease-out, background .2s ease-out, box-shadow .1s linear',
             '&:hover': {
-              transform: 'translate(1px, 1px)',
-              boxShadow: `2px 2px 9px -2px ${lightPrimaryMain}`,
-              background: `linear-gradient(90deg, ${lightPrimaryMain} 30%, ${lightSecondaryMain} 90%)`,
+              // transform: 'translate(1px, 1px)',
+              // boxShadow: `2px 2px 9px -2px ${lightPrimaryMain}`,
+              background: `linear-gradient(120deg, #FFA57A 10%, #FD8CA1 90%)`,
             }
           },
         },
@@ -305,9 +311,12 @@ let lightTheme = createTheme({
     primary: {
       // main: "#FF2147",
       main: lightPrimaryMain,
+      dark: lightPrimaryDark
     },
     secondary: {
-      main: "#3D8AB9",
+      light: "#3D8AB9",
+      main: lightSecondaryMain,
+      dark: lightSecondaryDark
     },
     up: {
       main: '#65ce92',
@@ -375,9 +384,11 @@ let darkTheme = createTheme({
     primary: {
       // main: "#FF2147",
       main: lightPrimaryMain,
+      dark: lightPrimaryDark
     },
     secondary: {
       main: lightSecondaryMain,
+      dark: lightSecondaryDark
     },
     up: {
       main: '#89c66d',

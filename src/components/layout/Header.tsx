@@ -172,7 +172,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
   };
 
   const trigger = useScrollTrigger({
-    // disableHysteresis: true,
+    disableHysteresis: router.pathname === '/' ? true : false,
     threshold: 0,
   });
 
@@ -182,15 +182,22 @@ const Header: FC<IHeaderProps> = ({ }) => {
         position="fixed"
         elevation={12}
         sx={{
-          zIndex: 10001,
+          zIndex: 91,
           border: 'none',
-          top: trigger ? '-60px' : 0,
+          top: trigger && router.pathname !== '/' ? '-60px' : 0,
           // borderBottom: `1px solid ${theme.palette.divider}`,
           backdropFilter: "blur(10px)",
           borderRadius: '0px',
           // background: theme.palette.background.default,
-          boxShadow: '3px 3px 15px 5px rgba(0,0,0,0.5)',
-          background: navbarOpen || notificationsOpen ? theme.palette.background.default : theme.palette.background.transparent,
+          boxShadow: router.pathname === '/' && !trigger
+            ? 'none'
+            : '3px 3px 15px 5px rgba(0,0,0,0.5)',
+          // boxShadow: 'none!important',
+          background: navbarOpen || notificationsOpen
+            ? theme.palette.background.default
+            : router.pathname === '/' && !trigger
+              ? 'none'
+              : theme.palette.background.transparent,
           transition: 'border-bottom 200ms, backdrop-filter 200ms, background 200ms, box-shadow 200ms, top 400ms'
         }}
       >
@@ -200,8 +207,10 @@ const Header: FC<IHeaderProps> = ({ }) => {
             justifyContent="space-between"
             alignItems="center"
             sx={{
-              height: "60px",
-
+              height: router.pathname === '/' && !trigger && upMd
+                ? "90px"
+                : '60px',
+              transition: 'height 400ms'
             }}
           >
             <Grid
@@ -235,7 +244,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   component="span"
                   sx={{
                     color: theme.palette.text.primary,
-                    fontSize: '2rem!important',
+                    fontSize: '1.6rem!important',
                     fontWeight: '700',
                     lineHeight: 1,
                     display: upLg ? 'inline-block' : 'none',
@@ -303,7 +312,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
           <Grid
             container
             direction="column"
-            justifyContent="space-between"
+            justifyContent="flex-end"
             alignItems="flex-start"
             spacing={2}
             height="100%"
@@ -316,7 +325,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 justifyContent="flex-end"
                 alignItems="flex-start"
                 sx={{
-
+                  mb: 3
                 }}
               >
                 {pages.map((page) => (

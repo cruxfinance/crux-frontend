@@ -1,15 +1,13 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from '@server/prisma';
+import { getCookie, setCookie } from 'cookies-next';
+import { Address, verify_signature } from 'ergo-lib-wasm-nodejs';
+import { nanoid } from 'nanoid';
 import {
   NextApiRequest,
   NextApiResponse,
 } from 'next';
 import NextAuth, { NextAuthOptions, Session, User, getServerSession } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import GithubProvider from 'next-auth/providers/github';
-
-import { getCookie, setCookie } from 'cookies-next';
-import { randomUUID } from 'crypto';
 import {
   JWT,
   JWTDecodeParams,
@@ -17,10 +15,16 @@ import {
   decode,
   encode
 } from 'next-auth/jwt';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import GithubProvider from 'next-auth/providers/github';
+
+const generateNonce = () => {
+  return nanoid()
+}
 
 type Credentials = {
   nonce: string;
-  rewardAddress: string;
+  defaultAddress: string;
   signature: string;
   wallet: string;
 }
@@ -30,6 +34,19 @@ export default async function handler(
   res: NextApiResponse
 ) {
   return await NextAuth(req, res, authOptions(req, res))
+}
+
+const verifySignature = (address: string, message: string, proof: string, type: string) => {
+  const ergoAddress = Address.from_mainnet_str(address);
+  // console.log('address: ' + ergoAddress)
+  const convertedMessage = Buffer.from(message, 'utf-8')
+  // console.log('message: ' + message)
+  const convertedProof = type === 'nautilus'
+    ? Buffer.from(proof, 'hex')
+    : Buffer.from(proof, 'base64')
+  // console.log('proof: ' + convertedProof)
+  const result = verify_signature(ergoAddress, convertedMessage, convertedProof);
+  return result
 }
 
 export const authOptions = (
@@ -48,44 +65,48 @@ export const authOptions = (
   }
 
   async function signUser(user: User, credentials: Credentials): Promise<User | null> {
-    const signatureParse = JSON.parse(credentials.signature)
     const walletParse = JSON.parse(credentials.wallet)
-    // const result = checkSignature(credentials.nonce, credentials.rewardAddress, signatureParse);
-    // if (result) {
-    //   // set a new nonce for the user to make sure an attacker can't reuse this one
-    //   // const newNonce = generateNonce('Sign to login: ');
-    //   prisma.user.update({
-    //     where: {
-    //       id: user.id
-    //     },
-    //     data: {
-    //       nonce: newNonce
-    //     }
-    //   })
-    //   const newUser = { ...user, walletType: walletParse.type }
-    //   return newUser
-    // }
+    const signatureParse = JSON.parse(credentials.signature)
+    // TODO: add nonce verification: compare with user's database entry
+    const result = verifySignature(credentials.defaultAddress, signatureParse.signedMessage, signatureParse.proof, walletParse.type)
+    console.log('Address signed in with: ' + credentials.defaultAddress)
+    console.log('Signed Message: ' + signatureParse.signedMessage)
+    console.log('Proof: ' + signatureParse.proof)
+    console.log(result)
+    if (result) {
+      // set a new nonce for the user to make sure an attacker can't reuse this one
+      const newNonce = generateNonce();
+      prisma.user.update({
+        where: {
+          id: user.id
+        },
+        data: {
+          nonce: newNonce
+        }
+      })
+      const newUser = { ...user, walletType: walletParse.type }
+      return newUser
+    }
     return null
   }
 
   async function createNewUser(credentials: Credentials): Promise<User | null> {
-    const { nonce, rewardAddress, signature, wallet } = credentials
+    const { nonce, defaultAddress, signature, wallet } = credentials
     const walletParse = JSON.parse(wallet)
     const signatureParse = JSON.parse(signature)
+
     const user = await prisma.user.update({
       where: {
-        rewardAddress: rewardAddress
+        defaultAddress: defaultAddress
       },
       data: {
         name: walletParse.address,
-        rewardAddress,
-        defaultAddress: walletParse.address,
+        defaultAddress,
         nonce,
         wallets: {
           create: [
             {
-              rewardAddress: walletParse.rewardAddress,
-              changeAddress: walletParse.address
+              changeAddress: defaultAddress
             }
           ]
         }
@@ -101,20 +122,22 @@ export const authOptions = (
         providerAccountId: walletParse.address,
       },
     })
-    // const result = checkSignature(nonce, rewardAddress, signatureParse);
-    // if (user && account && result) {
-    //   // set a new nonce for the user to make sure an attacker can't reuse this one
-    //   const newNonce = generateNonce('Sign to login: ');
-    //   prisma.user.update({
-    //     where: {
-    //       id: user.id
-    //     },
-    //     data: {
-    //       nonce: newNonce
-    //     }
-    //   })
-    //   return user
-    // }
+
+    const result = verifySignature(credentials.defaultAddress, signatureParse.signedMessage, signatureParse.proof, walletParse.type)
+
+    if (user && account && result) {
+      // set a new nonce for the user to make sure an attacker can't reuse this one
+      const newNonce = generateNonce();
+      prisma.user.update({
+        where: {
+          id: user.id
+        },
+        data: {
+          nonce: newNonce
+        }
+      })
+      return user
+    }
     return null
   }
 
@@ -133,8 +156,8 @@ export const authOptions = (
             type: "text",
             placeholder: "",
           },
-          rewardAddress: {
-            label: "Reward Address",
+          defaultAddress: {
+            label: "Change Address",
             type: "text",
             placeholder: "",
           },
@@ -156,10 +179,10 @@ export const authOptions = (
               return null
             }
 
-            const { nonce, rewardAddress, signature, wallet } =
+            const { nonce, defaultAddress, signature, wallet } =
               credentials as Credentials
 
-            if (!nonce || !rewardAddress || !signature) {
+            if (!nonce || !defaultAddress || !signature) {
               return null
             }
 
@@ -169,7 +192,7 @@ export const authOptions = (
             // check for that scenario. 
             const user = await prisma.user.findFirst({
               where: {
-                rewardAddress: rewardAddress,
+                defaultAddress: defaultAddress,
                 NOT: {
                   defaultAddress: null,
                 },
@@ -193,7 +216,7 @@ export const authOptions = (
         if (nextAuthInclude('callback') && nextAuthInclude('credentials')) {
           if (!user) return true
 
-          const sessionToken = randomUUID()
+          const sessionToken = nanoid()
           const sessionMaxAge = 60 * 60 * 24 * 30
           const sessionExpiry = new Date(Date.now() + sessionMaxAge * 1000)
 

@@ -13,7 +13,6 @@ import AlertWrapper, { IAlertMessages } from "@components/AlertWrapper";
 import { trpc } from '@utils/trpc';
 import { SessionProvider } from "next-auth/react"
 
-
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
   const [alert, setAlert] = useState<IAlertMessages[]>([]);

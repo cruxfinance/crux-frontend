@@ -24,7 +24,6 @@ declare module "next-auth" {
   interface User {
     id: string;
     name: string | null;
-    rewardAddress: string | null;
     defaultAddress: string | null;
     nonce: string | null;
     email: string | null;
@@ -90,8 +89,9 @@ declare module "next-auth" {
   }
   interface Wallet {
     id: number;
-    rewardAddress: string;
     changeAddress: string;
+    unusedAddresses: string[];
+    usedAddresses: string[];
     user_id: string;
     user?: UserProfile;
   }

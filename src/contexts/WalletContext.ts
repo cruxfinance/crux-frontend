@@ -6,11 +6,21 @@ interface IWalletType {
   version: string;
 }
 
+export interface IDAppWallet {
+  connected: boolean;
+  name: string;
+  addresses: string[];
+}
+
 export interface IWalletContext {
-  walletAddress: string;
-  setWalletAddress: React.Dispatch<React.SetStateAction<string>>;
-  walletType: IWalletType;
-  setWalletType: React.Dispatch<React.SetStateAction<IWalletType>>;
+  walletAddress: string | undefined;
+  setWalletAddress: React.Dispatch<React.SetStateAction<string | undefined>>;
+  dAppWallet: IDAppWallet;
+  setDAppWallet: React.Dispatch<React.SetStateAction<IDAppWallet>>;
+  addWalletModalOpen: boolean;
+  setAddWalletModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  expanded: string | false;
+  setExpanded: React.Dispatch<React.SetStateAction<string | false>>;
 }
 
 export const WalletContext = createContext({} as IWalletContext);

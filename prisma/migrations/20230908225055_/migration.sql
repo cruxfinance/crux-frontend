@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "LoginRequestStatus" AS ENUM ('PENDING', 'SIGNED', 'EXPIRED');
+
 -- CreateTable
 CREATE TABLE "accounts" (
     "id" TEXT NOT NULL,
@@ -31,7 +34,6 @@ CREATE TABLE "sessions" (
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "name" TEXT,
-    "reward_address" TEXT,
     "default_address" TEXT,
     "nonce" TEXT,
     "email" TEXT,
@@ -92,8 +94,9 @@ CREATE TABLE "addresses" (
 -- CreateTable
 CREATE TABLE "wallets" (
     "id" SERIAL NOT NULL,
-    "rewardAddress" TEXT NOT NULL,
     "changeAddress" TEXT NOT NULL,
+    "unusedAddresses" TEXT[],
+    "usedAddresses" TEXT[],
     "user_id" TEXT NOT NULL,
 
     CONSTRAINT "wallets_pkey" PRIMARY KEY ("id")
@@ -113,14 +116,26 @@ CREATE TABLE "transactions" (
     CONSTRAINT "transactions_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "LoginRequest" (
+    "id" SERIAL NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "verificationId" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "status" "LoginRequestStatus" NOT NULL,
+    "signedMessage" TEXT,
+    "proof" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LoginRequest_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "accounts_provider_provider_account_id_key" ON "accounts"("provider", "provider_account_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "sessions_session_token_key" ON "sessions"("session_token");
-
--- CreateIndex
-CREATE UNIQUE INDEX "users_reward_address_key" ON "users"("reward_address");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_default_address_key" ON "users"("default_address");
@@ -138,10 +153,10 @@ CREATE UNIQUE INDEX "verificationtokens_identifier_token_key" ON "verificationto
 CREATE UNIQUE INDEX "user_profiles_user_id_key" ON "user_profiles"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "wallets_rewardAddress_key" ON "wallets"("rewardAddress");
+CREATE UNIQUE INDEX "wallets_changeAddress_key" ON "wallets"("changeAddress");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "wallets_changeAddress_key" ON "wallets"("changeAddress");
+CREATE UNIQUE INDEX "LoginRequest_verificationId_key" ON "LoginRequest"("verificationId");
 
 -- AddForeignKey
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -157,3 +172,6 @@ ALTER TABLE "wallets" ADD CONSTRAINT "wallets_user_id_fkey" FOREIGN KEY ("user_i
 
 -- AddForeignKey
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user_profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "LoginRequest" ADD CONSTRAINT "LoginRequest_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

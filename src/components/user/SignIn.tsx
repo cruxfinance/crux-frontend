@@ -8,21 +8,20 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery,
-  List,
-  ListItemAvatar,
   Avatar,
-  ListItemText,
-  ListItemButton,
   Typography,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Box
+  Box,
+  Collapse,
+  IconButton
 } from "@mui/material";
 import { signIn } from "next-auth/react"; // Import signIn from next-auth
-import nautilusIcon from "@public/icons/nautilus.png";
-import githubIcon from "@public/icons/github-mark-white.png";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import MobileLogin from "./MobileLogin";
+import NautilusLogin from "./NautilusLogin";
+import CloseIcon from '@mui/icons-material/Close';
 
 
 declare global {
@@ -30,6 +29,31 @@ declare global {
     ergoConnector: any;
   }
 }
+
+const wallets: {
+  name: Expanded;
+  icon: string;
+  description: string;
+}[] = [
+    {
+      name: "Nautilus",
+      icon: "/icons/wallets/nautilus-128.png",
+      description: "Connect automatically signing with your wallet",
+    },
+    {
+      name: "Mobile",
+      icon: "/icons/wallets/mobile.webp",
+      description: "Enter your wallet address then sign with the mobile app",
+    },
+    {
+      name: "GitHub",
+      icon: "/icons/wallets/github-mark-white.png",
+      description: "Connect with your OAuth provider",
+    },
+  ];
+
+
+export type Expanded = 'Nautilus' | 'Mobile' | 'GitHub' | undefined;
 
 interface ISignIn {
   open: boolean;
@@ -41,6 +65,7 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [isNautilusAvailable, setNautilusAvailable] = useState(false);
+  const [expanded, setExpanded] = useState<Expanded>(undefined)
 
   useEffect(() => {
     setNautilusAvailable(!!window.ergoConnector?.nautilus);
@@ -50,26 +75,52 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
     setOpen(false)
   }
 
-  const handleConnect = (walletName: string) => {
-    setLoading(true)
-    window.ergoConnector[walletName].connect()
-    handleClose()
+  const handleConnect = async (walletName: string) => {
+    // setLoading(true)
+    window.ergoConnector.nautilus.disconnect()
+    const connected = await window.ergoConnector.nautilus.connect()
+    console.log(connected)
+    // setDappConnected(true)
+    // connectDapp()
   }
 
   const handleProviderSignIn = (providerId: string) => {
     setLoading(true);
-    handleClose();
-
     signIn(providerId)
       .then((result) => {
         console.log(result)
-        setLoading(false);
       })
       .catch((error) => {
         console.error(error);
-        setLoading(false);
       });
+    handleClose();
   };
+
+  const handleWalletChange = (wallet: Expanded) => {
+    setExpanded(wallet !== undefined ? wallet : undefined);
+    if (wallet === 'GitHub') handleProviderSignIn("github")
+    if (wallet === 'Nautilus') dappConnection()
+  };
+
+  const [nautilusLoading, setNautilusLoading] = useState(false)
+  const [dappConnected, setDappConnected] = useState(false)
+  const dappConnection = async () => {
+    setNautilusLoading(true)
+    try {
+      const connect = await window.ergoConnector.nautilus.connect()
+      if (connect) {
+        setDappConnected(true);
+      }
+      else {
+        console.log('error connecting nautilus')
+        setNautilusLoading(false)
+        setExpanded(undefined)
+      }
+    } catch (error) {
+      console.error("Error connecting to dApp:", error);
+      setNautilusLoading(false)
+    }
+  }
 
   return (
     <>
@@ -77,6 +128,7 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
         open={open}
         onClose={handleClose}
         fullScreen={fullScreen}
+        sx={{ zIndex: 12000 }}
       >
         <DialogTitle
           sx={{
@@ -87,6 +139,17 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
         >
           Choose a provider
         </DialogTitle>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+          }}
+        >
+          <CloseIcon sx={{ fontSize: 30 }} />
+        </IconButton>
         <DialogContent sx={{ minWidth: '250px', pb: 0 }}>
           <Box sx={{ mb: 2 }}>
             <Accordion sx={{ border: `1px solid ${theme.palette.divider}`, boxShadow: 'none', background: 'rgba(150,150,150,0.03)' }}>
@@ -98,37 +161,120 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
                   The auth provider you select will be your login on all devices. If you choose to create your account with an Ergo wallet, please make sure you have access to it on all devices.
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  It is OK to login with Nautilus on desktop and mobile wallet on your phone, as long as you have the same address available on both devices.
+                  It is OK to login with Nautilus on desktop and Ergo Mobile wallet or Terminus on your phone, as long as you have the same address available on both devices.
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  You may add multiple wallets to your account with Premium membership, but the one you select now will be your master login.
+                  You may add multiple wallets to your account with Premium membership, but if you choose a wallet provider, that address will be your master login.
                 </Typography>
               </AccordionDetails>
             </Accordion>
           </Box>
-
-          {(
-            <List>
-              {isNautilusAvailable && (
-                <ListItemButton onClick={() => handleConnect('nautilus')}>
-                  <ListItemAvatar>
+          {wallets.map((item, i) => {
+            return (
+              <Collapse
+                in={expanded === item.name || expanded === undefined}
+                mountOnEnter
+                unmountOnExit
+                key={i}
+              >
+                <Button
+                  fullWidth
+                  // disabled={walletAddress != ""}
+                  sx={{
+                    borderRadius: "6px",
+                    p: "0.5rem",
+                    justifyContent: "space-between",
+                    mb: "12px",
+                    display: "flex",
+                    minWidth: fullScreen ? "90vw" : "500px",
+                  }}
+                  onClick={
+                    expanded === undefined
+                      ? () => handleWalletChange(item.name)
+                      : () => handleWalletChange(undefined)
+                  }
+                >
+                  <Box
+                    sx={{
+                      fontSize: "1.2rem",
+                      color: "text.primary",
+                      fontWeight: "400",
+                      textAlign: "left",
+                      display: "flex",
+                    }}
+                  >
                     <Avatar
-                      alt='Nautilus wallet icon'
-                      src={nautilusIcon.src}
-                      sx={{ height: '24px', width: '24px' }}
-                      variant="square"
+                      src={item.icon}
+                      // variant="circular"
+                      sx={{
+                        height: "3rem",
+                        width: "3rem",
+                        mr: "1rem",
+                      }}
                     />
-                  </ListItemAvatar>
-                  <ListItemText primary="Nautilus wallet" />
-                </ListItemButton>
-              )}
-              <ListItemButton onClick={() => handleProviderSignIn("github")}>
-                <ListItemAvatar>
-                  <Avatar alt="GitHub Icon" src={githubIcon.src} sx={{ height: "24px", width: "24px" }} variant="square" />
-                </ListItemAvatar>
-                <ListItemText primary="GitHub" />
-              </ListItemButton>
-            </List>
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontSize: "1.1rem",
+                          fontWeight: "400",
+                        }}
+                      >
+                        {item.name === "Mobile" ? "Terminus/Mobile Wallet" : item.name}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: ".9rem",
+                          color: "text.secondary",
+                          fontWeight: "400",
+                        }}
+                      >
+                        {item.description}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box
+                    sx={{
+                      transform:
+                        expanded === item.name
+                          ? "rotate(0deg)"
+                          : "rotate(-90deg)",
+                      transition: "transform 100ms ease-in-out",
+                      textAlign: "right",
+                      lineHeight: "0",
+                      mr: "-0.5rem",
+                    }}
+                  >
+                    <ExpandMoreIcon />
+                  </Box>
+                </Button>
+              </Collapse>
+            );
+          })}
+          <Collapse
+            in={expanded === "Mobile"}
+            mountOnEnter
+            unmountOnExit
+          >
+            <MobileLogin
+              setModalOpen={setOpen}
+            />
+          </Collapse>
+          {isNautilusAvailable && (
+            <Collapse
+              in={expanded === "Nautilus"}
+              mountOnEnter
+              unmountOnExit
+            >
+              <NautilusLogin
+                setLoading={setLoading}
+                expanded={expanded}
+                dappConnected={dappConnected}
+                setDappConnected={setDappConnected}
+                localLoading={nautilusLoading}
+                setLocalLoading={setNautilusLoading}
+                setModalOpen={setOpen}
+              />
+            </Collapse>
           )}
         </DialogContent>
         <DialogActions>
