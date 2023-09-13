@@ -427,7 +427,7 @@ const Home: NextPage = () => {
               gutterBottom
               sx={{ textAlign: "center" }}
             >
-              The Crux token serves as the platform's primary payment option, providing subscribers a 30% discount, distributing 25% of revenue to staked token holders, and offering yield farming and a loyalty program based on user metrics.
+              The Crux token serves as the platform&apos;s primary payment option, providing subscribers a 30% discount, distributing 25% of revenue to staked token holders, and offering yield farming and a loyalty program based on user metrics.
             </Typography>
           </Grid>
           <Grid item md={3}></Grid>
