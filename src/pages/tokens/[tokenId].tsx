@@ -19,8 +19,6 @@ import { formatNumber } from '@src/utils/general';
 import { currencies, Currencies } from '@src/utils/currencies';
 import TradeHistory from '@src/components/tokenInfo/TradeHistory';
 import TokenStats from '@src/components/tokenInfo/TokenStats';
-import dynamic from "next/dynamic";
-import Script from "next/script";
 import {
   ChartingLibraryWidgetOptions,
   ResolutionString,
@@ -29,12 +27,30 @@ import { ITokenData } from '.';
 import CandlestickChartIcon from '@mui/icons-material/CandlestickChart';
 import InfoIcon from '@mui/icons-material/Info';
 import HistoryIcon from '@mui/icons-material/History';
-import { Link as ScrollLink } from "react-scroll";
-import * as Scroll from 'react-scroll';
 import { scroller } from 'react-scroll';
 import TvChart from '@components/tokenInfo/TvChart';
 
-const Charts: FC = () => {
+type TokenInfoApi = {
+  token_id: string;
+  token_name: string;
+  token_description: string;
+  decimals: number;
+  minted: number;
+  value_in_erg: number;
+  locked_supply: number;
+  liquid_supply: number;
+  burned_supply: number;
+};
+
+export interface TokenDataPlus extends ITokenData {
+  totalMinted: number;
+  lockedSupply: number;
+  liquidSupply: number;
+  burnedSupply: number;
+  description: string;
+}
+
+const TokenInfo: FC = () => {
   const router = useRouter();
   const theme = useTheme()
   const upLg = useMediaQuery(theme.breakpoints.up('lg'))
@@ -43,38 +59,56 @@ const Charts: FC = () => {
   const tokenId = router.query.tokenId as string;
   const tradingPair = undefined
   const [loading, setLoading] = useState(true)
-  const [tokenInfo, setTokenInfo] = useState<ITokenData | null>(null)
+  const [tokenInfo, setTokenInfo] = useState<TokenDataPlus | null>(null)
   const [currency, setCurrency] = useState<Currencies>('ERG')
   const [exchangeRate, setExchangeRate] = useState(1)
   // const [isScriptReady, setIsScriptReady] = useState(false)
   const [defaultWidgetProps, setDefaultWidgetProps] = useState<Partial<ChartingLibraryWidgetOptions> | undefined>(undefined)
   const [navigation, setNavigation] = useState('stats')
 
-  async function fetchTradeHistory(tokenId: string) {
+  const getExchangeRate = async () => {
     setLoading(true);
     try {
-      const endpoint = `${process.env.CRUX_API}/spectrum/actions`;
-      const payload = {
-        limit: 1,
-        offset: 0,
-        quote_id: tokenId
-      };
+      const endpoint = `${process.env.CRUX_API}/coingecko/erg_price`;
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
       });
 
-      const dataArray = await response.json();
-      const data = dataArray[0]
+      const data = await response.json();
+      if (data.price) setExchangeRate(data.price)
+      else throw new Error("Unable to fetch Ergo price data")
+    } catch (error) {
+      console.error("Error fetching Ergo price data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fetchTradeHistory = async (tokenId: string) => {
+    setLoading(true);
+    try {
+      const endpoint = `${process.env.CRUX_API}/crux/token_info/${tokenId}`;
+      // const payload = {
+      //   token_id: tokenId
+      // };
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        // body: JSON.stringify(payload)
+      });
+
+      const data: TokenInfoApi = await response.json();
       const thisTokenInfo = {
-        name: data.quote_token,
-        ticker: data.quote_token,
+        name: data.token_name,
+        ticker: data.token_name,
         tokenId: tokenId,
         icon: 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/' + tokenId + '.svg',
-        price: data.price_in_ergo,
+        price: data.value_in_erg,
         pctChange1h: 0,
         pctChange1d: 0,
         pctChange1w: 0,
@@ -83,9 +117,13 @@ const Charts: FC = () => {
         liquidity: 0,
         buys: 0,
         sells: 0,
-        mktCap: 0
+        mktCap: (data.minted - data.burned_supply) * (currency === 'ERG' ? data.value_in_erg : data.value_in_erg * exchangeRate),
+        totalMinted: data.minted,
+        lockedSupply: data.locked_supply,
+        liquidSupply: data.liquid_supply,
+        burnedSupply: data.burned_supply,
+        description: data.token_description
       };
-      setExchangeRate(data.ergo_price)
       if (thisTokenInfo !== null && thisTokenInfo.name !== undefined) {
         setDefaultWidgetProps({
           symbol: thisTokenInfo.name?.toUpperCase(),
@@ -110,14 +148,21 @@ const Charts: FC = () => {
 
   useEffect(() => {
     if (tokenId) {
+      getExchangeRate()
       fetchTradeHistory(tokenId)
     }
   }, [tokenId])
 
-
   const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
     if (value !== null) {
       setCurrency(value);
+      setTokenInfo(prev => {
+        if (prev) return {
+          ...prev,
+          mktCap: (prev.totalMinted - prev.burnedSupply) * (value === 'ERG' ? prev.price : prev.price * exchangeRate)
+        }
+        else return null
+      })
     }
   };
 
@@ -243,4 +288,4 @@ const Charts: FC = () => {
   )
 }
 
-export default Charts
+export default TokenInfo

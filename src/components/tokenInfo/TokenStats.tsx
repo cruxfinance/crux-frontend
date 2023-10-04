@@ -16,6 +16,7 @@ import { formatNumber, getShortAddress } from "@src/utils/general";
 import { timeFromNow } from "@src/utils/daytime";
 import { currencies, Currencies } from '@src/utils/currencies';
 import { ITokenData } from "@src/pages/tokens";
+import { TokenDataPlus } from "@pages/tokens/[tokenId]";
 import Link from "../Link";
 
 export interface ITrade {
@@ -29,16 +30,50 @@ export interface ITrade {
 
 export interface PropsType {
   currency: Currencies;
-  tokenInfo: ITokenData;
+  tokenInfo: TokenDataPlus;
 }
 
 const TokenStats: FC<PropsType> = ({ currency, tokenInfo }) => {
   const theme = useTheme();
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
-
+  console.log(tokenInfo.mktCap)
   return (
     <>
+      <Typography sx={{ mb: 2 }}>{tokenInfo.description}</Typography>
+      <Typography sx={{ mb: 2 }}>
+        <Link href={`https://explorer.ergoplatform.com/en/token/${tokenInfo.tokenId}`}>
+          {getShortAddress(tokenInfo.tokenId)}
+        </Link>
+      </Typography>
       <Box sx={{ mb: 2 }}>
+        <Grid container justifyContent="space-between">
+          <Grid>Minted: </Grid>
+          <Grid>{formatNumber(tokenInfo.totalMinted)}</Grid>
+        </Grid>
+        {tokenInfo.burnedSupply > 0 && (
+          <>
+            <Grid container justifyContent="space-between">
+              <Grid>Burned: </Grid>
+              <Grid>{formatNumber(tokenInfo.burnedSupply)}</Grid>
+            </Grid>
+            <Grid container justifyContent="space-between">
+              <Grid>Current: </Grid>
+              <Grid>{formatNumber(tokenInfo.totalMinted - tokenInfo.burnedSupply)}</Grid>
+            </Grid>
+          </>
+        )}
+        <Grid container justifyContent="space-between">
+          <Grid>Liquid supply: </Grid>
+          <Grid>{formatNumber(tokenInfo.liquidSupply)}</Grid>
+        </Grid>
+        <Grid container justifyContent="space-between">
+          <Grid>TVL: </Grid>
+          <Grid>{formatNumber(tokenInfo.lockedSupply)}</Grid>
+        </Grid>
+        <Grid container justifyContent="space-between">
+          <Grid>Diluted market cap: </Grid>
+          <Grid>{currencies[currency] + formatNumber(tokenInfo.mktCap)}</Grid>
+        </Grid>
         <Grid container justifyContent="space-between">
           <Grid>Liquidity: </Grid>
           <Grid>{currencies[currency] + formatNumber(tokenInfo.liquidity)}</Grid>
@@ -47,34 +82,13 @@ const TokenStats: FC<PropsType> = ({ currency, tokenInfo }) => {
           <Grid>24hr Volume: </Grid>
           <Grid>{currencies[currency] + formatNumber(tokenInfo.vol)}</Grid>
         </Grid>
-        <Grid container justifyContent="space-between">
-          <Grid>Mkt Cap: </Grid>
-          <Grid>{currencies[currency] + formatNumber(tokenInfo.mktCap)}</Grid>
-        </Grid>
-        <Grid container justifyContent="space-between">
-          <Grid>Total supply: </Grid>
-          <Grid></Grid>
-        </Grid>
-        <Grid container justifyContent="space-between">
-          <Grid>Circultating supply: </Grid>
-          <Grid></Grid>
-        </Grid>
-        <Grid container justifyContent="space-between">
-          <Grid>TVL: </Grid>
-          <Grid></Grid>
-        </Grid>
       </Box>
       <Box sx={{ mb: 2 }}>
         <Button variant="contained" sx={{ mr: 2 }}>Add to watchlist</Button>
         <Button variant="outlined">Trade</Button>
       </Box>
       <Typography sx={{ mb: 2 }}>Links to token website and socials</Typography>
-      <Typography sx={{ mb: 2 }}>
-        <Link href={`https://explorer.ergoplatform.com/en/token/${tokenInfo.tokenId}`}>
-          {getShortAddress(tokenInfo.tokenId)}
-        </Link>
-      </Typography>
-      <Typography sx={{ mb: 2 }}>Description of the token</Typography>
+
     </>
   );
 };

@@ -4,8 +4,6 @@ import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from '../trpc';
 import { generateNonceForUser } from '../utils/nonce';
 
-
-
 export const authRouter = createTRPCRouter({
   initiateLogin: publicProcedure
     .input(z.object({
