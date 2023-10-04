@@ -4,6 +4,7 @@ const nextConfig = {
   env: {
     API_URL: process.env.API_URL,
     CRUX_API: process.env.CRUX_API,
+    VERCEL_URL: process.env.VERCEL_URL,
   },
   swcMinify: true,
   // webpack: function (config, options) {
