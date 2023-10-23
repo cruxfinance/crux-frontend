@@ -9,9 +9,9 @@ import {
   Badge
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
-import { generateGradient } from '@src/utils/color';
-import { formatNumber } from '@src/utils/general';
-import { resolveIpfs } from '@src/utils/assetsNew';
+import { generateGradient } from '@utils/color';
+import { formatNumber } from '@utils/general';
+import { resolveIpfs } from '@utils/assetsNew';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 
 export interface INftItem {

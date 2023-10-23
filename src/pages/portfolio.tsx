@@ -26,6 +26,10 @@ import { Currencies } from '@utils/currencies';
 import { adjustDecimals } from '@utils/general';
 import { IBalance } from '@components/portfolio/Balance';
 import HistoricValues from '@components/portfolio/HistoricValues';
+import PositionTable from '@components/portfolio/positions/PositionTable';
+import CollateralizedDebtTable from '@components/portfolio/positions/CollateralizedDebtTable';
+import StakedPositions from '@components/portfolio/positions/StakedPositions';
+import LiquidityPositions from '@components/portfolio/positions/LiquidityPositions';
 
 export interface IExtendedToken extends IPieToken {
   tokenId: string;
@@ -58,7 +62,6 @@ const Portfolio = () => {
   const theme = useTheme()
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
-
   const [boxHeight, setBoxHeight] = useState('auto');
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({
     tokenSummary: true
@@ -123,7 +126,7 @@ const Portfolio = () => {
   }
 
 
-  async function fetchTokenData(thisAddressList: string[]): Promise<IPortfolioToken[]> {
+  const fetchTokenData = async (thisAddressList: string[]): Promise<IPortfolioToken[]> => {
     if (thisAddressList.length > 0) {
       try {
         setLoading(
@@ -134,7 +137,6 @@ const Portfolio = () => {
             }
           }
         );
-        console.log('fetch')
         const endpoint = `${process.env.CRUX_API}/crux/portfolio`;
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -191,7 +193,9 @@ const Portfolio = () => {
     return totalValue;
   };
 
-  async function fetchData(thisAddressList: string[]) {
+  let fetchAcc = 1
+
+  const fetchData = async (thisAddressList: string[]) => {
     const data = await fetchTokenData(thisAddressList)
 
     // remove NFTs & tokens with no dex value
@@ -199,7 +203,7 @@ const Portfolio = () => {
 
     // This is meant to adjust token amounts with correct decimals
     // It also gathers the over-all value of any tokens which contained locked value in wrapped tokens
-    const transformAmounts: IReducedToken[] = mainList.map((item) => {
+    const transformAmounts: IReducedToken[] = mainList.map((item, i) => {
       if (item.token_name.includes("Stake Key") || item.token_name.includes("Vesting Key")) {
         const newItem = {
           name: item.token_name.includes("Stake Key")
@@ -216,8 +220,10 @@ const Portfolio = () => {
         return newItem
       }
       if (item.token_name.includes("Spectrum YF staking bundle")) {
+        console.log(item.wrapped_tokens)
         const newItem = {
-          name: item.wrapped_tokens[0].token_name.split('_')[1] + '/' + item.wrapped_tokens[0].token_name.split('_')[0] + ' Spectrum YF',
+          // name: item.wrapped_tokens[0].token_name.split('_')[1] + '/' + item.wrapped_tokens[0].token_name.split('_')[0] + ' Spectrum YF',
+          name: `${item.wrapped_tokens[0].token_name.split('_')[1].slice(0, 3)}/${item.wrapped_tokens[0].token_name.split('_')[0].slice(0, 3)} YF (${fetchAcc})`,
           description: item.token_description,
           amount: adjustDecimals(item.token_amount, item.decimals),
           value: calculateWrappedTokensValue(item) / adjustDecimals(item.token_amount, item.decimals),
@@ -232,6 +238,7 @@ const Portfolio = () => {
             ? flattenTokenAmountsFromWrappedTokens(item.wrapped_tokens)
             : undefined,
         }
+        fetchAcc++
         return newItem
       }
       const newItem = {
@@ -281,7 +288,7 @@ const Portfolio = () => {
     })
     setFilteredNfts(list)
 
-    async function fetchDataChunk(chunk: any) {
+    const fetchDataChunk = async (chunk: any) => {
       const additionalData = await tokenListInfo(chunk);
       setFilteredNfts(prevState => {
         const newList = prevState.map(item => {
@@ -310,7 +317,7 @@ const Portfolio = () => {
   }
 
   return (
-    <Container>
+    <Box sx={{ mx: 2 }}>
       <Grid container sx={{ mb: 2 }} spacing={2} alignItems="center">
         <Grid xs>
           <TextField
@@ -350,7 +357,7 @@ const Portfolio = () => {
           transform: "translate(-50%, -50%)"
         }} />
       </Box>
-      <Grid container alignItems="stretch" spacing={3} sx={{ position: 'relative' }}>
+      <Grid container alignItems="stretch" spacing={3} sx={{ position: 'relative', mb: 2 }}>
         <Grid xs={12} lg={9}>
           <Paper sx={{ p: 3, width: '100%', position: 'relative' }}>
             <Grid container spacing={4} direction={{ xs: 'column', md: 'row' }}>
@@ -398,7 +405,35 @@ const Portfolio = () => {
           </Paper>
         </Grid>
       </Grid>
-    </Container >
+      <Box sx={{ mb: 2 }}>
+        <PositionTable
+          currency={currency}
+          exchangeRate={exchangeRate}
+          tokenList={sortedFilteredTokensList}
+        />
+      </Box>
+      <Box sx={{ mb: 2 }}>
+        <StakedPositions
+          currency={currency}
+          exchangeRate={exchangeRate}
+          tokenList={sortedFilteredTokensList}
+        />
+      </Box>
+      {/* <Box sx={{ mb: 2 }}>
+        <LiquidityPositions
+          currency={currency}
+          exchangeRate={exchangeRate}
+          tokenList={sortedFilteredTokensList}
+        />
+      </Box>
+      <Box sx={{ mb: 2 }}>
+        <CollateralizedDebtTable
+          currency={currency}
+          exchangeRate={exchangeRate}
+          tokenList={sortedFilteredTokensList}
+        />
+      </Box> */}
+    </Box >
   );
 };
 

@@ -179,35 +179,42 @@ const Header: FC<IHeaderProps> = ({ }) => {
   return (
     <>
       <AppBar
-        position="fixed"
+        position="relative"
         elevation={12}
         sx={{
           zIndex: 91,
           border: 'none',
-          top: trigger && router.pathname !== '/' ? '-60px' : 0,
+          // top: trigger && router.pathname !== '/' ? '-60px' : 0,
           // borderBottom: `1px solid ${theme.palette.divider}`,
-          backdropFilter: "blur(10px)",
+          // backdropFilter: "blur(10px)",
           borderRadius: '0px',
           // background: theme.palette.background.default,
-          boxShadow: router.pathname === '/' && !trigger
+          boxShadow: router.pathname === '/'
+            // && !trigger
             ? 'none'
             : '3px 3px 15px 5px rgba(0,0,0,0.5)',
           // boxShadow: 'none!important',
           background: navbarOpen || notificationsOpen
             ? theme.palette.background.default
-            : router.pathname === '/' && !trigger
+            : router.pathname === '/'
+              // && !trigger
               ? 'none'
-              : theme.palette.background.transparent,
-          transition: 'border-bottom 200ms, backdrop-filter 200ms, background 200ms, box-shadow 200ms, top 400ms'
+              : 'radial-gradient(at right top, rgba(16,20,34,0.8), rgba(1, 4, 10, 0.8))',
+          transition: 'backdrop-filter 200ms, background 200ms, box-shadow 200ms, top 400ms',
+          '&:before': {
+            p: 0
+          }
         }}
       >
-        <Container>
+        <Box sx={{ mx: 2 }}>
           <Grid
             container
             justifyContent="space-between"
             alignItems="center"
             sx={{
-              height: router.pathname === '/' && !trigger && upMd
+              height: router.pathname === '/'
+                // && !trigger 
+                && upMd
                 ? "90px"
                 : '60px',
               transition: 'height 400ms'
@@ -290,10 +297,9 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   </IconButton>
                 </Grid>
               </Grid>
-
             </Grid>
           </Grid>
-        </Container>
+        </Box>
       </AppBar>
       <Fade in={navbarOpen} style={{ transitionDuration: "200ms" }} mountOnEnter unmountOnExit>
         <Box

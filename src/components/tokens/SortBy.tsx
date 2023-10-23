@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import { SxProps } from "@mui/material";
-import { ISorting } from '@src/pages/tokens';
+import { ISorting } from '@pages/tokens';
 
 interface ITokenSortProps {
   sx?: SxProps;
