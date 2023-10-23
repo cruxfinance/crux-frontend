@@ -1,4 +1,4 @@
-// import { IFilters, IQueries, ISorting, ITimeframe, ITokenData } from '@src/pages/tokens';
+// import { IFilters, IQueries, ISorting, ITimeframe, ITokenData } from '@pages/tokens';
 // import { NextApiRequest, NextApiResponse } from 'next';
 // import { tokenData } from '../data/tokenInfo';
 

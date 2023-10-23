@@ -1,21 +1,14 @@
-import React, { FC, useState, useEffect } from "react";
+import React, { FC } from "react";
 import {
   Typography,
   useTheme,
   useMediaQuery,
   Box,
-  Paper,
-  Slide,
   Button,
 } from "@mui/material";
-import { useInView } from "react-intersection-observer";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import Image from "next/image";
-import { useRouter } from "next/router";
-import { formatNumber, getShortAddress } from "@src/utils/general";
-import { timeFromNow } from "@src/utils/daytime";
-import { currencies, Currencies } from '@src/utils/currencies';
-import { ITokenData } from "@src/pages/tokens";
+import { formatNumber, getShortAddress } from "@utils/general";
+import { currencies, Currencies } from '@utils/currencies';
 import { TokenDataPlus } from "@pages/tokens/[tokenId]";
 import Link from "../Link";
 

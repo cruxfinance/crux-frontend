@@ -19,7 +19,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import RedeemIcon from '@mui/icons-material/Redeem';
 import SellIcon from '@mui/icons-material/Sell';
 import EditIcon from '@mui/icons-material/Edit';
-import SignIn from '@src/components/user/SignIn';
+import SignIn from '@components/user/SignIn';
 import { getShortAddress } from '@utils/general';
 import { SxProps } from '@mui/system';
 import { useSession } from 'next-auth/react';

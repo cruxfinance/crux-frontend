@@ -7,11 +7,11 @@ import {
   useTheme
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
-import { PieChart, IPieToken } from '@src/components/charts/PieChart';
-import { currencies, Currencies } from '@src/utils/currencies';
-import { IReducedToken } from '@src/pages/portfolio';
-import { generateGradient } from '@src/utils/color';
-import { formatNumber, adjustDecimals } from '@src/utils/general';
+import { PieChart, IPieToken } from '@components/charts/PieChart';
+import { currencies, Currencies } from '@utils/currencies';
+import { IReducedToken } from '@pages/portfolio';
+import { generateGradient } from '@utils/color';
+import { formatNumber, adjustDecimals } from '@utils/general';
 
 export type IActiveToken = {
   name: string;

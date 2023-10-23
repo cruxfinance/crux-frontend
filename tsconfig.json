@@ -20,7 +20,6 @@
       }
     ],
     "paths": {
-      "@src/*": ["./src/*"],
       "@components/*": ["./src/components/*"],
       "@styles/*": ["./src/styles/*"],
       "@theme/*": ["./src/theme/*"],
@@ -32,6 +31,6 @@
       "@server/*": ["./src/server/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "server.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }

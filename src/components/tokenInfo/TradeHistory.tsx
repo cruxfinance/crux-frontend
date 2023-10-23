@@ -3,17 +3,13 @@ import {
   Typography,
   useTheme,
   useMediaQuery,
-  Box,
-  Paper,
-  Slide,
+  Box
 } from "@mui/material";
 import { useInView } from "react-intersection-observer";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import Image from "next/image";
-import { useRouter } from "next/router";
-import { formatNumber, getShorterAddress } from "@src/utils/general";
-import { timeFromNow } from "@src/utils/daytime";
-import { currencies, Currencies } from "@src/utils/currencies";
+import { formatNumber, getShorterAddress } from "@utils/general";
+import { timeFromNow } from "@utils/daytime";
+import { currencies, Currencies } from "@utils/currencies";
 import Link from "../Link";
 import BouncingDotsLoader from "../DotLoader";
 

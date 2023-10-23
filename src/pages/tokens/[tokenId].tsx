@@ -15,10 +15,10 @@ import {
 } from '@mui/material';
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { useRouter } from 'next/router';
-import { formatNumber } from '@src/utils/general';
-import { currencies, Currencies } from '@src/utils/currencies';
-import TradeHistory from '@src/components/tokenInfo/TradeHistory';
-import TokenStats from '@src/components/tokenInfo/TokenStats';
+import { formatNumber } from '@utils/general';
+import { currencies, Currencies } from '@utils/currencies';
+import TradeHistory from '@components/tokenInfo/TradeHistory';
+import TokenStats from '@components/tokenInfo/TokenStats';
 import {
   ChartingLibraryWidgetOptions,
   ResolutionString,
@@ -126,7 +126,7 @@ const TokenInfo: FC = () => {
       };
       if (thisTokenInfo !== null && thisTokenInfo.name !== undefined) {
         setDefaultWidgetProps({
-          symbol: thisTokenInfo.name?.toUpperCase(),
+          symbol: thisTokenInfo.name,
           interval: "1D" as ResolutionString,
           library_path: "/static/charting_library/",
           locale: "en",
@@ -167,7 +167,7 @@ const TokenInfo: FC = () => {
   };
 
   return (
-    <Container maxWidth={'xl'} id="stats">
+    <Box id="stats" sx={{ mx: 2 }}>
       <Box
         sx={{
           position: 'fixed',
@@ -284,7 +284,7 @@ const TokenInfo: FC = () => {
           </BottomNavigation>
         </Paper>
       )}
-    </Container>
+    </Box>
   )
 }
 

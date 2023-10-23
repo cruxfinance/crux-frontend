@@ -21,7 +21,7 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { currencies, Currencies } from '@utils/currencies';
 import { useInView } from "react-intersection-observer";
 import BouncingDotsLoader from '@components/DotLoader';
-
+import { getIconUrl } from '@utils/getIconUrl';
 
 export interface ITokenData {
   name: string;
@@ -158,12 +158,16 @@ const Tokens: FC = () => {
       // console.log(data);
       if (data.length === 0) setNoMore(true)
       else setNoMore(false)
+      const awaitedData = await Promise.all(data.map((item) => {
+        const tokenData = mapApiDataToTokenData(item)
+        return tokenData
+      }))
       if (queries.offset === 0) {
-        setFilteredTokens(data.map(mapApiDataToTokenData))
+        setFilteredTokens(awaitedData)
         setErgExchange(data[0].erg_price_usd)
       }
       else {
-        setFilteredTokens(prev => [...prev, ...data.map(mapApiDataToTokenData)])
+        setFilteredTokens(prev => [...prev, ...awaitedData])
       }
       setQueries(prevQueries => {
         return {
@@ -181,7 +185,7 @@ const Tokens: FC = () => {
     }
   }
 
-  const mapApiDataToTokenData = ({
+  const mapApiDataToTokenData = async ({
     name,
     ticker,
     id,
@@ -193,17 +197,19 @@ const Tokens: FC = () => {
     price_erg,
     erg_price_usd,
     ...item
-  }: IApiTokenData): ITokenData => {
+  }: IApiTokenData): Promise<ITokenData> => {
     const hourChangeKey = currency === "USD" ? "hour_change_usd" : "hour_change_erg";
     const dayChangeKey = currency === "USD" ? "day_change_usd" : "day_change_erg";
     const weekChangeKey = currency === "USD" ? "week_change_usd" : "week_change_erg";
     const monthChangeKey = currency === "USD" ? "month_change_usd" : "month_change_erg";
 
+    const url = await getIconUrl(id)
+
     return {
       name,
       ticker,
       tokenId: id,
-      icon: 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/' + id + '.svg',
+      icon: url || '',
       price: price_erg,
       pctChange1h: item[hourChangeKey],
       pctChange1d: item[dayChangeKey],

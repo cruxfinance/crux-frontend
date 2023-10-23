@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState, useMemo } from 'react';
-import { IReducedToken } from '@src/pages/portfolio';
+import { IReducedToken } from '@pages/portfolio';
 import {
   buildChartTheme,
   AnimatedAreaSeries,
