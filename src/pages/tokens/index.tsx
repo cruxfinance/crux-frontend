@@ -21,7 +21,8 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { currencies, Currencies } from '@utils/currencies';
 import { useInView } from "react-intersection-observer";
 import BouncingDotsLoader from '@components/DotLoader';
-import { getIconUrl } from '@utils/getIconUrl';
+import { trpc } from '@utils/trpc';
+
 
 export interface ITokenData {
   name: string;
@@ -185,6 +186,31 @@ const Tokens: FC = () => {
     }
   }
 
+  const getIconUrlFromServer = async (tokenId: string) => {
+    try {
+      const response = await fetch(`/api/icon/${tokenId}`);
+      if (!response.ok) {
+        throw new Error('Server responded with an error.');
+      }
+      // Expecting the response to contain the path
+      const data = await response.json();
+      return data.iconPath;
+    } catch (error) {
+      console.error('Failed to fetch icon from server:', error);
+      return null; // Return null if there was an error fetching the icon
+    }
+  };
+
+  const checkLocalIcon = async (tokenId: string) => {
+    const localIconPath = `/icons/tokens/${tokenId}.svg`;
+    try {
+      const response = await fetch(localIconPath, { method: 'HEAD' });
+      return response.ok ? localIconPath : null; // if the head request is ok, the file exists
+    } catch (error) {
+      return null; // If there's an error (like a network issue), return null
+    }
+  };
+
   const mapApiDataToTokenData = async ({
     name,
     ticker,
@@ -203,7 +229,13 @@ const Tokens: FC = () => {
     const weekChangeKey = currency === "USD" ? "week_change_usd" : "week_change_erg";
     const monthChangeKey = currency === "USD" ? "month_change_usd" : "month_change_erg";
 
-    const url = await getIconUrl(id)
+    // Check for the icon locally first
+    let url = await checkLocalIcon(id);
+
+    // If the icon is the default, check the server for it
+    if (!url) {
+      url = await getIconUrlFromServer(id);
+    }
 
     return {
       name,

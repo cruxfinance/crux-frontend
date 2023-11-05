@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-const baseIconUrl = 'https://raw.githubusercontent.com/spectrum-finance/token-logos/7168b3373a60a4f46b8995d86fb1efce93476aba/logos/ergo/';
+const baseIconUrl = 'https://raw.githubusercontent.com/spectrum-finance/token-logos/09655f0b3328762b22fdb3266952f74a3e30be36/logos/ergo/';
 const possibleExtensions = ['svg']; // Add more if needed
 
 export const getIconUrl = async (tokenId: string): Promise<string | null> => {
   for (const ext of possibleExtensions) {
+
     const url = `${baseIconUrl}${tokenId}.${ext}`;
     try {
       const response = await axios.head(url); // Make a HEAD request to check if the resource exists
