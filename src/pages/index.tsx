@@ -161,7 +161,7 @@ const Home: NextPage = () => {
 
 
   return (
-    <>
+    <Box sx={{ overflowX: 'hidden' }}>
       {/* Hero section */}
 
       <Box
@@ -477,7 +477,7 @@ const Home: NextPage = () => {
           <Grid item md={1}></Grid>
         </Grid>
       </Container>
-    </>
+    </Box>
   );
 };
 
