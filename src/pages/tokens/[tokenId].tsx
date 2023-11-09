@@ -226,8 +226,9 @@ const TokenInfo: FC = () => {
               <Paper sx={{
                 p: 2,
                 width: '100%',
-                maxWidth: upMd ? 'calc(100vw - 370px)' : upSm ? 'calc(100vw - 56px)' : 'calc(100vw - 40px)',
-                mb: 2
+                maxWidth: upMd ? 'calc(100vw - 354px)' : upSm ? 'calc(100vw - 56px)' : 'calc(100vw - 40px)',
+                mb: 2,
+                position: 'relative'
               }}>
                 {defaultWidgetProps !== undefined && (
                   <TvChart defaultWidgetProps={defaultWidgetProps} />
@@ -235,7 +236,7 @@ const TokenInfo: FC = () => {
 
               </Paper>
               {upLg && (
-                <Paper sx={{ p: 2, width: '100%' }} id="history">
+                <Paper sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
                   <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
                 </Paper>
               )}
@@ -251,7 +252,7 @@ const TokenInfo: FC = () => {
             )}
           </Box>
           {!upLg && (
-            <Paper sx={{ p: 2, width: '100%' }} id="history">
+            <Paper sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
               <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
             </Paper>
           )}
