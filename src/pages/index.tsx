@@ -161,47 +161,30 @@ const Home: NextPage = () => {
 
 
   return (
-    <Box sx={{ overflowX: 'hidden' }}>
+    <>
       {/* Hero section */}
-
       <Box
         sx={{
-          // "&:before": {
-          //   content: '""',
-          //   display: "inline-block",
-          //   width: "3440px",
-          //   height: "1485px",
-          //   backgroundImage: `url(${wideBg.src})`,
-          //   backgroundRepeat: "no-repeat",
-          //   backgroundPosition: "top center",
-          //   position: "absolute",
-          //   left: "50%",
-          //   transform: "translateX(-50%)",
-          //   top: "0",
-          //   backgroundSize: {
-          //     xs: "50%",
-          //     md: "70%",
-          //     xl: "100%",
-          //   },
-          // },
-          // backgroundColor: 'rgba(255,255,255,1)',
-          // backgroundImage: `url(${wideBg.src})`,
-          // backgroundRepeat: 'no-repeat',
-          // backgroundPosition: 'center',
-          mt: "-128px",
-          mb: "128px",
-          // display: 'flex'
+          mt: '-114px',
+          maxHeight: '800px',
+          minHeight: '600px',
+          height: "100vh",
         }}
         id="top"
       >
-        <Container
-          sx={{
-            pt: "40vh",
-            minHeight: "100vh",
-            // mb: 12
-            position: "relative",
-          }}
-        >
+        <Container sx={{ position: "relative", height: '100%' }}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 'calc(50% + 70px)',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: -1,
+              height: '551'
+            }}
+          >
+            <Image src="/backgrounds/hero.png" width="597" height="551" alt={"background"} />
+          </Box>
           <BlobHero
             sx={{
               position: 'absolute',
@@ -211,132 +194,83 @@ const Home: NextPage = () => {
               zIndex: -2
             }}
           />
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '75%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: -1,
-              height: '100vh'
-            }}
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 5,
+            height: '100%',
+            pt: '70px'
+          }}
           >
-            <Image src="/backgrounds/hero.png" width="597" height="551" alt={"background"} />
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Box>
-              <Typography
-                variant="h2"
-                fontWeight={700}
-                gutterBottom
-                align="center"
-                sx={{
-                  background: `linear-gradient(90deg, ${theme.palette.secondary.dark} 10%, ${theme.palette.primary.dark} 80%)`,
-                  backgroundClip: 'text',
-                  textFillColor: 'transparent',
-                  mb: 5,
-                  maxWidth: '750px'
-                }}
-              >
-                Feature rich DeFi tools for the Ergo Ecosystem
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="h6" align="center" paragraph sx={{ maxWidth: '720px', mb: 5 }}>
-                Track your portolio and interact with eUTXO DeFi in one place. Set
-                alerts, place orders, monitor P&L, and even print tax reports.
-              </Typography>
-            </Box>
+              <Box>
+                <Typography
+                  variant="h2"
+                  fontWeight={700}
+                  gutterBottom
+                  align="center"
+                  sx={{
+                    background: `linear-gradient(90deg, ${theme.palette.secondary.dark} 10%, ${theme.palette.primary.dark} 80%)`,
+                    backgroundClip: 'text',
+                    textFillColor: 'transparent',
+                    mb: 5,
+                    maxWidth: '750px'
+                  }}
+                >
+                  Feature rich DeFi tools for the Ergo Ecosystem
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="h6" align="center" paragraph sx={{ maxWidth: '720px', mb: 5 }}>
+                  Track your portolio and interact with eUTXO DeFi in one place. Set
+                  alerts, place orders, monitor P&L, and even print tax reports.
+                </Typography>
+              </Box>
 
-            <Stack
-              sx={{ pt: 3 }}
-              direction="row"
-              spacing={4}
-              justifyContent="center"
-            >
-              <Button
-                variant="contained"
-                href="https://ergopad.io/projects/cruxfinance"
-                target="_blank"
-                sx={{
-                  color: theme.palette.text.primary,
-                  padding: upMd ? '16px 40px !important' : '',
-                  fontSize: upMd ? '18px' : '16px',
-                  fontWeight: 700,
-                  borderRadius: '16px',
-                }}
+              <Stack
+                sx={{ pt: 3 }}
+                direction="row"
+                spacing={4}
+                justifyContent="center"
               >
-                IDO Info
-              </Button>
-              <Button
-                variant="outlined"
-                href="https://docs.cruxfinance.io"
-                target="_blank"
-                sx={{
-                  padding: upMd ? '16px 40px !important' : '',
-                  fontSize: upMd ? '18px' : '16px',
-                  fontWeight: 700,
-                  borderRadius: '16px',
-                  borderWidth: '2px',
-                  '&:hover': {
-                    borderWidth: '2px'
-                  }
-                }}
-              >
-                Whitepaper
-              </Button>
-            </Stack>
+                <Button
+                  variant="contained"
+                  href="https://ergopad.io/projects/cruxfinance"
+                  target="_blank"
+                  sx={{
+                    color: theme.palette.text.primary,
+                    padding: upMd ? '16px 40px !important' : '',
+                    fontSize: upMd ? '18px' : '16px',
+                    fontWeight: 700,
+                    borderRadius: '16px',
+                  }}
+                >
+                  IDO Info
+                </Button>
+                <Button
+                  variant="outlined"
+                  href="https://docs.cruxfinance.io"
+                  target="_blank"
+                  sx={{
+                    padding: upMd ? '16px 40px !important' : '',
+                    fontSize: upMd ? '18px' : '16px',
+                    fontWeight: 700,
+                    borderRadius: '16px',
+                    borderWidth: '2px',
+                    '&:hover': {
+                      borderWidth: '2px'
+                    }
+                  }}
+                >
+                  Whitepaper
+                </Button>
+              </Stack>
+            </Box>
           </Box>
-
-          {/* <Box maxWidth='lg' sx={{ mx: 'auto' }}>
-            <Typography variant="body1" sx={{ pt: 12, textTransform: 'uppercase' }} align="center" color="text.secondary" paragraph>
-              In partnership with:
-            </Typography>
-            <Grid container alignItems="center" justifyContent="space-around">
-              <Grid item>
-                <Link
-                  href="https://teddyswap.org"
-                  sx={logoLinkSx}
-                >
-                  <TeddyswapLogo sx={{ fontSize: '160px', height: '100px' }} />
-                </Link>
-              </Grid>
-              <Grid item>
-                <Link
-                  href="https://www.harmoniclabs.tech"
-                  sx={logoLinkSx}
-                >
-                  <HarmonicLabsLogo sx={{ fontSize: '190px', height: '100px' }} />
-                </Link>
-              </Grid>
-              <Grid item>
-                <Link
-                  href="https://www.ergopad.io"
-                  sx={logoLinkSx}
-                >
-                  <ErgopadLogo sx={{ fontSize: '160px', height: '100px' }} />
-                </Link>
-              </Grid>
-              <Grid item>
-                <Link
-                  href="https://www.paideia.im"
-                  sx={logoLinkSx}
-                >
-                  <PaideiaLogo sx={{ fontSize: '140px', height: '100px' }} />
-                </Link>
-              </Grid>
-              <Grid item>
-                <Link
-                  href="https://www.blockheads.one"
-                  sx={logoLinkSx}
-                >
-                  <BlockheadsLogo sx={{ fontSize: '160px', height: '100px' }} />
-                </Link>
-              </Grid>
-            </Grid>
-          </Box> */}
         </Container>
-      </Box>
+      </Box >
       {/* End hero section */}
 
       {/* Features */}
@@ -462,7 +396,15 @@ const Home: NextPage = () => {
             aspect: '878 / 566'
           }} /> */}
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Image src="/tokenomics.png" width="555" height="266" alt="tokenomics" />
+          <Box sx={{ width: '100%' }}>
+            <Image
+              src="/tokenomics.png"
+              alt="tokenomics"
+              width={555}  // Original width of your image
+              height={266} // Original height of your image
+              style={{ maxWidth: '100%', height: 'auto' }} // This will scale the image responsively
+            />
+          </Box>
         </Box>
         <Grid container>
           <Grid item md={1}></Grid>
@@ -477,7 +419,7 @@ const Home: NextPage = () => {
           <Grid item md={1}></Grid>
         </Grid>
       </Container>
-    </Box>
+    </>
   );
 };
 
