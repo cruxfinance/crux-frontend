@@ -395,8 +395,8 @@ const Home: NextPage = () => {
             index: 0,
             aspect: '878 / 566'
           }} /> */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Box sx={{ width: '100%' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: '100%', textAlign: 'center' }}>
             <Image
               src="/tokenomics.png"
               alt="tokenomics"
