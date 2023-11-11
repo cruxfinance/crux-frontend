@@ -185,8 +185,9 @@ const Header: FC<IHeaderProps> = ({ }) => {
           zIndex: 91,
           border: 'none',
           // top: trigger && router.pathname !== '/' ? '-60px' : 0,
-          // borderBottom: `1px solid ${theme.palette.divider}`,
+          borderBottom: `none`,
           // backdropFilter: "blur(10px)",
+          backdropFilter: 'none',
           borderRadius: '0px',
           // background: theme.palette.background.default,
           boxShadow: router.pathname === '/'
@@ -200,10 +201,11 @@ const Header: FC<IHeaderProps> = ({ }) => {
               // && !trigger
               ? 'none'
               : 'radial-gradient(at right top, rgba(16,20,34,0.8), rgba(1, 4, 10, 0.8))',
-          transition: 'backdrop-filter 200ms, background 200ms, box-shadow 200ms, top 400ms',
+          transition: 'background 200ms, box-shadow 200ms, top 400ms',
           '&:before': {
             p: 0
-          }
+          },
+          mb: '24px'
         }}
       >
         <Box sx={{ mx: 2 }}>
