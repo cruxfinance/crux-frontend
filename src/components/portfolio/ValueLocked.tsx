@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import StackedBar from '@components/charts/StackedBar';
-import { Currencies } from '@utils/currencies';
+import { Currencies } from '@lib/utils/currencies';
 import { IReducedToken } from '@pages/portfolio';
 
 export interface ITvl {

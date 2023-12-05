@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, useTheme, Tooltip, Typography } from '@mui/material';
 import { SxProps } from '@mui/system';
-import { Currencies, currencies } from '@utils/currencies';
+import { Currencies, currencies } from '@lib/utils/currencies';
 import { ITvl } from '../portfolio/ValueLocked';
-import { formatNumber } from '@utils/general';
+import { formatNumber } from '@lib/utils/general';
 import Grid from '@mui/system/Unstable_Grid/Grid';
 
 interface IStacked extends ITvl {

@@ -15,87 +15,13 @@ import {
 import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
 import TokenSort from '@components/tokens/SortBy'
 import TokenFilterOptions from '@components/tokens/Filters'
-import { formatNumber } from '@utils/general';
+import { formatNumber } from '@lib/utils/general';
 import { useRouter } from 'next/router';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
-import { currencies, Currencies } from '@utils/currencies';
+import { currencies, Currencies } from '@lib/utils/currencies';
 import { useInView } from "react-intersection-observer";
 import BouncingDotsLoader from '@components/DotLoader';
-import { trpc } from '@utils/trpc';
-
-
-export interface ITokenData {
-  name: string;
-  ticker: string;
-  tokenId: string;
-  icon: string;
-  price: number;
-  pctChange1h: number;
-  pctChange1d: number;
-  pctChange1w: number;
-  pctChange1m: number;
-  vol: number;
-  liquidity: number;
-  buys: number;
-  sells: number;
-  mktCap: number;
-}
-
-interface IApiTokenData {
-  id: string;
-  ticker: string;
-  name: string;
-  exchanges: string[];
-  price_erg: number;
-  erg_price_usd: number;
-  hour_change_erg: number;
-  hour_change_usd: number;
-  day_change_erg: number;
-  day_change_usd: number;
-  week_change_erg: number;
-  week_change_usd: number;
-  month_change_erg: number;
-  month_change_usd: number;
-  volume: number;
-  liquidity: number;
-  market_cap: number;
-  buys: number;
-  sells: number;
-  unique_buys: number;
-  unique_sells: number;
-  created: number;
-}
-
-export interface IFilters {
-  price_min?: number;
-  price_max?: number;
-  liquidity_min?: number;
-  liquidity_max?: number;
-  market_cap_min?: number;
-  market_cap_max?: number;
-  pct_change_min?: number;
-  pct_change_max?: number;
-  volume_min?: number;
-  volume_max?: number;
-  buys_min?: number;
-  buys_max?: number;
-  sells_min?: number;
-  sells_max?: number;
-}
-
-export interface ISorting {
-  sort_by?: string;
-  sort_order?: 'Desc' | 'Asc';
-}
-
-export interface IQueries {
-  limit: number;
-  offset: number;
-}
-
-export interface ITimeframe {
-  filter_window: 'Hour' | 'Day' | 'Week' | 'Month';
-}
+import { checkLocalIcon, getIconUrlFromServer } from '@lib/utils/icons';
 
 const Tokens: FC = () => {
   const theme = useTheme()
@@ -186,30 +112,7 @@ const Tokens: FC = () => {
     }
   }
 
-  const getIconUrlFromServer = async (tokenId: string) => {
-    try {
-      const response = await fetch(`/api/icon/${tokenId}`);
-      if (!response.ok) {
-        throw new Error('Server responded with an error.');
-      }
-      // Expecting the response to contain the path
-      const data = await response.json();
-      return data.iconPath;
-    } catch (error) {
-      console.error('Failed to fetch icon from server:', error);
-      return null; // Return null if there was an error fetching the icon
-    }
-  };
-
-  const checkLocalIcon = async (tokenId: string) => {
-    const localIconPath = `/icons/tokens/${tokenId}.svg`;
-    try {
-      const response = await fetch(localIconPath, { method: 'HEAD' });
-      return response.ok ? localIconPath : null; // if the head request is ok, the file exists
-    } catch (error) {
-      return null; // If there's an error (like a network issue), return null
-    }
-  };
+  
 
   const mapApiDataToTokenData = async ({
     name,
@@ -232,7 +135,7 @@ const Tokens: FC = () => {
     // Check for the icon locally first
     let url = await checkLocalIcon(id);
 
-    // If the icon is the default, check the server for it
+    // Otherwise, check the server for it
     if (!url) {
       url = await getIconUrlFromServer(id);
     }

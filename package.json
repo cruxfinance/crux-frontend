@@ -26,12 +26,6 @@
     "@trpc/client": "^10.37.1",
     "@trpc/next": "^10.37.1",
     "@trpc/server": "^10.37.1",
-    "@types/node": "20.2.5",
-    "@types/react": "18.2.9",
-    "@types/react-dom": "18.2.4",
-    "@types/react-scroll": "^1.8.7",
-    "@types/react-transition-group": "^4.4.6",
-    "@types/uuid": "^9.0.2",
     "@visx/curve": "^3.3.0",
     "@visx/gradient": "^3.3.0",
     "@visx/group": "^3.3.0",
@@ -45,6 +39,7 @@
     "ergo-lib-wasm-nodejs": "^0.24.0",
     "eslint": "8.42.0",
     "eslint-config-next": "13.4.4",
+    "lodash": "^4.17.21",
     "nanoid": "^4.0.2",
     "next": "13.4.4",
     "next-auth": "^4.22.4",
@@ -61,6 +56,13 @@
     "zod": "^3.21.4"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.202",
+    "@types/node": "20.2.5",
+    "@types/react": "18.2.9",
+    "@types/react-dom": "18.2.4",
+    "@types/react-scroll": "^1.8.7",
+    "@types/react-transition-group": "^4.4.6",
+    "@types/uuid": "^9.0.2",
     "prisma": "^5.1.1"
   }
 }

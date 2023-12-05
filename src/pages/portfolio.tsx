@@ -19,11 +19,11 @@ import Balance from '@components/portfolio/Balance';
 import { IPieToken } from '@components/charts/PieChart';
 import TokenSummary from '@components/portfolio/TokenSummary';
 import NftList from '@components/portfolio/NftList';
-import { tokenListInfo } from '@utils/assetsNew';
+import { tokenListInfo } from '../lib/utils/assetsNew';
 import { INftItem } from '@components/portfolio/NftList';
 import ValueLocked from '@components/portfolio/ValueLocked';
-import { Currencies } from '@utils/currencies';
-import { adjustDecimals } from '@utils/general';
+import { Currencies } from '../lib/utils/currencies';
+import { adjustDecimals } from '../lib/utils/general';
 import { IBalance } from '@components/portfolio/Balance';
 import HistoricValues from '@components/portfolio/HistoricValues';
 import PositionTable from '@components/portfolio/positions/PositionTable';
@@ -409,16 +409,16 @@ const Portfolio = () => {
         <PositionTable
           currency={currency}
           exchangeRate={exchangeRate}
-          tokenList={sortedFilteredTokensList}
+          addressList={addressList}
         />
       </Box>
-      <Box sx={{ mb: 2 }}>
+      {/* <Box sx={{ mb: 2 }}>
         <StakedPositions
           currency={currency}
           exchangeRate={exchangeRate}
           tokenList={sortedFilteredTokensList}
         />
-      </Box>
+      </Box> */}
       {/* <Box sx={{ mb: 2 }}>
         <LiquidityPositions
           currency={currency}

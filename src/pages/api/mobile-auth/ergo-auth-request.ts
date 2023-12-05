@@ -2,7 +2,6 @@ import { prisma } from '@server/prisma';
 // import { Address } from 'ergo-lib-wasm-nodejs';
 import { NextApiRequest, NextApiResponse } from 'next';
 
-
 interface ErgoAuthRequest {
   address: string;
   signingMessage: string;

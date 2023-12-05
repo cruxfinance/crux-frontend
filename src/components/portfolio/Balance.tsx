@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect } from 'react';
+import React, { FC } from 'react';
 import {
   Typography,
   Container,
@@ -7,10 +7,7 @@ import {
   Button
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
-import { currencies, Currencies } from '@utils/currencies';
-import { formatNumber } from '@utils/general';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import { currencies, Currencies } from '@lib/utils/currencies';
 
 export interface IBalance {
   balance: number;

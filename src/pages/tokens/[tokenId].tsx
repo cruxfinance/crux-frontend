@@ -15,15 +15,14 @@ import {
 } from '@mui/material';
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { useRouter } from 'next/router';
-import { formatNumber } from '@utils/general';
-import { currencies, Currencies } from '@utils/currencies';
+import { formatNumber } from '@lib/utils/general';
+import { currencies, Currencies } from '@lib/utils/currencies';
 import TradeHistory from '@components/tokenInfo/TradeHistory';
 import TokenStats from '@components/tokenInfo/TokenStats';
 import {
   ChartingLibraryWidgetOptions,
   ResolutionString,
 } from "@utils/charts/charts/charting_library";
-import { ITokenData } from '.';
 import CandlestickChartIcon from '@mui/icons-material/CandlestickChart';
 import InfoIcon from '@mui/icons-material/Info';
 import HistoryIcon from '@mui/icons-material/History';

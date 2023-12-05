@@ -1,5 +1,3 @@
-import { ITokenData } from '@pages/tokens/index';
-
 export const tokenData: ITokenData[] = [
   {
     "name": "Ergopad",

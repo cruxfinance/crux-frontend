@@ -10,7 +10,7 @@ import Head from "next/head";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import AlertWrapper, { IAlertMessages } from "@components/AlertWrapper";
-import { trpc } from '@utils/trpc';
+import { trpc } from '../server/utils/trpc';
 import { SessionProvider } from "next-auth/react"
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
@@ -26,6 +26,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   return (
     <>
       <Head>
+      <title>Crux Finance</title>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, minimum-scale=1.0, user-scalable=yes"

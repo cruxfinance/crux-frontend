@@ -2,10 +2,10 @@ import { useState, FC, useEffect } from "react";
 import { Pie } from "@visx/shape";
 import { Group } from "@visx/group";
 import { Text } from "@visx/text";
-import { generateGradient } from "@utils/color";
-import { currencies, Currencies } from '@utils/currencies';
+import { generateGradient } from "@lib/utils/color";
+import { currencies, Currencies } from '@lib/utils/currencies';
 import { IActiveToken } from "../portfolio/TokenSummary";
-import { formatNumber } from "@utils/general";
+import { formatNumber } from "@lib/utils/general";
 
 // REFACTOR NEEDED
 // Token ID instead of name

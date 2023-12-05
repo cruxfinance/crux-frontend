@@ -7,20 +7,12 @@ import {
 } from "@mui/material";
 import { useInView } from "react-intersection-observer";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import { formatNumber, getShorterAddress } from "@utils/general";
-import { timeFromNow } from "@utils/daytime";
-import { currencies, Currencies } from "@utils/currencies";
+import { formatNumber, getShorterAddress } from "@lib/utils/general";
+import { timeFromNow } from "@lib/utils/daytime";
+import { currencies, Currencies } from "@lib/utils/currencies";
 import Link from "../Link";
 import BouncingDotsLoader from "../DotLoader";
 
-export interface ITrade {
-  time: number;
-  action_type: 'Buy' | 'Sell' | 'Liquidity Removal' | 'Liquidity Provision';
-  price_in_ergo: number;
-  ergo_price: number;
-  action_amount: string;
-  user_address: string;
-}
 
 export interface PropsType {
   currency: Currencies;
