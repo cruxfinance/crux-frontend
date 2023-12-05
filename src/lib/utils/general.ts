@@ -31,8 +31,8 @@ export const aspectRatioResize = (sourceWidth: number, sourceHeight: number, max
   }
 }
 
-export const formatNumber = (num: number, sigFig: number = 3, fixed?: boolean) => {
-  const sign = num < 0 ? '-' : '';
+export const formatNumber = (num: number, sigFig: number = 3, fixed?: boolean, noNeg?: boolean) => {
+  const sign = noNeg ? '' : num < 0 ? '-' : '';
   const absNum = Math.abs(num);
 
   const formatSmallNumber = (number: number) => {

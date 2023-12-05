@@ -13,9 +13,9 @@ import {
 } from '@visx/xychart';
 import { curveCardinal, curveLinear } from '@visx/curve';
 import { Box, CircularProgress, Typography, useTheme, useMediaQuery } from '@mui/material';
-import { generateGradient } from '@utils/color';
+import { generateGradient } from '@lib/utils/color';
 import { GradientOrangeRed, LinearGradient } from '@visx/gradient';
-import { Currencies } from '@utils/currencies';
+import { Currencies } from '@lib/utils/currencies';
 
 export type XYChartProps = {
   currency: Currencies;

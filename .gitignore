@@ -41,3 +41,5 @@ localhost.key
 server.js
 ssl.crt
 ssl.key
+
+/db

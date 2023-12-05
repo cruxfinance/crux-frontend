@@ -8,10 +8,10 @@ import {
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { PieChart, IPieToken } from '@components/charts/PieChart';
-import { currencies, Currencies } from '@utils/currencies';
+import { currencies, Currencies } from '@lib/utils/currencies';
 import { IReducedToken } from '@pages/portfolio';
-import { generateGradient } from '@utils/color';
-import { formatNumber, adjustDecimals } from '@utils/general';
+import { generateGradient } from '@lib/utils/color';
+import { formatNumber, adjustDecimals } from '@lib/utils/general';
 
 export type IActiveToken = {
   name: string;

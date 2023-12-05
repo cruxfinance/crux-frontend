@@ -24,10 +24,10 @@ import RedeemIcon from '@mui/icons-material/Redeem';
 import SellIcon from '@mui/icons-material/Sell';
 import EditIcon from '@mui/icons-material/Edit';
 import SignIn, { Expanded } from '@components/user/SignIn';
-import { getShortAddress } from '@utils/general';
+import { getShortAddress } from '@lib/utils/general';
 import { SxProps } from '@mui/system';
 import { useSession } from 'next-auth/react';
-import { trpc } from "@utils/trpc";
+import { trpc } from "@server/utils/trpc";
 import { signIn, signOut } from "next-auth/react"
 import nautilusIcon from "@public/icons/nautilus.png";
 

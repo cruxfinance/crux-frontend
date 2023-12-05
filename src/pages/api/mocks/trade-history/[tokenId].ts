@@ -1,4 +1,3 @@
-import { ITrade } from '@components/tokenInfo/TradeHistory';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 // Sample exchange rates

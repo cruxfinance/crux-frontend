@@ -1,6 +1,6 @@
 import React, { useEffect, useState, FC } from 'react'
 import { z } from 'zod';
-import { trpc } from "@utils/trpc";
+import { trpc } from "@server/utils/trpc";
 import QRCode from 'react-qr-code';
 import {
   Box,

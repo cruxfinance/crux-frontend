@@ -11,7 +11,6 @@ import {
   DialogActions,
   Dialog
 } from "@mui/material";
-import { IFilters } from "@pages/tokens";
 import ClearIcon from "@mui/icons-material/Clear";
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 

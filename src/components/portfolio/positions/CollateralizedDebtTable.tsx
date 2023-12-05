@@ -9,8 +9,8 @@ import {
   useMediaQuery
 } from "@mui/material";
 import Grid from '@mui/system/Unstable_Grid/Grid';
-import { currencies, Currencies } from '@utils/currencies';
-import { formatNumber } from '@utils/general';
+import { currencies, Currencies } from '@lib/utils/currencies';
+import { formatNumber } from '@lib/utils/general';
 import { IReducedToken } from '@pages/portfolio';
 
 type CollateralizedDebtTableProps = {

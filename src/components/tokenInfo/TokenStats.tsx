@@ -7,8 +7,8 @@ import {
   Button,
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import { formatNumber, getShortAddress } from "@utils/general";
-import { currencies, Currencies } from '@utils/currencies';
+import { formatNumber, getShortAddress } from "@lib/utils/general";
+import { currencies, Currencies } from '@lib/utils/currencies';
 import { TokenDataPlus } from "@pages/tokens/[tokenId]";
 import Link from "../Link";
 
