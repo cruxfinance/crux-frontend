@@ -14,7 +14,7 @@ import {
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { currencies, Currencies } from '@lib/utils/currencies';
 import { formatNumber } from '@lib/utils/general';
-import { trpc } from '@server/utils/trpc';
+import { trpc } from '@lib/trpc';
 import dayjs from 'dayjs'
 
 type PositionTableProps = {

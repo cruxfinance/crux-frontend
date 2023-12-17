@@ -15,14 +15,12 @@ import {
   AccordionDetails,
   Box,
   Collapse,
-  IconButton
+  IconButton,
 } from "@mui/material";
 import { signIn } from "next-auth/react"; // Import signIn from next-auth
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import MobileLogin from "./MobileLogin";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import NautilusLogin from "./NautilusLogin";
-import CloseIcon from '@mui/icons-material/Close';
-
+import CloseIcon from "@mui/icons-material/Close";
 
 declare global {
   interface Window {
@@ -35,25 +33,24 @@ const wallets: {
   icon: string;
   description: string;
 }[] = [
-    {
-      name: "Nautilus",
-      icon: "/icons/wallets/nautilus-128.png",
-      description: "Connect automatically signing with your wallet",
-    },
-    {
-      name: "Mobile",
-      icon: "/icons/wallets/mobile.webp",
-      description: "Enter your wallet address then sign with the mobile app",
-    },
-    {
-      name: "GitHub",
-      icon: "/icons/wallets/github-mark-white.png",
-      description: "Connect with your OAuth provider",
-    },
-  ];
+  {
+    name: "Nautilus",
+    icon: "/icons/wallets/nautilus-128.png",
+    description: "Connect automatically signing with your wallet",
+  },
+  {
+    name: "Mobile",
+    icon: "/icons/wallets/mobile.webp",
+    description: "Enter your wallet address then sign with the mobile app",
+  },
+  {
+    name: "GitHub",
+    icon: "/icons/wallets/github-mark-white.png",
+    description: "Connect with your OAuth provider",
+  },
+];
 
-
-export type Expanded = 'Nautilus' | 'Mobile' | 'GitHub' | undefined;
+export type Expanded = "Nautilus" | "Mobile" | "GitHub" | undefined;
 
 interface ISignIn {
   open: boolean;
@@ -65,30 +62,30 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [isNautilusAvailable, setNautilusAvailable] = useState(false);
-  const [expanded, setExpanded] = useState<Expanded>(undefined)
+  const [expanded, setExpanded] = useState<Expanded>(undefined);
 
   useEffect(() => {
     setNautilusAvailable(!!window.ergoConnector?.nautilus);
   }, []);
 
   const handleClose = () => {
-    setOpen(false)
-  }
+    setOpen(false);
+  };
 
   const handleConnect = async (walletName: string) => {
     // setLoading(true)
-    window.ergoConnector.nautilus.disconnect()
-    const connected = await window.ergoConnector.nautilus.connect()
-    console.log(connected)
+    window.ergoConnector.nautilus.disconnect();
+    const connected = await window.ergoConnector.nautilus.connect();
+    console.log(connected);
     // setDappConnected(true)
     // connectDapp()
-  }
+  };
 
   const handleProviderSignIn = (providerId: string) => {
     setLoading(true);
     signIn(providerId)
       .then((result) => {
-        console.log(result)
+        console.log(result);
       })
       .catch((error) => {
         console.error(error);
@@ -98,29 +95,28 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
 
   const handleWalletChange = (wallet: Expanded) => {
     setExpanded(wallet !== undefined ? wallet : undefined);
-    if (wallet === 'GitHub') handleProviderSignIn("github")
-    if (wallet === 'Nautilus') dappConnection()
+    if (wallet === "GitHub") handleProviderSignIn("github");
+    if (wallet === "Nautilus") dappConnection();
   };
 
-  const [nautilusLoading, setNautilusLoading] = useState(false)
-  const [dappConnected, setDappConnected] = useState(false)
+  const [nautilusLoading, setNautilusLoading] = useState(false);
+  const [dappConnected, setDappConnected] = useState(false);
   const dappConnection = async () => {
-    setNautilusLoading(true)
+    setNautilusLoading(true);
     try {
-      const connect = await window.ergoConnector.nautilus.connect()
+      const connect = await window.ergoConnector.nautilus.connect();
       if (connect) {
         setDappConnected(true);
-      }
-      else {
-        console.log('error connecting nautilus')
-        setNautilusLoading(false)
-        setExpanded(undefined)
+      } else {
+        console.log("error connecting nautilus");
+        setNautilusLoading(false);
+        setExpanded(undefined);
       }
     } catch (error) {
       console.error("Error connecting to dApp:", error);
-      setNautilusLoading(false)
+      setNautilusLoading(false);
     }
-  }
+  };
 
   return (
     <>
@@ -143,28 +139,40 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
           aria-label="close"
           onClick={handleClose}
           sx={{
-            position: 'absolute',
+            position: "absolute",
             right: 8,
             top: 8,
           }}
         >
           <CloseIcon sx={{ fontSize: 30 }} />
         </IconButton>
-        <DialogContent sx={{ minWidth: '250px', pb: 0 }}>
+        <DialogContent sx={{ minWidth: "250px", pb: 0 }}>
           <Box sx={{ mb: 2 }}>
-            <Accordion sx={{ border: `1px solid ${theme.palette.divider}`, boxShadow: 'none', background: 'rgba(150,150,150,0.03)' }}>
+            <Accordion
+              sx={{
+                border: `1px solid ${theme.palette.divider}`,
+                boxShadow: "none",
+                background: "rgba(150,150,150,0.03)",
+              }}
+            >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 New users: read this first
               </AccordionSummary>
               <AccordionDetails>
                 <Typography sx={{ mb: 2 }}>
-                  The auth provider you select will be your login on all devices. If you choose to create your account with an Ergo wallet, please make sure you have access to it on all devices.
+                  The auth provider you select will be your login on all
+                  devices. If you choose to create your account with an Ergo
+                  wallet, please make sure you have access to it on all devices.
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  It is OK to login with Nautilus on desktop and Ergo Mobile wallet or Terminus on your phone, as long as you have the same address available on both devices.
+                  It is OK to login with Nautilus on desktop and Ergo Mobile
+                  wallet or Terminus on your phone, as long as you have the same
+                  address available on both devices.
                 </Typography>
                 <Typography sx={{ mb: 2 }}>
-                  You may add multiple wallets to your account with Premium membership, but if you choose a wallet provider, that address will be your master login.
+                  You may add multiple wallets to your account with Premium
+                  membership, but if you choose a wallet provider, that address
+                  will be your master login.
                 </Typography>
               </AccordionDetails>
             </Accordion>
@@ -219,7 +227,9 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
                           fontWeight: "400",
                         }}
                       >
-                        {item.name === "Mobile" ? "Terminus/Mobile Wallet" : item.name}
+                        {item.name === "Mobile"
+                          ? "Terminus/Mobile Wallet"
+                          : item.name}
                       </Typography>
                       <Typography
                         sx={{
@@ -254,17 +264,9 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
             in={expanded === "Mobile"}
             mountOnEnter
             unmountOnExit
-          >
-            <MobileLogin
-              setModalOpen={setOpen}
-            />
-          </Collapse>
+          ></Collapse>
           {isNautilusAvailable && (
-            <Collapse
-              in={expanded === "Nautilus"}
-              mountOnEnter
-              unmountOnExit
-            >
+            <Collapse in={expanded === "Nautilus"} mountOnEnter unmountOnExit>
               <NautilusLogin
                 setLoading={setLoading}
                 expanded={expanded}

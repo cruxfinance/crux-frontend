@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useEffect } from "react";
 import type { NextPage } from "next";
 import {
   Container,
@@ -26,6 +26,7 @@ import Tokenomics, { TokenomicsData } from "@components/Tokenomics";
 import BlobHero from "@components/svgs/BlobHero";
 import Image from "next/image";
 import BlobTokenomics from "@components/svgs/BlobTokenomics";
+import { trpc } from "@lib/trpc";
 
 const timeline: ITimelineItem[] = [
   {
@@ -143,6 +144,7 @@ const inViewOptions = {
 };
 
 const Home: NextPage = () => {
+  const login = trpc.auth.login.useMutation();
   const theme = useTheme();
   // const trigger = useScrollTrigger({ threshold: 800 });
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
@@ -159,6 +161,11 @@ const Home: NextPage = () => {
   //   },
   // };
 
+  useEffect(() => {
+    login.mutate({address: "test"})
+  }, [])
+
+  console.log(login.data)
 
   return (
     <>
