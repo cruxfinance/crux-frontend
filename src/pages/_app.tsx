@@ -10,6 +10,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import AlertWrapper, { IAlertMessages } from "@components/AlertWrapper";
 import { trpc } from "@lib/trpc";
+import { SessionProvider } from "next-auth/react";
+import { WalletProvider } from "@contexts/WalletContext";
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
@@ -24,24 +26,26 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
           content="width=device-width, initial-scale=1.0, minimum-scale=1.0, user-scalable=yes"
         />
       </Head>
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <ThemeProvider theme={theme}>
-          {/* <ThemeContext.Provider value={{ theme, setTheme }}> */}
-          <CssBaseline enableColorScheme />
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
-          <AlertWrapper
-            alerts={alert}
-            close={(i: number) => {
-              setAlert((prevState) =>
-                prevState.filter((_item, idx) => idx !== i)
-              );
-            }}
-          />
-          {/* </ThemeContext.Provider> */}
-        </ThemeProvider>
-      </LocalizationProvider>
+      <SessionProvider session={session}>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline enableColorScheme />
+              <WalletProvider>
+                <Layout>
+                  <Component {...pageProps} />
+                </Layout>
+              </WalletProvider>
+            <AlertWrapper
+              alerts={alert}
+              close={(i: number) => {
+                setAlert((prevState) =>
+                  prevState.filter((_item, idx) => idx !== i)
+                );
+              }}
+            />
+          </ThemeProvider>
+        </LocalizationProvider>
+      </SessionProvider>
     </>
   );
 }

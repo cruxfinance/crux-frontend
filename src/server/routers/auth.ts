@@ -1,71 +1,78 @@
 import { prisma } from "@server/prisma";
+import { deleteEmptyUser } from "@server/utils/deleteEmptyUser";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "@server/trpc";
-import { TRPCError } from "@trpc/server";
-import { Address, verify_signature } from "ergo-lib-wasm-nodejs";
+import { createTRPCRouter, publicProcedure } from "../trpc";
+import { generateNonceForLogin } from "../utils/nonce";
 
 export const authRouter = createTRPCRouter({
-  login: publicProcedure
+  initiateLogin: publicProcedure
     .input(
       z.object({
         address: z.string(),
       })
     )
     .mutation(async ({ input }) => {
-      const requestId = nanoid();
-      // todo: seed from env
-      const signingMessage = `${nanoid()}_${Date.now().toString()}`;
-      const ergoAuthRequest = await prisma.ergoAuthRequest.create({
+      const verificationId = nanoid();
+      const nonce = await generateNonceForLogin(input.address); // this will create the user if one doesn't exist
+
+      const user = await prisma.user.findUnique({
+        where: { id: nonce.userId },
+      });
+
+      if (!user) {
+        throw new Error(`User account creation failed`);
+      }
+
+      if (!user.nonce) {
+        await deleteEmptyUser(nonce.userId); // remove empty user if something went wrong
+        throw new Error(`Nonce not generated correctly`);
+      }
+
+      const existingLoginRequests = await prisma.loginRequest.findMany({
+        where: { user_id: user.id },
+      });
+
+      for (const request of existingLoginRequests) {
+        await prisma.loginRequest.delete({ where: { id: request.id } });
+      }
+
+      await prisma.loginRequest.create({
         data: {
-          id: requestId,
-          address: input.address,
-          signingMessage: signingMessage,
+          user_id: user.id,
+          verificationId: verificationId as string,
+          message: user.nonce,
+          status: "PENDING",
         },
       });
-      return ergoAuthRequest;
+
+      return { verificationId, nonce: nonce };
     }),
-  verify: publicProcedure
+  checkLoginStatus: publicProcedure
     .input(
       z.object({
-        requestId: z.string(),
-        proof: z.string(),
-        signedMessage: z.string(),
+        verificationId: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      const ergoAuthRequest = await prisma.ergoAuthRequest.findFirst({
-        where: {
-          id: input.requestId,
-        },
+    .query(async ({ input }) => {
+      const loginRequest = await prisma.loginRequest.findUnique({
+        where: { verificationId: input.verificationId },
       });
-      if (!ergoAuthRequest) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Failed to verify message signature",
-        });
+
+      if (!loginRequest) {
+        throw new Error("Invalid verificationId");
       }
-      const verified = verifySignature(
-        ergoAuthRequest.address,
-        ergoAuthRequest.signingMessage,
-        input.signedMessage,
-        input.proof
-      );
-      // todo: implement users
-      return verified;
+
+      if (loginRequest.status === "PENDING") {
+        return { status: "PENDING" };
+      }
+
+      if (loginRequest.status === "SIGNED") {
+        return {
+          status: "SIGNED",
+          signedMessage: loginRequest.signedMessage,
+          proof: loginRequest.proof,
+        };
+      }
     }),
 });
-
-const verifySignature = (
-  address: string,
-  message: string,
-  signedMessage: string,
-  proof: string
-) => {
-  if (!signedMessage.includes(message)) return false;
-  const ergoAddress = Address.from_mainnet_str(address);
-  const messageBytes = Buffer.from(signedMessage, "utf-8");
-  const proofBytes = Buffer.from(proof, "hex");
-  const result = verify_signature(ergoAddress, messageBytes, proofBytes);
-  return result;
-};

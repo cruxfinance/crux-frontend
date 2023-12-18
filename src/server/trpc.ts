@@ -15,19 +15,21 @@
  * These allow you to access things when processing a request, like the
  * database, the session, etc.
  */
-import { Prisma, PrismaClient, User } from "@prisma/client";
-import { DefaultArgs } from "@prisma/client/runtime/library";
-import { prisma } from "@server/prisma";
+import { getServerAuthSession } from "@pages/api/auth/[...nextauth]";
+import { PrismaClient } from "@prisma/client";
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
-
-type UserSession = Prisma.SessionGetPayload<{
-  include: { user: true };
-}>;
+import { type Session } from "next-auth";
+import { prisma } from "./prisma";
 
 type CreateContextOptions = {
-  session: UserSession | null;
-  prisma: PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>;
-  user?: User;
+  session: Session | null;
+  prisma: PrismaClient;
+  user: {
+    id: string;
+    name?: string | undefined;
+    address?: string | undefined;
+    image?: string | undefined;
+  } | null;
 };
 
 /**
@@ -55,9 +57,9 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
  */
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const { req, res } = opts;
-
   // Get the session from the server using the getServerSession wrapper function
-  const session = null;
+  const session = await getServerAuthSession(req, res);
+
   const user = session?.user || null;
 
   return createInnerTRPCContext({

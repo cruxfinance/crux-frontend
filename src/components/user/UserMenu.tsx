@@ -1,44 +1,78 @@
-import React, { FC, useState, useEffect, useContext } from "react";
-import {
-  IconButton,
-  Icon,
-  useTheme,
-  Avatar,
-  Typography,
-  Button,
-} from "@mui/material";
-import { WalletContext } from "@contexts/WalletContext";
-import { useRouter } from "next/router";
+import React, { FC, useState, useEffect } from "react";
+import { Typography, Button, Box } from "@mui/material";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
-import Divider from "@mui/material/Divider";
-import Settings from "@mui/icons-material/Settings";
 import Logout from "@mui/icons-material/Logout";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import RedeemIcon from "@mui/icons-material/Redeem";
-import SellIcon from "@mui/icons-material/Sell";
-import EditIcon from "@mui/icons-material/Edit";
-import SignIn from "@components/user/SignIn";
-import { getShortAddress } from "@lib/utils/general";
-import { SxProps } from "@mui/system";
-import { trpc } from "@lib/trpc";
+import SignIn from "./SignIn";
+import { getShortAddress } from "@utils/general";
 import { signIn, signOut } from "next-auth/react";
-import nautilusIcon from "@public/icons/nautilus.png";
-
-interface IWalletType {
-  name: string;
-  icon: string;
-  version: string;
-}
+import { useWallet } from "@contexts/WalletContext";
+import AddWalletModal from "./AddWalletModal";
+import Link from "next/link";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 interface IUserMenuProps {}
 
 const UserMenu: FC<IUserMenuProps> = () => {
-  const theme = useTheme();
-  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
-  const [providerLoading, setProviderLoading] = useState(true);
+  const [addWalletModal, setAddWalletModal] = useState(false);
+  const {
+    wallet,
+    setWallet,
+    sessionData,
+    sessionStatus,
+    providerLoading,
+    setProviderLoading,
+  } = useWallet();
+
+  useEffect(() => {
+    // console.log('session: ' + sessionStatus);
+    if (
+      sessionStatus === "authenticated" ||
+      sessionStatus === "unauthenticated"
+    ) {
+      setProviderLoading(false);
+    }
+
+    // if (sessionStatus === 'authenticated' && sessionData?.user.walletType === 'nautilus') {
+    //   const checkDappConnection = async () => {
+    //     const isNautilusConnected = await window.ergoConnector.nautilus.connect();
+    //     if (isNautilusConnected) {
+    //       // console.log('Nautilus is connected')
+
+    //       // @ts-ignore
+    //       const changeAddress = await ergo.get_change_address();
+    //       // @ts-ignore
+    //       const usedAddresses = await ergo.get_used_addresses();
+    //       // @ts-ignore
+    //       const unusedAddresses = await ergo.get_unused_addresses();
+    //       const addressArray = [changeAddress, ...usedAddresses, ...unusedAddresses]
+
+    //       if (addressArray.includes(sessionData.user.address)) {
+    //         setDAppWallet({
+    //           connected: true,
+    //           name: 'nautilus',
+    //           addresses: addressArray
+    //         })
+    //       }
+    //       else {
+    //         // Notify they chose the wrong wallet
+    //         // Allow them to choose the correct one or log out
+    //         // signOut()
+    //       }
+    //     }
+    //     // else signOut()
+    //   }
+    //   checkDappConnection();
+    // }
+
+    // if (sessionStatus === 'authenticated' && !sessionData.user.address) {
+    //   console.log('User neeeds to add an address')
+    //   setAddWalletModal(true)
+    // }
+  }, [sessionStatus, setProviderLoading]);
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -50,11 +84,35 @@ const UserMenu: FC<IUserMenuProps> = () => {
   };
 
   const clearWallet = async () => {
-    window.ergoConnector.nautilus.disconnect();
+    window?.ergoConnector?.nautilus.disconnect();
     signOut();
   };
 
-  const sessionStatus = "unauthenticated";
+  const handleAddWalletClose = () => {
+    if (sessionStatus === "authenticated" && sessionData?.user.address) {
+      setAddWalletModal(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!addWalletModal) {
+      handleAddWalletClose();
+    }
+  }, [addWalletModal]);
+
+  useEffect(() => {
+    // console.log('address changed')
+    // console.log(sessionData?.user.address)
+    // console.log(sessionStatus)
+    if (sessionStatus === "authenticated" && !sessionData?.user.address) {
+      setAddWalletModal(true);
+      setWallet("");
+    }
+    if (sessionStatus === "authenticated" && sessionData?.user.address) {
+      setAddWalletModal(false);
+      setWallet(sessionData.user.address);
+    }
+  }, [sessionStatus, sessionData?.user.address]);
 
   return (
     <>
@@ -63,7 +121,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
         <Button
           onClick={() => setModalOpen(true)}
           variant="contained"
-          disabled={providerLoading || !router.pathname.includes("hello")}
+          disabled={providerLoading}
           sx={{ my: "5px" }}
           // disabled
         >
@@ -73,23 +131,21 @@ const UserMenu: FC<IUserMenuProps> = () => {
       {sessionStatus === "authenticated" && (
         <>
           {/* {sessionData.user.walletType} */}
-          <IconButton
-            sx={{
-              color: theme.palette.text.primary,
-            }}
-            onClick={handleClick}
+          <Button
+            sx={walletButtonSx}
+            variant="contained"
+            disabled={providerLoading}
+            onClick={(e) => handleClick(e)}
           >
-            <Avatar
-              src={sessionData.user.image}
-              sx={{ width: "24px", height: "24px", mr: 1 }}
-              variant="square"
-            />
-            {sessionData.user.address && (
-              <Typography>
-                {getShortAddress(sessionData.user.address)}
-              </Typography>
-            )}
-          </IconButton>
+            {/* <Avatar src={sessionData.user.image} sx={{ width: '24px', height: '24px', mr: 1 }} variant="square" /> */}
+            <Typography>
+              {providerLoading
+                ? "Loading..."
+                : wallet
+                ? getShortAddress(wallet)
+                : "No wallet"}
+            </Typography>
+          </Button>
           <Menu
             anchorEl={anchorEl}
             id="account-menu"
@@ -128,26 +184,42 @@ const UserMenu: FC<IUserMenuProps> = () => {
             transformOrigin={{ horizontal: "right", vertical: "top" }}
             anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
           >
-            <MenuItem
-              sx={{ mt: "6px" }}
-              // onClick={() => router.push('/users/' + walletContext.wallet.getChangeAddress)}
+            {/* <MenuItem
+              sx={{ mt: '6px' }}
+            // onClick={() => router.push('/users/' + walletContext.wallet.getChangeAddress)}
             >
-              <Avatar /> View Profile
+              <Avatar src={sessionData?.user.image} variant="rounded" /> View Profile
             </MenuItem>
-            <Divider />
-            <MenuItem onClick={() => router.push("/user-settings/")}>
+            <Divider /> */}
+            {/* <MenuItem onClick={() => router.push('/user-settings/')}>
               <ListItemIcon>
                 <Settings fontSize="small" />
               </ListItemIcon>
               Edit Profile
-            </MenuItem>
-            <MenuItem onClick={() => setModalOpen(true)}>
-              <ListItemIcon>
-                <AccountBalanceWalletIcon fontSize="small" />
-              </ListItemIcon>
-              Change Wallet
-            </MenuItem>
-            <MenuItem onClick={() => clearWallet()}>
+            </MenuItem> */}
+            <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
+              <Link href="/user/connected-wallets" passHref>
+                <MenuItem>
+                  <ListItemIcon>
+                    <AccountBalanceWalletIcon fontSize="small" />
+                  </ListItemIcon>
+                  Connected wallets
+                </MenuItem>
+              </Link>
+            </Box>
+
+            <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
+              <Link href="/user/settings" passHref>
+                <MenuItem>
+                  <ListItemIcon>
+                    <SettingsIcon fontSize="small" />
+                  </ListItemIcon>
+                  Settings
+                </MenuItem>
+              </Link>
+            </Box>
+
+            <MenuItem onClick={clearWallet}>
               <ListItemIcon>
                 <Logout fontSize="small" />
               </ListItemIcon>
@@ -163,8 +235,32 @@ const UserMenu: FC<IUserMenuProps> = () => {
         // setDappConnected={setDappConnected}
         // connectDapp={dappConnection}
       />
+      <AddWalletModal
+        open={addWalletModal}
+        setModalOpen={setAddWalletModal}
+        setLoading={setProviderLoading}
+        customTitle={"Account Created: Please connect a wallet to continue"}
+      />
     </>
   );
 };
 
 export default UserMenu;
+
+const walletButtonSx = {
+  color: '#fff',
+  fontSize: '1rem',
+  px: '1.2rem',
+  textTransform: 'none',
+  '&:hover': {
+    backgroundColor: '#4BD0C9',
+    boxShadow: 'none',
+  },
+  '&:active': {
+    backgroundColor: 'rgba(49, 151, 149, 0.25)',
+  },
+  textOverflow: 'ellipsis',
+  maxWidth: '10em',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+};
