@@ -4,7 +4,6 @@ import { Expanded } from "@components/user/SignIn";
 import { trpc } from "@lib/trpc";
 import { signIn } from "next-auth/react";
 import { useWallet } from "@contexts/WalletContext";
-import { NonceResponse } from "@lib/types";
 
 interface INautilusLogin {
   expanded: Expanded;

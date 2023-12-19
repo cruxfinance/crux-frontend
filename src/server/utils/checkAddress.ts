@@ -39,7 +39,7 @@ export async function getUserIdByAddress(address: string) {
         where: {
           changeAddress: address,
         },
-        select: { user_id: true },
+        select: { userId: true },
       }),
       prisma.wallet.findFirst({
         where: {
@@ -48,18 +48,18 @@ export async function getUserIdByAddress(address: string) {
             { usedAddresses: { has: address } },
           ],
         },
-        select: { user_id: true },
+        select: { userId: true },
       }),
     ]);
 
   // If the address is a change address in a wallet or exists in the arrays of a wallet,
   // return the user ID associated with that wallet
   if (walletWithChangeAddress) {
-    return walletWithChangeAddress.user_id;
+    return walletWithChangeAddress.userId;
   }
 
   if (walletWithAddressInArrays) {
-    return walletWithAddressInArrays.user_id;
+    return walletWithAddressInArrays.userId;
   }
 
   // If none of the above conditions match, the address is not associated with any user

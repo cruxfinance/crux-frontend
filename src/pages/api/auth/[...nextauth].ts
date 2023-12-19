@@ -18,7 +18,6 @@ import {
   encode,
 } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GithubProvider from "next-auth/providers/github";
 
 type Credentials = {
   nonce: string;
@@ -48,14 +47,11 @@ export const verifySignature = (
   type: string
 ) => {
   const ergoAddress = Address.from_mainnet_str(address);
-  // console.log('address: ' + ergoAddress)
   const convertedMessage = Buffer.from(message, "utf-8");
-  // console.log('message: ' + message)
   const convertedProof =
     type === "nautilus"
       ? Buffer.from(proof, "hex")
       : Buffer.from(proof, "base64");
-  // console.log('proof: ' + convertedProof)
   const result = verify_signature(
     ergoAddress,
     convertedMessage,
@@ -68,15 +64,9 @@ export const authOptions = (
   req: NextApiRequest,
   res: NextApiResponse
 ): NextAuthOptions => {
-  function resMessage(status: number, message: string) {
-    return res.status(status).json({
-      statusText: message,
-    });
-  }
-
-  function nextAuthInclude(include: string) {
+  const nextAuthInclude = (include: string) => {
     return req.query.nextauth?.includes(include);
-  }
+  };
 
   async function signUser(
     user: User,
@@ -84,37 +74,19 @@ export const authOptions = (
   ): Promise<User | null> {
     const walletParse: ParsedWallet = JSON.parse(credentials.wallet);
     const signatureParse = JSON.parse(credentials.signature);
-    // console.log('Signed Message: ' + signatureParse.signedMessage)
-    // console.log('Proof: ' + signatureParse.proof)
-
     if (walletParse.type === "nautilus") {
       const signedMessageSplit = signatureParse.signedMessage.split(";");
       const nonce = signedMessageSplit[0];
-      const url = signedMessageSplit[1];
-      // console.log('\x1b[32m', 'Nonce: ', '\x1b[0m', nonce);
-      // console.log('\x1b[32m', 'URL: ', '\x1b[0m', url);
       if (nonce !== user.nonce) {
         console.error(`Nonce doesn't match`);
         throw new Error(`Nonce doesn't match`);
-      }
-      if (process.env.AUTH_DOMAIN !== `https://${url}`) {
-        console.error(`Source domain is invalid`);
-        throw new Error("Source domain is invalid");
       }
     } else if (walletParse.type === "mobile") {
       const nonce = signatureParse.signedMessage.slice(20, 41);
-      // const url = signatureParse.signedMessage.slice(41, -20);
-
       if (nonce !== user.nonce) {
         console.error(`Nonce doesn't match`);
         throw new Error(`Nonce doesn't match`);
       }
-      // CAN'T USE DOMAIN VERIFICATION BECAUSE ERGO MOBILE WALLET
-      // DOESN'T PROVIDE URL IN SIGNATURE FOR READ-ONLY WALLETS
-      // if (url !== process.env.AUTH_DOMAIN) {
-      //   console.error(`Source domain is invalid`)
-      //   throw new Error('Source domain is invalid')
-      // }
     } else {
       throw new Error("Unrecognized wallet type");
     }
@@ -125,14 +97,7 @@ export const authOptions = (
       signatureParse.proof,
       walletParse.type
     );
-    // console.log('\x1b[32m', 'Wallet info', '\x1b[0m', walletParse);
-    // console.log('\x1b[32m', 'User Nonce', '\x1b[0m', user.nonce);
-    // console.log('Address signed in with: ' + walletParse.defaultAddress)
-    // console.log('Signed Message: ' + signatureParse.signedMessage)
-    // console.log('Proof: ' + signatureParse.proof)
-    // console.log(result)
     if (result) {
-      // set a new nonce for the user to make sure an attacker can't reuse this one
       const newNonce = nanoid();
       prisma.user.update({
         where: {
@@ -160,30 +125,16 @@ export const authOptions = (
       const signedMessageSplit = signatureParse.signedMessage.split(";");
       const nonce = signedMessageSplit[0];
       const url = signedMessageSplit[1];
-      // console.log('\x1b[32m', 'Nonce: ', '\x1b[0m', nonce);
-      // console.log('\x1b[32m', 'URL: ', '\x1b[0m', url);
       if (nonce !== user.nonce) {
         console.error(`Nonce doesn't match`);
         throw new Error(`Nonce doesn't match`);
-      }
-      if (process.env.AUTH_DOMAIN !== `${url}`) {
-        console.error(`Source domain is invalid`);
-        throw new Error("Source domain is invalid");
       }
     } else if (walletParse.type === "mobile") {
       const nonce = signatureParse.signedMessage.slice(20, 41);
-      // const url = signatureParse.signedMessage.slice(41, -20);
-
       if (nonce !== user.nonce) {
         console.error(`Nonce doesn't match`);
         throw new Error(`Nonce doesn't match`);
       }
-      // CAN'T USE DOMAIN VERIFICATION BECAUSE ERGO MOBILE WALLET
-      // DOESN'T PROVIDE URL IN SIGNATURE FOR READ-ONLY WALLETS
-      // if (url !== process.env.AUTH_DOMAIN) {
-      //   console.error(`Source domain is invalid`)
-      //   throw new Error('Source domain is invalid')
-      // }
     } else {
       throw new Error("Unrecognized wallet type");
     }
@@ -258,10 +209,6 @@ export const authOptions = (
   return {
     adapter: PrismaAdapter(prisma),
     providers: [
-      GithubProvider({
-        clientId: process.env.GITHUB_CLIENT_ID!,
-        clientSecret: process.env.GITHUB_SECRET_ID!,
-      }),
       CredentialsProvider({
         name: "credentials",
         credentials: {
@@ -295,8 +242,6 @@ export const authOptions = (
 
             const { nonce, userId, signature, wallet } =
               credentials as Credentials;
-
-            // console.log('User ID: ' + userId)
 
             if (!nonce || !userId || !signature || !wallet) {
               return null;
@@ -375,11 +320,11 @@ export const authOptions = (
             type: account.type,
             provider: account.provider,
             providerAccountId: account.providerAccountId,
-            access_token: account.access_token,
-            expires_at: account.expires_at,
-            token_type: account.token_type,
+            accessToken: account.accessToken,
+            expiresAt: account.expiresAt,
+            tokenType: account.tokenType,
             scope: account.scope,
-            id_token: account.id_token,
+            idToken: account.idToken,
           },
         });
 
@@ -404,12 +349,6 @@ export const authOptions = (
         token: JWT;
         user: any;
       }) {
-        // console.log('\x1b[32m', 'Get auth session', '\x1b[0m', {
-        //   url: req.url,
-        //   method: req.method,
-        // });
-        // we have to get the cookie to get the session ID because
-        // it doesn't seem possible to pass it along the auth flow
         const cookie = getCookie(`next-auth.session-token`, {
           req: req,
         });
@@ -447,13 +386,10 @@ export const authOptions = (
           const cookie = getCookie(`next-auth.session-token`, {
             req: req,
           });
-
           if (cookie) {
-            // console.log(cookie)
             return cookie;
           } else return "";
         }
-
         return encode({ token, secret, maxAge });
       },
       decode: async ({ token, secret }: JWTDecodeParams) => {

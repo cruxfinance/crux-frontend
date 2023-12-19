@@ -16,7 +16,6 @@ export const deleteEmptyUser = async (
       wallets: true,
       accounts: true,
       sessions: true,
-      transactions: true,
     },
   });
 
@@ -28,7 +27,6 @@ export const deleteEmptyUser = async (
     user.wallets.length === 0 &&
     user.accounts.length === 0 &&
     user.sessions.length === 0 &&
-    user.transactions.length === 0 &&
     user.status === "pending"
   ) {
     await prisma.user.delete({

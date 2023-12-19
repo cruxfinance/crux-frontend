@@ -44,11 +44,6 @@ const wallets: {
     icon: "/icons/wallets/mobile.webp",
     description: "Enter your wallet address then sign with the mobile app",
   },
-  {
-    name: "GitHub",
-    icon: "/icons/wallets/github-mark-white.png",
-    description: "Connect with your OAuth provider",
-  },
 ];
 
 export type Expanded = "Nautilus" | "Mobile" | "GitHub" | undefined;

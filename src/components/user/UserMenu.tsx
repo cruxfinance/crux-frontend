@@ -6,10 +6,9 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import Logout from "@mui/icons-material/Logout";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import SignIn from "./SignIn";
-import { getShortAddress } from "@utils/general";
+import { getShortAddress } from "@lib/utils/general";
 import { signIn, signOut } from "next-auth/react";
 import { useWallet } from "@contexts/WalletContext";
-import AddWalletModal from "./AddWalletModal";
 import Link from "next/link";
 import SettingsIcon from "@mui/icons-material/Settings";
 
@@ -101,9 +100,6 @@ const UserMenu: FC<IUserMenuProps> = () => {
   }, [addWalletModal]);
 
   useEffect(() => {
-    // console.log('address changed')
-    // console.log(sessionData?.user.address)
-    // console.log(sessionStatus)
     if (sessionStatus === "authenticated" && !sessionData?.user.address) {
       setAddWalletModal(true);
       setWallet("");
@@ -197,7 +193,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
               </ListItemIcon>
               Edit Profile
             </MenuItem> */}
-            <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
+            {/* <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
               <Link href="/user/connected-wallets" passHref>
                 <MenuItem>
                   <ListItemIcon>
@@ -206,9 +202,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
                   Connected wallets
                 </MenuItem>
               </Link>
-            </Box>
-
-            <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
+            </Box> */}
+            {/* <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
               <Link href="/user/settings" passHref>
                 <MenuItem>
                   <ListItemIcon>
@@ -217,8 +212,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
                   Settings
                 </MenuItem>
               </Link>
-            </Box>
-
+            </Box> */}
             <MenuItem onClick={clearWallet}>
               <ListItemIcon>
                 <Logout fontSize="small" />
@@ -235,12 +229,6 @@ const UserMenu: FC<IUserMenuProps> = () => {
         // setDappConnected={setDappConnected}
         // connectDapp={dappConnection}
       />
-      <AddWalletModal
-        open={addWalletModal}
-        setModalOpen={setAddWalletModal}
-        setLoading={setProviderLoading}
-        customTitle={"Account Created: Please connect a wallet to continue"}
-      />
     </>
   );
 };
@@ -248,19 +236,19 @@ const UserMenu: FC<IUserMenuProps> = () => {
 export default UserMenu;
 
 const walletButtonSx = {
-  color: '#fff',
-  fontSize: '1rem',
-  px: '1.2rem',
-  textTransform: 'none',
-  '&:hover': {
-    backgroundColor: '#4BD0C9',
-    boxShadow: 'none',
+  color: "#fff",
+  fontSize: "1rem",
+  px: "1.2rem",
+  textTransform: "none",
+  "&:hover": {
+    backgroundColor: "#4BD0C9",
+    boxShadow: "none",
   },
-  '&:active': {
-    backgroundColor: 'rgba(49, 151, 149, 0.25)',
+  "&:active": {
+    backgroundColor: "rgba(49, 151, 149, 0.25)",
   },
-  textOverflow: 'ellipsis',
-  maxWidth: '10em',
-  overflow: 'hidden',
-  whiteSpace: 'nowrap',
+  textOverflow: "ellipsis",
+  maxWidth: "10em",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
 };

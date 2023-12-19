@@ -14,15 +14,6 @@ import { generateNonceForLogin } from "../utils/nonce";
 //     [...value].every(char => base58Chars.includes(char));
 // };
 
-type SumsubResultType = {
-  reviewAnswer: string;
-  rejectLabels?: string[];
-  reviewRejectType?: string;
-  clientComment?: string;
-  moderationComment?: string;
-  buttonIds?: string[];
-};
-
 export const userRouter = createTRPCRouter({
   getNonce: publicProcedure
     .input(
@@ -212,7 +203,7 @@ export const userRouter = createTRPCRouter({
       }
 
       const existingLoginRequests = await prisma.loginRequest.findMany({
-        where: { user_id: userId },
+        where: { userId: userId },
       });
 
       for (const request of existingLoginRequests) {
@@ -221,7 +212,7 @@ export const userRouter = createTRPCRouter({
 
       await prisma.loginRequest.create({
         data: {
-          user_id: userId,
+          userId: userId,
           verificationId: verificationId as string,
           message: nonce,
           status: "PENDING",
@@ -257,7 +248,7 @@ export const userRouter = createTRPCRouter({
       const wallet = await prisma.wallet.findUnique({
         where: {
           id: walletId,
-          user_id: userId,
+          userId: userId,
         },
         select: {
           changeAddress: true,
@@ -306,7 +297,7 @@ export const userRouter = createTRPCRouter({
       await prisma.wallet.update({
         where: {
           id: walletId,
-          user_id: userId,
+          userId: userId,
         },
         data: {
           changeAddress: newDefault,
@@ -331,7 +322,7 @@ export const userRouter = createTRPCRouter({
       const wallet = await prisma.wallet.findFirst({
         where: {
           changeAddress: changeAddress,
-          user_id: userId,
+          userId: userId,
         },
         select: {
           id: true, // just selecting id for brevity; we just want to know if a record exists
@@ -371,7 +362,7 @@ export const userRouter = createTRPCRouter({
       const wallet = await prisma.wallet.findUnique({
         where: {
           id: walletId,
-          user_id: userId,
+          userId: userId,
         },
       });
 
@@ -401,34 +392,6 @@ export const userRouter = createTRPCRouter({
           "Cannot delete: wallet is currently the default address for this user"
         );
     }),
-  getSumsubResult: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.session.user.id;
-
-    // Fetch the user from the database
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        sumsubId: true,
-        sumsubType: true,
-        sumsubResult: true,
-        sumsubStatus: true,
-      },
-    });
-
-    if (!user) {
-      throw new Error("Unable to retrieve user data");
-    }
-
-    const sumsubResult: SumsubResultType =
-      user.sumsubResult as SumsubResultType;
-
-    return {
-      sumsubId: user.sumsubId,
-      sumsubType: user.sumsubType,
-      sumsubResult: sumsubResult,
-      sumsubStatus: user.sumsubStatus,
-    };
-  }),
   getUserDetails: protectedProcedure
     .input(
       z.object({
@@ -437,21 +400,17 @@ export const userRouter = createTRPCRouter({
         whitelists: z.boolean().optional(),
         wallets: z.boolean().optional(),
         image: z.boolean().optional(),
-        sumsubStatus: z.boolean().optional(),
       })
     )
     .query(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
-      const { name, email, whitelists, wallets, image, sumsubStatus } = input;
+      const { name, email, whitelists, wallets, image } = input;
       const user = await prisma.user.findFirst({
         where: { id: userId },
         select: {
           name: !!name,
-          email: !!email,
           image: !!image,
-          sumsubStatus: !!sumsubStatus,
           wallets: !!wallets,
-          whitelists: !!whitelists,
         },
       });
 
@@ -520,7 +479,7 @@ export const userRouter = createTRPCRouter({
     // clear all wallets associated with the user
     await prisma.wallet.deleteMany({
       where: {
-        user_id: userId,
+        userId: userId,
       },
     });
 

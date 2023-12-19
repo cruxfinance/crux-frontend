@@ -59,7 +59,7 @@ interface IFilters {
 
 interface ISorting {
   sort_by?: string;
-  sort_order?: 'Desc' | 'Asc';
+  sort_order?: "Desc" | "Asc";
 }
 
 interface IQueries {
@@ -68,12 +68,12 @@ interface IQueries {
 }
 
 interface ITimeframe {
-  filter_window: 'Hour' | 'Day' | 'Week' | 'Month';
+  filter_window: "Hour" | "Day" | "Week" | "Month";
 }
 
 interface ITrade {
   time: number;
-  action_type: 'Buy' | 'Sell' | 'Liquidity Removal' | 'Liquidity Provision';
+  action_type: "Buy" | "Sell" | "Liquidity Removal" | "Liquidity Provision";
   price_in_ergo: number;
   ergo_price: number;
   action_amount: string;
@@ -85,3 +85,15 @@ type PriceInfo = {
   erg: number;
   usd: number;
 };
+
+interface Signature {
+  signedMessage: string;
+  proof: string;
+}
+
+type NonceResponse = {
+  nonce: string;
+  userId: string;
+};
+
+type Anchor = "bottom" | "left" | "right" | "top" | undefined;

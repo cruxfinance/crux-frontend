@@ -13,12 +13,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String  @map("provider_account_id")
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
+  refreshToken      String?
+  accessToken       String?
+  expiresAt         Int?
+  tokenType         String?
   scope             String?
-  id_token          String?
+  idToken           String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -39,25 +39,19 @@ model Session {
 
 model User {
   id             String         @id @default(cuid())
-  created_at     DateTime       @default(now())
-  updated_at     DateTime       @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   name           String?
+  email          String?        @unique
+  emailVerified  DateTime?
   status         String?
   defaultAddress String?        @unique @map("default_address")
   nonce          String?
-  email          String?        @unique
-  emailVerified  DateTime?      @map("email_verified")
   image          String?
-  sumsubId       String?        @map("sumsub_id")
-  sumsubType     String?        @map("sumsub_type")
-  sumsubResult   Json?          @map("sumsub_result")
-  sumsubStatus   String?        @map("sumsub_status")
   accounts       Account[]
   sessions       Session[]
   wallets        Wallet[]
   loginRequests  LoginRequest[]
-  transactions   Transaction[]
-  whitelists     String[]
 
   @@map("users")
 }
@@ -77,24 +71,10 @@ model Wallet {
   changeAddress   String   @unique
   unusedAddresses String[]
   usedAddresses   String[]
-  user_id         String
-  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
-}
-
-model Transaction {
-  id          String   @id @default(cuid())
-  description String
-  amount      String
-  currency    String
-  address     String
-  completed   Boolean  @default(false)
-  created_at  DateTime @default(now())
-  user_id     String
-  user        User     @relation(fields: [user_id], references: [id])
-
-  @@map("transactions")
 }
 
 enum LoginRequestStatus {
@@ -105,8 +85,8 @@ enum LoginRequestStatus {
 
 model LoginRequest {
   id             Int                @id @default(autoincrement())
-  user_id        String
-  user           User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   verificationId String             @unique
   message        String // The message to be signed, which is the nonce from the User model
   status         LoginRequestStatus

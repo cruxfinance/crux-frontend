@@ -14,7 +14,6 @@ import {
 import Link from "@components/Link";
 import { useWallet } from "@contexts/WalletContext";
 import { AddWalletExpanded } from "./AddWalletModal";
-import { Signature } from "@lib/types";
 
 interface IAddMobileOpen {
   localLoading: boolean;

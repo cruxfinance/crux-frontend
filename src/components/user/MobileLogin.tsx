@@ -13,8 +13,7 @@ import {
 } from "@mui/material";
 import Link from "@components/Link";
 import { signIn } from "next-auth/react";
-import { NonceResponse, Signature } from "@lib/types";
-import { isErgoMainnetAddress } from "@utils/general";
+import { isErgoMainnetAddress } from "@lib/utils/general";
 import { useWallet } from "@contexts/WalletContext";
 
 interface IMobileLogin {

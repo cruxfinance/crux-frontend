@@ -1,8 +1,8 @@
 import styles from "./index.module.css";
 import { useEffect, useRef } from "react";
-import { ChartingLibraryWidgetOptions, LanguageCode, ResolutionString, widget } from "@utils/charts/charts/charting_library";
+import { ChartingLibraryWidgetOptions, LanguageCode, ResolutionString, widget } from "@lib/charts/charting_library";
 import datafeed from "@utils/charts/datafeed";
-import { UDFCompatibleDatafeed } from "@utils/charts/charts/datafeeds/udf/src/udf-compatible-datafeed";
+import { UDFCompatibleDatafeed } from "@lib/charts/datafeeds/udf/src/udf-compatible-datafeed";
 import { useTheme, useMediaQuery } from "@mui/material";
 
 export const TVChartContainer = (props: Partial<ChartingLibraryWidgetOptions>) => {

@@ -30,7 +30,7 @@ export const authRouter = createTRPCRouter({
       }
 
       const existingLoginRequests = await prisma.loginRequest.findMany({
-        where: { user_id: user.id },
+        where: { userId: user.id },
       });
 
       for (const request of existingLoginRequests) {
@@ -39,7 +39,7 @@ export const authRouter = createTRPCRouter({
 
       await prisma.loginRequest.create({
         data: {
-          user_id: user.id,
+          userId: user.id,
           verificationId: verificationId as string,
           message: user.nonce,
           status: "PENDING",
