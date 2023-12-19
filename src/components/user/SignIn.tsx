@@ -152,15 +152,11 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
               }}
             >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                New users: read this first
+                New Users: Read this first
               </AccordionSummary>
               <AccordionDetails>
                 <Typography sx={{ mb: 2 }}>
                   You may add multiple supported login wallets to your account.
-                </Typography>
-                <Typography>
-                  If you want to view your account from a device which doesn't
-                  have an Ergo wallet, choose an OAuth provider (Github)
                 </Typography>
               </AccordionDetails>
             </Accordion>

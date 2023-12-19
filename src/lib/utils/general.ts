@@ -38,9 +38,10 @@ export const aspectRatioResize = (
 export const formatNumber = (
   num: number,
   sigFig: number = 3,
-  fixed?: boolean
+  fixed?: boolean,
+  noNeg?: boolean
 ) => {
-  const sign = num < 0 ? "-" : "";
+  const sign = noNeg ? "" : num < 0 ? "-" : "";
   const absNum = Math.abs(num);
 
   const formatSmallNumber = (number: number) => {
@@ -53,23 +54,13 @@ export const formatNumber = (
     return rounded.toString();
   };
 
-  if (absNum >= 1e18) {
-    // 1 quintillion
-    return sign + (absNum / 1e18).toFixed(2).replace(/\.0$/, "") + "Qi";
-  } else if (absNum >= 1e15) {
-    // 1 quadrillion
-    return sign + (absNum / 1e15).toFixed(2).replace(/\.0$/, "") + "Q";
-  } else if (absNum >= 1e12) {
-    // 1 trillion
-    return sign + (absNum / 1e12).toFixed(2).replace(/\.0$/, "") + "T";
-  } else if (absNum >= 1e9) {
-    // 1 billion
-    return sign + (absNum / 1e9).toFixed(2).replace(/\.0$/, "") + "B";
-  } else if (absNum >= 1e6) {
-    // 1 million
-    return sign + (absNum / 1e6).toFixed(2).replace(/\.0$/, "") + "M";
+  if (absNum >= 1000000000000) {
+    return sign + (absNum / 1000000000000).toFixed(2).replace(/\.0$/, "") + "T";
+  } else if (absNum >= 1000000000) {
+    return sign + (absNum / 1000000000).toFixed(2).replace(/\.0$/, "") + "B";
+  } else if (absNum >= 1000000) {
+    return sign + (absNum / 1000000).toFixed(2).replace(/\.0$/, "") + "M";
   } else if (absNum >= 1000) {
-    // 1 thousand
     return sign + (absNum / 1000).toFixed(1).replace(/\.0$/, "") + "K";
   } else if (fixed && absNum < 10) {
     return sign + absNum.toFixed(sigFig);

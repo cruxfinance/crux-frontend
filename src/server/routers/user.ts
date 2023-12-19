@@ -404,11 +404,12 @@ export const userRouter = createTRPCRouter({
     )
     .query(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
-      const { name, email, whitelists, wallets, image } = input;
+      const { name, email, wallets, image } = input;
       const user = await prisma.user.findFirst({
         where: { id: userId },
         select: {
           name: !!name,
+          email: !!email,
           image: !!image,
           wallets: !!wallets,
         },
