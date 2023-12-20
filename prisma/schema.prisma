@@ -19,7 +19,7 @@ model Account {
   tokenType         String?
   scope             String?
   idToken           String?
-  session_state     String?
+  sessionState      String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])

@@ -1,4 +1,3 @@
-import { verifySignature } from "@pages/api/auth/[...nextauth]";
 import { prisma } from "@server/prisma";
 import { checkAddressAvailability } from "@server/utils/checkAddress";
 import { deleteEmptyUser } from "@server/utils/deleteEmptyUser";
@@ -6,13 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { generateNonceForLogin } from "../utils/nonce";
-
-// const isErgoMainnetAddress = (value: string): boolean => {
-//   const base58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-//   return value.startsWith('9') &&
-//     value.length === 51 &&
-//     [...value].every(char => base58Chars.includes(char));
-// };
+import { verifySignature } from "@server/auth";
 
 export const userRouter = createTRPCRouter({
   getNonce: publicProcedure
@@ -23,23 +16,18 @@ export const userRouter = createTRPCRouter({
     )
     .query(async ({ input }) => {
       const { userAddress } = input;
-
       if (!userAddress) {
         return { nonce: null }; // Return a default value or error if the input is not defined
       }
-
       const nonce = await generateNonceForLogin(userAddress);
-
       if (!nonce) {
         throw new Error("Address already in use by another user account");
       }
-
       return { nonce };
     }),
   getNonceProtected: protectedProcedure.query(async ({ ctx }) => {
     const { session } = ctx;
     const nonce = nanoid();
-    // Update the user's nonce in the database
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: { nonce },
@@ -107,22 +95,14 @@ export const userRouter = createTRPCRouter({
         const signedMessageSplit = signature.signedMessage.split(";");
         const nonce = signedMessageSplit[0];
         const url = signedMessageSplit[1];
-        // console.log('\x1b[32m', 'Nonce: ', '\x1b[0m', nonce);
-        // console.log('\x1b[32m', 'URL: ', '\x1b[0m', url);
-        // console.log('\x1b[32m', 'User nonce: ', '\x1b[0m', user.nonce);
         if (nonce !== user.nonce) {
           console.error(`Nonce doesn't match`);
           throw new Error(`Nonce doesn't match`);
         }
-        if (process.env.AUTH_DOMAIN !== `https://${url}`) {
-          console.error(`Source domain doesn't match`);
-          throw new Error("Source domain is invalid");
-        }
       } else if (type === "mobile") {
         const nonce = signature.signedMessage.slice(20, 41);
         const url = signature.signedMessage.slice(41, -20);
-        // console.log('\x1b[32m', 'Nonce: ', '\x1b[0m', nonce);
-        // console.log('\x1b[32m', 'URL: ', '\x1b[0m', url);
+
         if (nonce !== user.nonce) {
           console.error(`Nonce doesn't match`);
           throw new Error(`Nonce doesn't match`);

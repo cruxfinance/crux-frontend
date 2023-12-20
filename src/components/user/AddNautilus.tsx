@@ -10,7 +10,6 @@ import {
   Avatar,
 } from "@mui/material";
 import { trpc } from "@lib/trpc";
-import { nanoid } from "nanoid";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useWallet } from "@contexts/WalletContext";
 import { AddWalletExpanded } from "./AddWalletModal";
@@ -70,7 +69,6 @@ const AddNautilus: FC<IAddNautilus> = ({
         throw new Error(response.error.message);
       }
       if (response.data?.nonce) {
-        // console.log(response.data.nonce)
         return response.data.nonce;
       } else console.error("Unexpected nonce error");
       return null;
@@ -98,7 +96,6 @@ const AddNautilus: FC<IAddNautilus> = ({
     const connect = await window.ergoConnector.nautilus.connect();
     if (connect) {
       setDappConnected(true);
-      // console.log('AddNautilus: dapp connected')
     } else {
       setDappConnected(false);
       setLocalLoading(false);
@@ -113,7 +110,6 @@ const AddNautilus: FC<IAddNautilus> = ({
       // @ts-ignore
       const changeAddress = await ergo.get_change_address();
       if (changeAddress) {
-        // console.log('AddNautilus: address retrieved')
         setMessage("Verifying that address is not in use");
         setChangeAddress(changeAddress);
       }
@@ -154,7 +150,6 @@ const AddNautilus: FC<IAddNautilus> = ({
         .refetch()
         .then((response) => {
           if (response.data?.status === "unavailable") {
-            // console.log('AddNautilus: address in use by another wallet')
             setMessage("Address in use by another wallet");
             setRetry(true);
             setDappConnected(false);
@@ -163,7 +158,6 @@ const AddNautilus: FC<IAddNautilus> = ({
             window.ergoConnector.nautilus.disconnect();
           }
           if (response.data?.status === "available") {
-            // console.log('AddNautilus: address is available')
             setDefaultAddress(changeAddress);
           }
         })
@@ -192,7 +186,6 @@ const AddNautilus: FC<IAddNautilus> = ({
           },
         });
         if (response.defaultAddress) {
-          // console.log(response.defaultAddress)
           setWallet(response.defaultAddress);
           setMessage(`Address ${address} successfully added`);
         } else {

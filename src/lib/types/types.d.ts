@@ -80,7 +80,6 @@ interface ITrade {
   user_address: string;
 }
 
-// for positions API
 type PriceInfo = {
   erg: number;
   usd: number;
@@ -97,3 +96,17 @@ type NonceResponse = {
 };
 
 type Anchor = "bottom" | "left" | "right" | "top" | undefined;
+
+type Credentials = {
+  nonce: string;
+  userId: string;
+  signature: string;
+  wallet: string;
+};
+
+type ParsedWallet = {
+  type: "mobile" | "nautilus";
+  defaultAddress: string;
+  usedAddresses: string[];
+  unusedAddresses: string[];
+};
