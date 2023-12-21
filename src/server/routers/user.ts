@@ -107,10 +107,6 @@ export const userRouter = createTRPCRouter({
           console.error(`Nonce doesn't match`);
           throw new Error(`Nonce doesn't match`);
         }
-        if (url !== process.env.AUTH_DOMAIN) {
-          console.error(`Source domain is invalid`);
-          throw new Error("Source domain is invalid");
-        }
       } else {
         throw new Error("Unrecognized wallet type");
       }

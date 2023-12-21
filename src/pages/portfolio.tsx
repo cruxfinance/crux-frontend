@@ -220,7 +220,6 @@ const Portfolio = () => {
         return newItem
       }
       if (item.token_name.includes("Spectrum YF staking bundle")) {
-        console.log(item.wrapped_tokens)
         const newItem = {
           // name: item.wrapped_tokens[0].token_name.split('_')[1] + '/' + item.wrapped_tokens[0].token_name.split('_')[0] + ' Spectrum YF',
           name: `${item.wrapped_tokens[0].token_name.split('_')[1].slice(0, 3)}/${item.wrapped_tokens[0].token_name.split('_')[0].slice(0, 3)} YF (${fetchAcc})`,
@@ -313,7 +312,6 @@ const Portfolio = () => {
   const handleChangeAddressList = (event: React.ChangeEvent<HTMLInputElement>) => {
     const addresses = event.target.value.split(",").map(address => address.trim());
     setAddressList(addresses);
-    console.log(addresses)
   }
 
   return (

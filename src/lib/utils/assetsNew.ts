@@ -101,7 +101,6 @@ const reduceBalances = (balances: IBalances) => {
     ret.tokens = tokens;
     return ret;
   } catch (e) {
-    console.log(e);
     return null;
   }
 };
@@ -112,7 +111,7 @@ export const getAssetInfo = (id: string) => {
     return axios
       .get(`${process.env.API_URL}/asset/info/${id}`)
       .catch((err) => {
-        console.log("ERROR FETCHING: ", err);
+        console.error("ERROR FETCHING: ", err);
       });
   }
   return JSON.parse(box);
@@ -146,12 +145,11 @@ export const getWalletList = async (addresses: string[]): Promise<IWalletListTok
       addresses: addresses,
     })
     .catch((err) => {
-      console.log('ERROR FETCHING: ', err);
+      console.error('ERROR FETCHING: ', err);
       return {
         data: {},
       };
     });
-  console.log(balances.data)
   const balance = reduceBalances(balances.data);
   if (balance) {
     return balance.tokens
