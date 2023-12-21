@@ -51,8 +51,6 @@ declare module "next-auth" {
     name: string | null;
     defaultAddress: string | null;
     nonce: string | null;
-    email: string | null;
-    emailVerified: Date | null;
     image: string | null;
   }
 
@@ -270,44 +268,7 @@ export const signInCallback = async (
     return true;
   }
 
-  // Is this even required?
-  // Check first if there is no user in the database. Then we can create new user with these OAuth credentials.
-  const profileExists = await prisma.user.findFirst({
-    where: {
-      email: user.email,
-    },
-  });
-  if (!profileExists) return true;
-
-  // Check if there is an existing account in the database. Then we can log in with this account.
-  const accountExists = await prisma.account.findFirst({
-    where: {
-      AND: [{ provider: account.provider }, { userId: profileExists.id }],
-    },
-  });
-  if (accountExists) return true;
-
-  // If there is no account in the database, we create a new account with these OAuth credentials.
-  await prisma.account.create({
-    data: {
-      userId: profileExists.id,
-      type: account.type,
-      provider: account.provider,
-      providerAccountId: account.providerAccountId,
-      accessToken: account.accessToken,
-      expiresAt: account.expiresAt,
-      tokenType: account.tokenType,
-      scope: account.scope,
-      idToken: account.idToken,
-    },
-  });
-
-  // Since a user is already in the database we can update user information.
-  await prisma.user.update({
-    where: { id: profileExists.id },
-    data: { name: user.name },
-  });
-  return user;
+  return false;
 };
 
 export const jwtCallback = ({ token, user }: any) => {

@@ -376,20 +376,17 @@ export const userRouter = createTRPCRouter({
     .input(
       z.object({
         name: z.boolean().optional(),
-        email: z.boolean().optional(),
-        whitelists: z.boolean().optional(),
         wallets: z.boolean().optional(),
         image: z.boolean().optional(),
       })
     )
     .query(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
-      const { name, email, wallets, image } = input;
+      const { name, wallets, image } = input;
       const user = await prisma.user.findFirst({
         where: { id: userId },
         select: {
           name: !!name,
-          email: !!email,
           image: !!image,
           wallets: !!wallets,
         },
@@ -405,13 +402,11 @@ export const userRouter = createTRPCRouter({
     .input(
       z.object({
         name: z.string().optional(),
-        email: z.string().optional(),
-        whitelist: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
-      const { name, email, whitelist } = input;
+      const { name } = input;
 
       // Prepare the data object for the update
       const updateData: any = {};
@@ -419,17 +414,6 @@ export const userRouter = createTRPCRouter({
       // Conditionally add fields to the updateData object
       if (name) {
         updateData.name = name;
-      }
-
-      if (email) {
-        updateData.email = email;
-      }
-
-      // If whitelist is provided, add it to the whitelists array
-      if (whitelist) {
-        updateData.whitelists = {
-          push: whitelist,
-        };
       }
 
       const updatedUser = await prisma.user.update({
