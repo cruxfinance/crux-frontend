@@ -3,7 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   env: {
     API_URL: process.env.API_URL,
-    CRUX_API: process.env.CRUX_API
+    CRUX_API: process.env.CRUX_API,
+    AUTH_DOMAIN: process.env.AUTH_DOMAIN
   },
   swcMinify: true,
   // webpack: function (config, options) {

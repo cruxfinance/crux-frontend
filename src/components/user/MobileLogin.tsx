@@ -86,8 +86,7 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
   };
 
   const authSignIn = async () => {
-    // console.log(signature)
-    const response = await signIn("credentials", {
+    await signIn("credentials", {
       nonce: nonce?.nonce,
       userId: nonce?.userId,
       signature: JSON.stringify(signature),
@@ -99,10 +98,6 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
       }),
       redirect: false,
     });
-    if (!response?.status || response.status !== 200) {
-      console.log("error logging in");
-    }
-    // console.log(response);
     await fetchSessionData();
     setProviderLoading(false);
     setModalOpen(false);
@@ -111,13 +106,12 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
 
   useEffect(() => {
     if (!isSignatureProcessed && signature && nonce) {
-      // console.log('proof received');
       authSignIn();
       setIsSignatureProcessed(true); // Mark the signature as processed
     }
   }, [signature]);
 
-  const authUrl = new URL(process.env.AUTH_DOMAIN || "https://ergopad.io");
+  const authUrl = new URL(process.env.AUTH_DOMAIN || "https://cruxfinance.io");
   const ergoAuthDomain = `ergoauth://${authUrl.host}`;
 
   return (
@@ -161,7 +155,6 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
               }}
             />
           </Box>
-
           <Box>
             <Button
               variant="contained"
@@ -177,7 +170,7 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
       <Collapse in={isSignatureProcessed && localLoading}>
         <Box>
           <Typography sx={{ mb: 1, textAlign: "center" }}>
-            Verifying signature
+            Verifying Signature
           </Typography>
           <LinearProgress />
         </Box>

@@ -121,7 +121,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
           sx={{ my: "5px" }}
           // disabled
         >
-          {providerLoading ? "Loading..." : "Sign in"}
+          {providerLoading ? "Loading..." : "Sign In"}
         </Button>
       )}
       {sessionStatus === "authenticated" && (

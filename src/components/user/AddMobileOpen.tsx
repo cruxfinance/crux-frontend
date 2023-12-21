@@ -130,7 +130,7 @@ const AddMobileOpen: FC<IAddMobileOpen> = ({
     }
   }, [signature]);
 
-  const authUrl = new URL(process.env.AUTH_DOMAIN || "https://ergopad.io");
+  const authUrl = new URL(process.env.AUTH_DOMAIN || "https://cruxfinance.io");
   const ergoAuthDomain = `ergoauth://${authUrl.host}`;
 
   const resetForm = () => {
