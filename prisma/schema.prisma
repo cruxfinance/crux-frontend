@@ -37,15 +37,23 @@ model Session {
   @@map("sessions")
 }
 
+enum UserPrivilegeLevel {
+  DEFAULT
+  BASIC
+  PRO
+  ADMIN
+}
+
 model User {
-  id             String         @id @default(cuid())
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id             String             @id @default(cuid())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
   name           String?
   status         String?
-  defaultAddress String?        @unique @map("default_address")
+  defaultAddress String?            @unique @map("default_address")
   nonce          String?
   image          String?
+  privilegeLevel UserPrivilegeLevel @default(DEFAULT)
   accounts       Account[]
   sessions       Session[]
   wallets        Wallet[]

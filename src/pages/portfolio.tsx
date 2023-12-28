@@ -79,6 +79,8 @@ const Portfolio = () => {
   const [totalValueLocked, setTotalValueLocked] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState(1);
 
+  console.log(session);
+
   useEffect(() => {
     if (
       session?.status === "authenticated" &&

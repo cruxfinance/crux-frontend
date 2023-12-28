@@ -11,6 +11,7 @@ import {
 import { getCookie, setCookie } from "cookies-next";
 import { nanoid } from "nanoid";
 import { prisma } from "@server/prisma";
+import { UserPrivilegeLevel } from "@prisma/client";
 
 /**
  * Module augmentation for `next-auth` types.
@@ -43,6 +44,7 @@ declare module "next-auth" {
       address?: string;
       image?: string;
       walletType?: string;
+      privilegeLevel: UserPrivilegeLevel;
     };
   }
 
@@ -187,6 +189,7 @@ export const createNewUser = async (
         where: { id: user.id },
         data: {
           nonce: newNonce,
+          privilegeLevel: "DEFAULT",
           status: "active",
         },
       });
@@ -306,6 +309,7 @@ export const sessionCallback = async (
       address: user.defaultAddress,
       walletType: dbSession?.walletType!,
       image: user.image,
+      privilegeLevel: user.privilegeLevel,
     };
   }
   return session;

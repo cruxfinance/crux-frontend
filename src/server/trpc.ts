@@ -16,7 +16,7 @@
  * database, the session, etc.
  */
 import { getServerAuthSession } from "@pages/api/auth/[...nextauth]";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserPrivilegeLevel } from "@prisma/client";
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import { type Session } from "next-auth";
 import { prisma } from "./prisma";
@@ -29,6 +29,7 @@ type CreateContextOptions = {
     name?: string | undefined;
     address?: string | undefined;
     image?: string | undefined;
+    privilegeLevel: UserPrivilegeLevel;
   } | null;
 };
 
