@@ -104,7 +104,6 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
       if (connect) {
         setDappConnected(true);
       } else {
-        console.log("error connecting nautilus");
         setNautilusLoading(false);
         setExpanded(undefined);
       }
@@ -143,7 +142,7 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
           <CloseIcon sx={{ fontSize: 30 }} />
         </IconButton>
         <DialogContent sx={{ minWidth: "250px", pb: 0 }}>
-          <Box sx={{ mb: 2 }}>
+          {/* <Box sx={{ mb: 2 }}>
             <Accordion
               sx={{
                 border: `1px solid ${theme.palette.divider}`,
@@ -160,7 +159,7 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
                 </Typography>
               </AccordionDetails>
             </Accordion>
-          </Box>
+          </Box> */}
           {wallets.map((item, i) => {
             return (
               <Collapse
