@@ -213,7 +213,7 @@ export const userRouter = createTRPCRouter({
     .input(
       z.object({
         newDefault: z.string(),
-        walletId: z.number(),
+        walletId: z.string(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -326,7 +326,7 @@ export const userRouter = createTRPCRouter({
   removeWallet: protectedProcedure
     .input(
       z.object({
-        walletId: z.number(),
+        walletId: z.string(),
       })
     )
     .mutation(async ({ input, ctx }) => {
