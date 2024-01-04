@@ -9,9 +9,9 @@ import { userRouter } from "./user";
  * All routers added in /api/routers should be manually added here
  */
 export const appRouter = createTRPCRouter({
-  user: userRouter,
   auth: authRouter,
-  portfolio: portfolioRouter
+  portfolio: portfolioRouter,
+  user: userRouter,
 });
 
 // export type definition of API

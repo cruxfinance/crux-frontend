@@ -1,32 +1,36 @@
-import { prisma } from '@server/prisma';
-import { nanoid } from 'nanoid';
-import { z } from 'zod';
-import { createTRPCRouter, publicProcedure } from '../trpc';
-import { generateNonceForUser } from '../utils/nonce';
+import { prisma } from "@server/prisma";
+import { deleteEmptyUser } from "@server/utils/deleteEmptyUser";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { createTRPCRouter, publicProcedure } from "../trpc";
+import { generateNonceForLogin } from "../utils/nonce";
 
 export const authRouter = createTRPCRouter({
   initiateLogin: publicProcedure
-    .input(z.object({
-      address: z.string(),
-    }))
+    .input(
+      z.object({
+        address: z.string(),
+      })
+    )
     .mutation(async ({ input }) => {
       const verificationId = nanoid();
-      const nonce = await generateNonceForUser(input.address); // this will create the user if one doesn't exist
+      const nonce = await generateNonceForLogin(input.address); // this will create the user if one doesn't exist
 
       const user = await prisma.user.findUnique({
-        where: { defaultAddress: input.address },
+        where: { id: nonce.userId },
       });
 
       if (!user) {
-        throw new Error(`ERR::login:: User account creation failed`);
+        throw new Error(`User account creation failed`);
       }
 
       if (!user.nonce) {
-        throw new Error(`ERR::login:: Nonce not generated correctly`);
+        await deleteEmptyUser(nonce.userId); // remove empty user if something went wrong
+        throw new Error(`Nonce not generated correctly`);
       }
 
       const existingLoginRequests = await prisma.loginRequest.findMany({
-        where: { user_id: user.id },
+        where: { userId: user.id },
       });
 
       for (const request of existingLoginRequests) {
@@ -35,19 +39,21 @@ export const authRouter = createTRPCRouter({
 
       await prisma.loginRequest.create({
         data: {
-          user_id: user.id,
+          userId: user.id,
           verificationId: verificationId as string,
           message: user.nonce,
-          status: 'PENDING',
+          status: "PENDING",
         },
       });
 
-      return { verificationId, nonce };
+      return { verificationId, nonce: nonce };
     }),
   checkLoginStatus: publicProcedure
-    .input(z.object({
-      verificationId: z.string(),
-    }))
+    .input(
+      z.object({
+        verificationId: z.string(),
+      })
+    )
     .query(async ({ input }) => {
       const loginRequest = await prisma.loginRequest.findUnique({
         where: { verificationId: input.verificationId },
@@ -57,15 +63,15 @@ export const authRouter = createTRPCRouter({
         throw new Error("Invalid verificationId");
       }
 
-      if (loginRequest.status === 'PENDING') {
-        return { status: 'PENDING' };
+      if (loginRequest.status === "PENDING") {
+        return { status: "PENDING" };
       }
 
-      if (loginRequest.status === 'SIGNED') {
+      if (loginRequest.status === "SIGNED") {
         return {
-          status: 'SIGNED',
+          status: "SIGNED",
           signedMessage: loginRequest.signedMessage,
-          proof: loginRequest.proof
+          proof: loginRequest.proof,
         };
       }
     }),

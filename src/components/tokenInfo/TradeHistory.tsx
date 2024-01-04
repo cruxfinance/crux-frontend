@@ -37,7 +37,6 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
 
   useEffect(() => {
     if (inView && !loading && initialLoading === false) {
-      console.log('reload')
       fetchTradeHistory(tokenId, offset);
     }
   }, [inView]);

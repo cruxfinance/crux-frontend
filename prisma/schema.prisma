@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgres"
   url      = env("POSTGRES_PRISMA_URL")
 }
 
@@ -13,13 +13,13 @@ model Account {
   type              String
   provider          String
   providerAccountId String  @map("provider_account_id")
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
+  refreshToken      String?
+  accessToken       String?
+  expiresAt         Int?
+  tokenType         String?
   scope             String?
-  id_token          String?
-  session_state     String?
+  idToken           String?
+  sessionState      String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
@@ -37,14 +37,23 @@ model Session {
   @@map("sessions")
 }
 
+enum UserPrivilegeLevel {
+  DEFAULT
+  BASIC
+  PRO
+  ADMIN
+}
+
 model User {
-  id             String         @id @default(cuid())
+  id             String             @id @default(cuid())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
   name           String?
-  defaultAddress String?        @unique @map("default_address")
+  status         String?
+  defaultAddress String?            @unique @map("default_address")
   nonce          String?
-  email          String?        @unique
-  emailVerified  DateTime?      @map("email_verified")
   image          String?
+  privilegeLevel UserPrivilegeLevel @default(DEFAULT)
   accounts       Account[]
   sessions       Session[]
   wallets        Wallet[]
@@ -62,71 +71,16 @@ model VerificationToken {
   @@map("verificationtokens")
 }
 
-model UserProfile {
-  id             String        @id @default(cuid())
-  userId         String?       @unique @map("user_id")
-  created_at     DateTime      @default(now())
-  updated_at     DateTime      @updatedAt
-  email_verified DateTime?
-  first_name     String?
-  last_name      String?
-  middle_name    String?
-  legal_name     String?
-  birth_date     String?
-  country        String?
-  birth_country  String?
-  birth_state    String?
-  birth_place    String?
-  marital_status String?
-  nationality    String?
-  occupation     String?
-  image          String?
-  addresses      Address[]
-  transactions   Transaction[]
-
-  @@map("user_profiles")
-}
-
-model Address {
-  id             String      @id @default(cuid())
-  address_line_1 String
-  address_line_2 String?
-  city           String
-  state          String
-  region         String?
-  district       String?
-  province       String?
-  postal_code    String
-  country        String
-  user_id        String
-  user           UserProfile @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("addresses")
-}
-
 model Wallet {
-  id              Int      @id @default(autoincrement())
+  id              String   @id @default(cuid())
+  type            String?
   changeAddress   String   @unique
   unusedAddresses String[]
   usedAddresses   String[]
-  user_id         String
-  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
-}
-
-model Transaction {
-  id          String       @id @default(cuid())
-  description String
-  amount      String
-  currency    String
-  address     String
-  completed   Boolean      @default(false)
-  created_at  DateTime     @default(now())
-  user_id     String
-  user        UserProfile? @relation(fields: [user_id], references: [id])
-
-  @@map("transactions")
 }
 
 enum LoginRequestStatus {
@@ -136,9 +90,9 @@ enum LoginRequestStatus {
 }
 
 model LoginRequest {
-  id             Int                @id @default(autoincrement())
-  user_id        String
-  user           User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   verificationId String             @unique
   message        String // The message to be signed, which is the nonce from the User model
   status         LoginRequestStatus
@@ -146,4 +100,23 @@ model LoginRequest {
   proof          String?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
+}
+
+enum RecurringPaymentSourceStatus {
+  CREATED
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+model RecurringPaymentSource {
+  id                          String              @id @default(cuid())
+  amount                      BigInt
+  tokenId                     String?
+  periodSeconds               Int
+  transactionId               String?
+  transactionConfirmationTime DateTime?
+  createdAt                   DateTime            @default(now())
+  updatedAt                   DateTime            @updatedAt
+  status                      RecurringPaymentSourceStatus @default(CREATED)
 }

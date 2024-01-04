@@ -22,7 +22,7 @@ import TokenStats from '@components/tokenInfo/TokenStats';
 import {
   ChartingLibraryWidgetOptions,
   ResolutionString,
-} from "@utils/charts/charts/charting_library";
+} from "@lib/charts/charting_library";
 import CandlestickChartIcon from '@mui/icons-material/CandlestickChart';
 import InfoIcon from '@mui/icons-material/Info';
 import HistoryIcon from '@mui/icons-material/History';

@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "UserPrivilegeLevel" AS ENUM ('DEFAULT', 'BASIC', 'PRO', 'ADMIN');
+
+-- CreateEnum
 CREATE TYPE "LoginRequestStatus" AS ENUM ('PENDING', 'SIGNED', 'EXPIRED');
 
 -- CreateTable
@@ -8,13 +11,13 @@ CREATE TABLE "accounts" (
     "type" TEXT NOT NULL,
     "provider" TEXT NOT NULL,
     "provider_account_id" TEXT NOT NULL,
-    "refresh_token" TEXT,
-    "access_token" TEXT,
-    "expires_at" INTEGER,
-    "token_type" TEXT,
+    "refreshToken" TEXT,
+    "accessToken" TEXT,
+    "expiresAt" INTEGER,
+    "tokenType" TEXT,
     "scope" TEXT,
-    "id_token" TEXT,
-    "session_state" TEXT,
+    "idToken" TEXT,
+    "sessionState" TEXT,
 
     CONSTRAINT "accounts_pkey" PRIMARY KEY ("id")
 );
@@ -33,12 +36,14 @@ CREATE TABLE "sessions" (
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "name" TEXT,
+    "status" TEXT,
     "default_address" TEXT,
     "nonce" TEXT,
-    "email" TEXT,
-    "email_verified" TIMESTAMP(3),
     "image" TEXT,
+    "privilegeLevel" "UserPrivilegeLevel" NOT NULL DEFAULT 'DEFAULT',
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -51,75 +56,21 @@ CREATE TABLE "verificationtokens" (
 );
 
 -- CreateTable
-CREATE TABLE "user_profiles" (
-    "id" TEXT NOT NULL,
-    "user_id" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    "email_verified" TIMESTAMP(3),
-    "first_name" TEXT,
-    "last_name" TEXT,
-    "middle_name" TEXT,
-    "legal_name" TEXT,
-    "birth_date" TEXT,
-    "country" TEXT,
-    "birth_country" TEXT,
-    "birth_state" TEXT,
-    "birth_place" TEXT,
-    "marital_status" TEXT,
-    "nationality" TEXT,
-    "occupation" TEXT,
-    "image" TEXT,
-
-    CONSTRAINT "user_profiles_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "addresses" (
-    "id" TEXT NOT NULL,
-    "address_line_1" TEXT NOT NULL,
-    "address_line_2" TEXT,
-    "city" TEXT NOT NULL,
-    "state" TEXT NOT NULL,
-    "region" TEXT,
-    "district" TEXT,
-    "province" TEXT,
-    "postal_code" TEXT NOT NULL,
-    "country" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
-
-    CONSTRAINT "addresses_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "wallets" (
     "id" SERIAL NOT NULL,
+    "type" TEXT,
     "changeAddress" TEXT NOT NULL,
     "unusedAddresses" TEXT[],
     "usedAddresses" TEXT[],
-    "user_id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
 
     CONSTRAINT "wallets_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "transactions" (
-    "id" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "amount" TEXT NOT NULL,
-    "currency" TEXT NOT NULL,
-    "address" TEXT NOT NULL,
-    "completed" BOOLEAN NOT NULL DEFAULT false,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "user_id" TEXT NOT NULL,
-
-    CONSTRAINT "transactions_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "LoginRequest" (
     "id" SERIAL NOT NULL,
-    "user_id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
     "verificationId" TEXT NOT NULL,
     "message" TEXT NOT NULL,
     "status" "LoginRequestStatus" NOT NULL,
@@ -141,16 +92,10 @@ CREATE UNIQUE INDEX "sessions_session_token_key" ON "sessions"("session_token");
 CREATE UNIQUE INDEX "users_default_address_key" ON "users"("default_address");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
-
--- CreateIndex
 CREATE UNIQUE INDEX "verificationtokens_token_key" ON "verificationtokens"("token");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "verificationtokens_identifier_token_key" ON "verificationtokens"("identifier", "token");
-
--- CreateIndex
-CREATE UNIQUE INDEX "user_profiles_user_id_key" ON "user_profiles"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "wallets_changeAddress_key" ON "wallets"("changeAddress");
@@ -165,13 +110,7 @@ ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_fkey" FOREIGN KEY ("user
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user_profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "wallets" ADD CONSTRAINT "wallets_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "wallets" ADD CONSTRAINT "wallets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "transactions" ADD CONSTRAINT "transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user_profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "LoginRequest" ADD CONSTRAINT "LoginRequest_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "LoginRequest" ADD CONSTRAINT "LoginRequest_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
