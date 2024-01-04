@@ -2,9 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   env: {
-    API_URL: process.env.API_URL,
+    ERGOPAD_API: process.env.ERGOPAD_API,
     CRUX_API: process.env.CRUX_API,
-    AUTH_DOMAIN: process.env.AUTH_DOMAIN
+    EXPLORER_API: process.env.EXPLORER_API,
+    ERGONODE_API: process.env.ERGONODE_API,
+    AUTH_DOMAIN: process.env.AUTH_DOMAIN,
+    ADMIN_ADDRESS: process.env.ADMIN_ADDRESS,
   },
   swcMinify: true,
   // webpack: function (config, options) {
@@ -14,6 +17,6 @@ const nextConfig = {
   //   };
   //   return config;
   // },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

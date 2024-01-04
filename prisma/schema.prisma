@@ -72,7 +72,7 @@ model VerificationToken {
 }
 
 model Wallet {
-  id              Int      @id @default(autoincrement())
+  id              String   @id @default(cuid())
   type            String?
   changeAddress   String   @unique
   unusedAddresses String[]
@@ -90,7 +90,7 @@ enum LoginRequestStatus {
 }
 
 model LoginRequest {
-  id             Int                @id @default(autoincrement())
+  id             String             @id @default(cuid())
   userId         String
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   verificationId String             @unique
@@ -100,4 +100,23 @@ model LoginRequest {
   proof          String?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
+}
+
+enum RecurringPaymentSourceStatus {
+  CREATED
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+model RecurringPaymentSource {
+  id                          String              @id @default(cuid())
+  amount                      BigInt
+  tokenId                     String?
+  periodSeconds               Int
+  transactionId               String?
+  transactionConfirmationTime DateTime?
+  createdAt                   DateTime            @default(now())
+  updatedAt                   DateTime            @updatedAt
+  status                      RecurringPaymentSourceStatus @default(CREATED)
 }
