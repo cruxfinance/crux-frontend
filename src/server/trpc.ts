@@ -16,20 +16,20 @@
  * database, the session, etc.
  */
 import { getServerAuthSession } from "@pages/api/auth/[...nextauth]";
-import { Prisma, PrismaClient } from "@prisma/client";
-import { DefaultArgs } from "@prisma/client/runtime/library";
-import { prisma } from "@server/prisma";
+import { PrismaClient, UserPrivilegeLevel } from "@prisma/client";
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import { type Session } from "next-auth";
+import { prisma } from "./prisma";
 
 type CreateContextOptions = {
   session: Session | null;
-  prisma: PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>;
+  prisma: PrismaClient;
   user: {
     id: string;
     name?: string | undefined;
     address?: string | undefined;
     image?: string | undefined;
+    privilegeLevel: UserPrivilegeLevel;
   } | null;
 };
 
@@ -58,7 +58,6 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
  */
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const { req, res } = opts;
-
   // Get the session from the server using the getServerSession wrapper function
   const session = await getServerAuthSession(req, res);
 
@@ -67,7 +66,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   return createInnerTRPCContext({
     session,
     prisma,
-    user
+    user,
   });
 };
 

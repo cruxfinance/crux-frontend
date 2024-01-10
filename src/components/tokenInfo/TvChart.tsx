@@ -6,7 +6,7 @@ import {
 import dynamic from "next/dynamic";
 import {
   ChartingLibraryWidgetOptions,
-} from "@utils/charts/charts/charting_library";
+} from "@lib/charts/charting_library";
 import { TVChartContainer } from '@components/charts/AdvancedChart';
 
 // const TVChartContainer = dynamic(

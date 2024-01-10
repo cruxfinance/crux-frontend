@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useRef } from 'react';
+import React, { FC, useState, useEffect, useRef } from "react";
 import {
   IconButton,
   useTheme,
@@ -14,15 +14,15 @@ import {
   useMediaQuery,
   Dialog,
   Avatar,
-  Fade
-} from '@mui/material'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import ErrorIcon from '@mui/icons-material/Error';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import Link from '@mui/material/Link';
-import CloseIcon from '@mui/icons-material/Close';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+  Fade,
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import ErrorIcon from "@mui/icons-material/Error";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import Link from "@mui/material/Link";
+import CloseIcon from "@mui/icons-material/Close";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 
 interface IMenuItemProps {
   icon: React.ReactElement;
@@ -49,19 +49,17 @@ interface INotificationsProps {
   handleDialogClose: Function;
 }
 
-const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen, handleDialogOpen, handleDialogClose }) => {
-  const theme = useTheme()
+const NotificationsMenu: FC<INotificationsProps> = ({
+  dialogOpen,
+  setDialogOpen,
+  handleDialogOpen,
+  handleDialogClose,
+}) => {
+  const theme = useTheme();
 
-  // const router = useRouter();
-  // const {
-  //   walletAddress,
-  //   setWalletAddress,
-  //   dAppWallet,
-  //   setDAppWallet,
-  //   addWalletModalOpen,
-  //   setAddWalletModalOpen
-  // } = useContext(WalletContext);
-  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
+  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
+    null
+  );
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -69,15 +67,16 @@ const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen,
     setAnchorEl(null);
   };
   const open = Boolean(anchorEl);
-  const id = open ? 'notification-menu' : undefined;
+  const id = open ? "notification-menu" : undefined;
 
-  const [currentMenuItems, setCurrentMenuItems] = useState<IImportMenuItem[]>(sampleMenuItems)
-  const [numberUnread, setNumberUnread] = useState(0)
+  const [currentMenuItems, setCurrentMenuItems] =
+    useState<IImportMenuItem[]>(sampleMenuItems);
+  const [numberUnread, setNumberUnread] = useState(0);
 
   useEffect(() => {
-    const array = currentMenuItems.filter((item) => item.unread === true)
-    setNumberUnread(array.length)
-  }, [currentMenuItems])
+    const array = currentMenuItems.filter((item) => item.unread === true);
+    setNumberUnread(array.length);
+  }, [currentMenuItems]);
 
   const setRead = (i: number) => {
     setCurrentMenuItems((prevArray) => {
@@ -85,107 +84,122 @@ const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen,
         if (index === i) {
           return {
             ...item,
-            unread: !prevArray[index].unread
-          }
+            unread: !prevArray[index].unread,
+          };
         }
-        return item
-      })
-      return newArray
-    })
-  }
+        return item;
+      });
+      return newArray;
+    });
+  };
 
   const markAllRead = () => {
     setCurrentMenuItems((prevArray) => {
       const newArray = prevArray.map((item) => {
         return {
           ...item,
-          unread: false
-        }
-      })
-      return newArray
-    })
-  }
+          unread: false,
+        };
+      });
+      return newArray;
+    });
+  };
 
-  const isLg = useMediaQuery('(min-width:534px)')
+  const isLg = useMediaQuery("(min-width:534px)");
 
-  const CustomMenuItem: FC<IMenuItemProps> = ({ icon, txType, txId, success, time, unread, index }) => {
+  const CustomMenuItem: FC<IMenuItemProps> = ({
+    icon,
+    txType,
+    txId,
+    success,
+    time,
+    unread,
+    index,
+  }) => {
     return (
       <MenuItem
         onClick={() => setRead(index)}
         sx={{
-          background: unread ? '#161a25' : 'none',
-          '&:hover': {
-            background: unread ? '#212737' : '#212737',
-          }
+          background: unread ? "#161a25" : "none",
+          "&:hover": {
+            background: unread ? "#212737" : "#212737",
+          },
         }}
       >
-        <ListItemIcon>
-          {icon}
-        </ListItemIcon>
-        <Grid container direction="column" sx={{ whiteSpace: 'normal' }}>
+        <ListItemIcon>{icon}</ListItemIcon>
+        <Grid container direction="column" sx={{ whiteSpace: "normal" }}>
           <Grid item>
-            {txType + ' '}
-            <Link href={'https://explorer.ergoplatform.com/en/transactions/' + txId}>{txId}</Link>
-            {' '}
+            {txType + " "}
+            <Link
+              href={"https://explorer.ergoplatform.com/en/transactions/" + txId}
+            >
+              {txId}
+            </Link>{" "}
             {success}
           </Grid>
-          <Grid item sx={{ fontSize: '0.8rem', color: theme.palette.text.secondary }}>
-            {time + ' ago'}
+          <Grid
+            item
+            sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}
+          >
+            {time + " ago"}
           </Grid>
         </Grid>
         <ListItemIcon>
           <FiberManualRecordIcon
             sx={{
-              fontSize: '12px',
-              ml: '18px',
-              color: unread ? theme.palette.text.primary : 'rgba(0,0,0,0)'
+              fontSize: "12px",
+              ml: "18px",
+              color: unread ? theme.palette.text.primary : "rgba(0,0,0,0)",
             }}
           />
         </ListItemIcon>
       </MenuItem>
-    )
-  }
+    );
+  };
 
   const Contents: FC = () => {
-    const heightOneRef = useRef<HTMLInputElement>()
-    const heightTwoRef = useRef<HTMLInputElement>()
-    const [subtractHeight, setSubtractHeight] = useState(0)
+    const heightOneRef = useRef<HTMLInputElement>();
+    const heightTwoRef = useRef<HTMLInputElement>();
+    const [subtractHeight, setSubtractHeight] = useState(0);
 
     useEffect(() => {
-      const heightOne = heightOneRef.current
-      const heightTwo = heightTwoRef.current
+      const heightOne = heightOneRef.current;
+      const heightTwo = heightTwoRef.current;
       if (heightOne !== undefined && heightTwo !== undefined) {
-        setSubtractHeight(heightOne.offsetHeight + heightTwo.offsetHeight)
+        setSubtractHeight(heightOne.offsetHeight + heightTwo.offsetHeight);
       }
-    }, [heightOneRef, heightTwoRef])
+    }, [heightOneRef, heightTwoRef]);
 
     return (
       <Box
         sx={{
-          minWidth: '230px',
-          maxWidth: isLg ? '420px' : '534px',
+          minWidth: "420px",
+          maxWidth: isLg ? "420px" : "534px",
         }}
       >
-        <Box ref={heightOneRef} sx={{ width: '100%', px: '12px', py: '12px', display: 'block' }}>
-          <Typography variant="h6">
-            Notifications
-          </Typography>
+        <Box
+          ref={heightOneRef}
+          sx={{ width: "100%", px: "12px", py: "12px", display: "block" }}
+        >
+          <Typography variant="h6">Notifications</Typography>
         </Box>
         <Box
           sx={{
             // height: isLg ? '75vh' : `calc(100vh - ${subtractHeight}px)`,
-            overflowY: 'scroll',
-            display: 'block'
+            overflowY: "scroll",
+            display: "block",
           }}
         >
           <MenuList sx={{ py: 0 }}>
-            {currentMenuItems.length > 0
-              ? currentMenuItems.map((item, i) => {
-                const icon = item.success.includes('confirmed')
-                  ? <CheckCircleIcon fontSize="small" color="success" />
-                  : item.success.includes('failed')
-                    ? <CancelIcon fontSize="small" color="error" />
-                    : <ErrorIcon fontSize="small" color="warning" />
+            {currentMenuItems.length > 0 ? (
+              currentMenuItems.map((item, i) => {
+                const icon = item.success.includes("confirmed") ? (
+                  <CheckCircleIcon fontSize="small" color="success" />
+                ) : item.success.includes("failed") ? (
+                  <CancelIcon fontSize="small" color="error" />
+                ) : (
+                  <ErrorIcon fontSize="small" color="warning" />
+                );
                 if (i < 3) {
                   return (
                     <CustomMenuItem
@@ -198,64 +212,61 @@ const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen,
                       key={item.txId}
                       index={i}
                     />
-                  )
+                  );
                 }
               })
-              : <MenuItem><Typography>
-                No notifications...
-              </Typography>
+            ) : (
+              <MenuItem>
+                <Typography sx={{ py: 1 }}>Ugh... this looks empty!</Typography>
               </MenuItem>
-            }
+            )}
           </MenuList>
-
         </Box>
         <Box
           sx={{
-            width: '100%',
-            px: '6px',
-            display: 'block',
+            width: "100%",
+            px: "6px",
+            py: 1,
+            display: "block",
             // position: isLg ? 'relative' : 'absolute',
-            bottom: 0
+            bottom: 0,
           }}
           onClick={markAllRead}
           ref={heightTwoRef}
         >
-          <Button fullWidth>
-            Mark all as read
-          </Button>
+          <Button fullWidth>Mark all as read</Button>
         </Box>
       </Box>
-    )
-  }
+    );
+  };
 
   return (
     <>
       <IconButton
         onClick={(e) =>
           isLg
-            ? !anchorEl ? handleClick(e) : handleClose()
+            ? !anchorEl
+              ? handleClick(e)
+              : handleClose()
             : dialogOpen
-              ? handleDialogClose()
-              : handleDialogOpen()
+            ? handleDialogClose()
+            : handleDialogOpen()
         }
         sx={{
-          '&:hover, &.Mui-focusVisible': {
-            background: theme.palette.background.hover
+          "&:hover, &.Mui-focusVisible": {
+            background: theme.palette.background.hover,
           },
-          borderRadius: '8px',
-          zIndex: 103
+          borderRadius: "8px",
+          zIndex: 103,
         }}
       >
-        {open || dialogOpen
-          ? <CloseIcon />
-          : <Badge
-            badgeContent={numberUnread}
-            color="primary"
-          >
+        {open || dialogOpen ? (
+          <CloseIcon />
+        ) : (
+          <Badge badgeContent={numberUnread} color="primary">
             <NotificationsIcon />
           </Badge>
-        }
-
+        )}
       </IconButton>
       <Fade in={dialogOpen} style={{ transitionDuration: "200ms" }}>
         <Box
@@ -283,22 +294,22 @@ const NotificationsMenu: FC<INotificationsProps> = ({ dialogOpen, setDialogOpen,
         onClose={handleClose}
         anchorEl={anchorEl}
         anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
+          vertical: "bottom",
+          horizontal: "right",
         }}
         transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+          vertical: "top",
+          horizontal: "right",
         }}
         sx={{
           // zIndex: 100,
-          mt: '10px',
-          '& .MuiPopover-paper': {
-            overflow: 'visible',
+          mt: "10px",
+          "& .MuiPopover-paper": {
+            overflow: "visible",
             background: theme.palette.background.paper,
             // filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-            borderRadius: '0 0 12px 12px'
-          }
+            borderRadius: "0 0 12px 12px",
+          },
         }}
       >
         <Contents />
@@ -405,7 +416,7 @@ const sampleMenuItems: IImportMenuItem[] = [
   //   time: '8 minutes',
   //   unread: true
   // }
-]
+];
 
 ////////////////////////////////
 // END SAMPLE DATA /////////////

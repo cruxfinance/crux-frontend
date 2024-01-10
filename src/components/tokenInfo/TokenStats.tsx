@@ -29,7 +29,6 @@ export interface PropsType {
 const TokenStats: FC<PropsType> = ({ currency, tokenInfo }) => {
   const theme = useTheme();
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
-  console.log(tokenInfo.mktCap)
   return (
     <>
       <Typography sx={{ mb: 2 }}>{tokenInfo.description}</Typography>
