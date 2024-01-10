@@ -2,7 +2,7 @@ import { toCamelCase } from "@server/utils/camelCase";
 import { mapAxiosErrorToTRPCError } from "@server/utils/mapErrors";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
-import { externalApi } from "./axiosInstance";
+import { cruxApi } from "./axiosInstance";
 
 declare global {
   type TTokenData = {
@@ -27,7 +27,7 @@ declare global {
 export const positionsApi = {
   async postPositions(addresses: string[]): Promise<TTokensData> {
     try {
-      const response = await externalApi.post("/crux/positions", {
+      const response = await cruxApi.post("/crux/positions", {
         addresses: addresses,
       });
       return toCamelCase(response.data) as TTokensData;
