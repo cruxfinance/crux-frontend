@@ -45,20 +45,21 @@ enum UserPrivilegeLevel {
 }
 
 model User {
-  id             String             @id @default(cuid())
-  createdAt      DateTime           @default(now()) @map("created_at")
-  updatedAt      DateTime           @updatedAt @map("updated_at")
-  name           String?
-  status         String?
-  defaultAddress String?            @unique @map("default_address")
-  nonce          String?
-  image          String?
-  privilegeLevel UserPrivilegeLevel @default(DEFAULT) @map("privilege_level")
-  accounts       Account[]
-  sessions       Session[]
-  wallets        Wallet[]
-  loginRequests  LoginRequest[]
-  chartData      ChartData[]
+  id                 String              @id @default(cuid())
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  name               String?
+  status             String?
+  defaultAddress     String?             @unique @map("default_address")
+  nonce              String?
+  image              String?
+  privilegeLevel     UserPrivilegeLevel  @default(DEFAULT) @map("privilege_level")
+  accounts           Account[]
+  sessions           Session[]
+  wallets            Wallet[]
+  loginRequests      LoginRequest[]
+  chartData          ChartData[]
+  paymentInstruments PaymentInstrument[]
 
   @@map("users")
 }
@@ -115,4 +116,56 @@ model ChartData {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, symbol])
+}
+
+enum TransactionStatus {
+  CONFIRMED
+  PENDING
+  FAILED
+  NOT_FOUND
+}
+
+model Transaction {
+  id                  String            @id @default(cuid())
+  paymentInstrumentId String            @map("payment_instrument_id")
+  paymentInstrument   PaymentInstrument @relation(fields: [paymentInstrumentId], references: [id], onDelete: Cascade)
+  amount              BigInt
+  status              TransactionStatus @default(PENDING)
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  @@map("transactions")
+}
+
+enum PaymentInstrumentStatus {
+  ACTIVE
+  IN_USE
+}
+
+model PaymentInstrument {
+  id           String                  @id @default(cuid())
+  userId       String                  @map("user_id")
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      BigInt
+  tokenId      String?                 @map("token_id")
+  status       PaymentInstrumentStatus @default(ACTIVE)
+  transactions Transaction[]
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  @@map("payment_instruments")
+}
+
+model TransactionalLock {
+  id    String    @id @default(cuid())
+  lock  String?
+  lease DateTime? @default(now())
+
+  @@map("transactional_locks")
+}
+
+model IdempotencyKey {
+  id String @id @default(cuid())
+
+  @@map("idempotency_keys")
 }

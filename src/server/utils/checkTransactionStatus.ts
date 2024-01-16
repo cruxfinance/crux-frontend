@@ -1,10 +1,5 @@
+import { TransactionStatus } from "@prisma/client";
 import { explorerApi } from "@server/services/axiosInstance";
-
-export enum TransactionStatus {
-  PENDING, // TODO: implement pending check
-  CONFIRMED,
-  NOT_FOUND,
-}
 
 export const checkTransactionStatus = async (transactionId: string) => {
   try {
@@ -20,3 +15,35 @@ export const checkTransactionStatus = async (transactionId: string) => {
     };
   }
 };
+
+// const TRANSACTION_CONFIRMATION_COUNT = 2;
+
+// export const checkTransactionStatus = async (transactionId: string) => {
+//   try {
+//     const res = (await cruxApi.get(`crux/tx_status/${transactionId}`)).data;
+//     if (res.data.num_confirmations >= TRANSACTION_CONFIRMATION_COUNT) {
+//       return {
+//         status: TransactionStatus.CONFIRMED,
+//         timestamp: res.data.timestamp as number,
+//       };
+//     } else if (
+//       0 <= res.data.num_confirmations &&
+//       res.data.num_confirmations < TRANSACTION_CONFIRMATION_COUNT
+//     ) {
+//       return {
+//         status: TransactionStatus.PENDING,
+//         timestamp: 0,
+//       };
+//     } else {
+//       return {
+//         status: TransactionStatus.NOT_FOUND,
+//         timestamp: 0,
+//       };
+//     }
+//   } catch (e) {
+//     return {
+//       status: TransactionStatus.NOT_FOUND,
+//       timestamp: 0,
+//     };
+//   }
+// };
