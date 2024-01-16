@@ -5,7 +5,8 @@ import {
   MenuItem,
   ToggleButtonGroup,
   ToggleButton,
-  Grid
+  Grid,
+  Box
 } from "@mui/material";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import { SxProps } from "@mui/material";
@@ -32,14 +33,16 @@ const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
 
   return (
     <FormControl fullWidth sx={sx} variant="filled">
-      <Grid container direction="row">
-        <Grid>
+      <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+        <Box>
           <Select
             id="sort-select-box"
             variant="filled"
             value={sorting.sort_by}
             onChange={handleSortSelection}
             aria-label="Select sorting item"
+            size="small"
+            sx={{ height: '38px', borderRadius: '4px 0 0 4px' }}
           >
             <MenuItem value={"Price"}>Price</MenuItem>
             <MenuItem value={"Liquidity"}>Liquidity</MenuItem>
@@ -50,14 +53,14 @@ const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
             <MenuItem value={"Buys"}>Buys</MenuItem>
             <MenuItem value={"TotalTransactions"}>Total transactions</MenuItem>
           </Select>
-        </Grid>
-        <Grid>
-          <ToggleButtonGroup value={sorting.sort_order} exclusive onChange={handleToggle}>
-            <ToggleButton value="Asc" aria-label="Sort by ascending">Asc</ToggleButton>
+        </Box>
+        <Box>
+          <ToggleButtonGroup value={sorting.sort_order} exclusive onChange={handleToggle} size="small" sx={{ height: '38px' }}>
+            <ToggleButton value="Asc" aria-label="Sort by ascending" sx={{ borderRadius: '0 4px 4px 0' }}>Asc</ToggleButton>
             <ToggleButton value="Desc" aria-label="Sort by descending">Dec</ToggleButton>
           </ToggleButtonGroup>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
 
     </FormControl>
