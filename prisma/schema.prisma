@@ -137,10 +137,22 @@ model PaymentInstrument {
   tokenId      String?                 @map("token_id")
   status       PaymentInstrumentStatus @default(ACTIVE)
   transactions Transaction[]
+  charges      Charge[]
   createdAt    DateTime                @default(now()) @map("created_at")
   updatedAt    DateTime                @updatedAt @map("updated_at")
 
   @@map("payment_instruments")
+}
+
+model Charge {
+  id                  String            @id @default(cuid())
+  paymentInstrumentId String            @map("payment_instrument_id")
+  paymentInstrument   PaymentInstrument @relation(fields: [paymentInstrumentId], references: [id], onDelete: Cascade)
+  amount              BigInt
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  @@map("charges")
 }
 
 model TransactionalLock {
@@ -149,10 +161,4 @@ model TransactionalLock {
   lease DateTime? @default(now())
 
   @@map("transactional_locks")
-}
-
-model IdempotencyKey {
-  id String @id @default(cuid())
-
-  @@map("idempotency_keys")
 }
