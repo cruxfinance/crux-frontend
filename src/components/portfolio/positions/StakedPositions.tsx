@@ -20,8 +20,6 @@ type StakedPositionsProps = {
   tokenList: IReducedToken[];
 }
 
-const ICON_URL = 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/'
-
 const StakedPositions: FC<StakedPositionsProps> = ({ currency, exchangeRate, tokenList }) => {
   const theme = useTheme()
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
@@ -138,7 +136,7 @@ const StakedPositions: FC<StakedPositionsProps> = ({ currency, exchangeRate, tok
               }}
               >
                 <Box sx={{ mr: 1 }}>
-                  <Avatar src={ICON_URL +
+                  <Avatar src={"icons/tokens/" +
                     (
                       token.wrappedTokenIds && (token.wrappedTokenIds as string[]).length > 0
                         ? token.wrappedTokenIds[0]

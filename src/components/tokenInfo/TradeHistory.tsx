@@ -13,7 +13,6 @@ import { currencies, Currencies } from "@lib/utils/currencies";
 import Link from "../Link";
 import BouncingDotsLoader from "../DotLoader";
 
-
 export interface PropsType {
   currency: Currencies;
   tradingPair: string;

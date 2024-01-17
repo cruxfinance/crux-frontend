@@ -135,7 +135,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 color: theme.palette.text.secondary,
                 fontSize: size ? size.toString() + 'px' : '16px',
                 textDecoration: "none",
-                fontWeight: fontWeight ? fontWeight : '500',
+                fontWeight: fontWeight ? fontWeight : '600',
                 px: '8px',
               }}
             >
@@ -189,18 +189,20 @@ const Header: FC<IHeaderProps> = ({ }) => {
           // backdropFilter: "blur(10px)",
           backdropFilter: 'none',
           borderRadius: '0px',
-          // background: theme.palette.background.default,
-          boxShadow: router.pathname === '/'
-            // && !trigger
-            ? 'none'
-            : '3px 3px 15px 5px rgba(0,0,0,0.5)',
-          // boxShadow: 'none!important',
           background: navbarOpen || notificationsOpen
             ? theme.palette.background.default
-            : router.pathname === '/'
-              // && !trigger
-              ? 'none'
-              : 'radial-gradient(at right top, rgba(16,20,34,0.8), rgba(1, 4, 10, 0.8))',
+            : 'none',
+          // boxShadow: router.pathname === '/'
+          //   // && !trigger
+          //   ? 'none'
+          //   : '3px 3px 15px 5px rgba(0,0,0,0.5)',
+          boxShadow: 'none!important',
+          // background: navbarOpen || notificationsOpen
+          //   ? theme.palette.background.default
+          //   : router.pathname === '/'
+          //     // && !trigger
+          //     ? 'none'
+          //     : 'radial-gradient(at right top, #12121B, #0A0D15)',
           transition: 'background 200ms, box-shadow 200ms, top 400ms',
           '&:before': {
             p: 0
@@ -214,11 +216,12 @@ const Header: FC<IHeaderProps> = ({ }) => {
             justifyContent="space-between"
             alignItems="center"
             sx={{
-              height: router.pathname === '/'
-                // && !trigger 
-                && upMd
-                ? "90px"
-                : '60px',
+              // height: router.pathname === '/'
+              //   // && !trigger 
+              //   && upMd
+              //   ? "90px"
+              //   : '60px',
+              height: '90px',
               transition: 'height 400ms'
             }}
           >
@@ -271,7 +274,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 spacing={2}
               >
                 {pages.map((page, i) => (
-                  <NavigationListItem size={16} key={i} page={page} fontWeight={700} />
+                  <NavigationListItem size={16} key={i} page={page} fontWeight={500} />
                 ))}
               </Grid>
             </Grid>
@@ -306,26 +309,27 @@ const Header: FC<IHeaderProps> = ({ }) => {
       <Fade in={navbarOpen} style={{ transitionDuration: "200ms" }} mountOnEnter unmountOnExit>
         <Box
           sx={{
-            height: "calc(100vh - 60px)",
+            height: "calc(100vh - 90px)",
             width: "100vw",
             position: "fixed",
             top: 0,
             zIndex: 10002,
             background: theme.palette.background.default,
-            mt: "60px",
+            mt: "90px",
             p: "16px",
             pb: 0,
           }}
         >
-          <Grid
-            container
-            direction="column"
-            justifyContent="flex-end"
-            alignItems="flex-start"
-            spacing={2}
-            height="100%"
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              height: '100%',
+              pb: 2
+            }}
           >
-            <Grid item>
+            <Box>
               <Grid
                 container
                 spacing={5}
@@ -340,8 +344,8 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   <NavigationListItem size={24} key={page.name} page={page} />
                 ))}
               </Grid>
-            </Grid>
-            <Grid item>
+            </Box>
+            <Box>
               <Grid
                 container
                 direction="column"
@@ -371,8 +375,8 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   </Grid>
                 </Grid>
               </Grid>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
       </Fade>
     </>

@@ -58,6 +58,7 @@ model User {
   sessions       Session[]
   wallets        Wallet[]
   loginRequests  LoginRequest[]
+  chartData      ChartData[]
 
   @@map("users")
 }
@@ -102,4 +103,16 @@ model LoginRequest {
   updatedAt      DateTime           @updatedAt @map("updated_at")
 
   @@map("login_requests")
+}
+
+model ChartData {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  symbol    String
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
 }
