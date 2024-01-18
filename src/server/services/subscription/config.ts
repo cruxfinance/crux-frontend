@@ -1,5 +1,7 @@
 import { UserPrivilegeLevel } from "@prisma/client";
 
+export const PAYMENT_PENDING_ALLOWANCE = 3 * 24 * 60 * 60 * 1000; // 3 days
+
 interface SubscriptionTokenConfig {
   tokenId: string | null;
   tokenDecimals: number;
@@ -11,6 +13,7 @@ const ERG_CONFIG = {
 };
 
 interface SubscriptionConfig {
+  id: string;
   name: string;
   description?: string;
   subscriptionPeriodMonths: number;
@@ -20,13 +23,14 @@ interface SubscriptionConfig {
   allowedTokenIds: SubscriptionTokenConfig[];
 }
 
-export const SubcriptionLevels: SubscriptionConfig[] = [
+export const SUBSCRIPTION_CONFIG: SubscriptionConfig[] = [
   {
+    id: "monthly_basic_plan",
     name: "Monthly Basic",
     subscriptionPeriodMonths: 1,
     allowedPriviledgeLevel: UserPrivilegeLevel.BASIC,
-    amountUSD: 1.2,
-    discountedAmountUSD: 1.0,
+    amountUSD: 0.2,
+    discountedAmountUSD: 0.1,
     allowedTokenIds: [ERG_CONFIG],
   },
 ];

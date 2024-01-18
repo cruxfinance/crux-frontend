@@ -60,6 +60,7 @@ model User {
   loginRequests      LoginRequest[]
   chartData          ChartData[]
   paymentInstruments PaymentInstrument[]
+  subscriptions      Subscription[]
 
   @@map("users")
 }
@@ -143,16 +144,17 @@ enum PaymentInstrumentStatus {
 }
 
 model PaymentInstrument {
-  id           String                  @id @default(cuid())
-  userId       String                  @map("user_id")
-  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance      BigInt
-  tokenId      String?                 @map("token_id")
-  status       PaymentInstrumentStatus @default(ACTIVE)
-  transactions Transaction[]
-  charges      Charge[]
-  createdAt    DateTime                @default(now()) @map("created_at")
-  updatedAt    DateTime                @updatedAt @map("updated_at")
+  id            String                  @id @default(cuid())
+  userId        String                  @map("user_id")
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance       BigInt
+  tokenId       String?                 @map("token_id")
+  status        PaymentInstrumentStatus @default(ACTIVE)
+  transactions  Transaction[]
+  charges       Charge[]
+  subscriptions Subscription[]
+  createdAt     DateTime                @default(now()) @map("created_at")
+  updatedAt     DateTime                @updatedAt @map("updated_at")
 
   @@map("payment_instruments")
 }
@@ -174,4 +176,27 @@ model TransactionalLock {
   lease DateTime? @default(now())
 
   @@map("transactional_locks")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAYMENT_PENDING
+  EXPIRED
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @map("user_id")
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentInstrumentId  String             @map("payment_instrument_id")
+  paymentInstrument    PaymentInstrument  @relation(fields: [paymentInstrumentId], references: [id], onDelete: Cascade)
+  requiredAmountUSD    BigInt             @map("required_amount_usd") // 2 decimals
+  allowedAccess        UserPrivilegeLevel @default(BASIC) @map("allowed_access")
+  periodSeconds        Int                @map("period_seconds")
+  activationTimestamp  DateTime?          @map("activation_timestamp")
+  status               SubscriptionStatus @default(PAYMENT_PENDING)
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
 }
