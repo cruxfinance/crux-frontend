@@ -35,6 +35,15 @@ declare global {
     quoteCurrentPrice: PriceInfo;
   }
   type TLpTokensData = TLpTokenData[];
+  type TStakedTokenData = {
+    tokenId: string;
+    tokenName: string;
+    stakedAmount: number;
+    unstakedAmount: number;
+    rewardAmount: number;
+    currentPrice: PriceInfo;
+  }
+  type TStakedTokensData = TStakedTokenData[];
 }
 
 export const positionsApi = {
@@ -62,6 +71,24 @@ export const positionsApi = {
         addresses: addresses,
       });
       return toCamelCase(response.data) as TLpTokensData;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw mapAxiosErrorToTRPCError(error);
+      } else {
+        console.error(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An unknown error occurred",
+        });
+      }
+    }
+  },
+  async postStakedPositions(addresses: string[]): Promise<TStakedTokensData> {
+    try {
+      const response = await cruxApi.post("/crux/staked_positions", {
+        addresses: addresses,
+      });
+      return toCamelCase(response.data) as TStakedTokensData;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw mapAxiosErrorToTRPCError(error);

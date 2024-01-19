@@ -31,6 +31,7 @@ import CollateralizedDebtTable from "@components/portfolio/positions/Collaterali
 import StakedPositions from "@components/portfolio/positions/StakedPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";
 import { useSession } from "next-auth/react";
+import Positions from "@components/portfolio/positions/Positions";
 
 export interface IExtendedToken extends IPieToken {
   tokenId: string;
@@ -78,25 +79,6 @@ const Portfolio = () => {
   const [addressList, setAddressList] = useState<string[]>([]);
   const [totalValueLocked, setTotalValueLocked] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState(1);
-
-  // useEffect(() => {
-  //   const getAddresses = localStorage.getItem("crux_portfolio_address_list");
-
-  //   if (
-  //     session?.status === "authenticated" &&
-  //     session?.data?.user?.address !== undefined
-  //   ) {
-  //     localStorage.setItem(
-  //       "crux_portfolio_address_list",
-  //       JSON.stringify([session.data.user.address])
-  //     );
-  //   }
-  //   if (getAddresses && JSON.parse(getAddresses).length > 0) {
-  //     getExchange();
-  //     setAddressList(JSON.parse(getAddresses));
-  //     fetchData(JSON.parse(getAddresses));
-  //   }
-  // }, [session]);
 
   useEffect(() => {
     const getAddresses = localStorage.getItem("crux_portfolio_address_list");
@@ -509,23 +491,23 @@ const Portfolio = () => {
         </Grid>
       </Grid>
       <Box sx={{ mb: 2 }}>
-        <PositionTable
+        <Positions
           currency={currency}
-          exchangeRate={exchangeRate}
+          setCurrency={setCurrency}
           addressList={addressList}
         />
       </Box>
       <Box sx={{ mb: 2 }}>
         <StakedPositions
           currency={currency}
-          exchangeRate={exchangeRate}
-          tokenList={sortedFilteredTokensList}
+          setCurrency={setCurrency}
+          addressList={addressList}
         />
       </Box>
       <Box sx={{ mb: 2 }}>
         <LiquidityPositions
           currency={currency}
-          exchangeRate={exchangeRate}
+          setCurrency={setCurrency}
           addressList={addressList}
         />
       </Box>
