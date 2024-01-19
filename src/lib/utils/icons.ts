@@ -9,7 +9,7 @@ export const getIconUrlFromServer = async (tokenId: string) => {
     return data.iconPath;
   } catch (error) {
     console.error('Failed to fetch icon from server:', error);
-    return null; // Return null if there was an error fetching the icon
+    return null;
   }
 };
 
@@ -19,6 +19,6 @@ export const checkLocalIcon = async (tokenId: string) => {
     const response = await fetch(localIconPath, { method: 'HEAD' });
     return response.ok ? localIconPath : null; // if the head request is ok, the file exists
   } catch (error) {
-    return null; // If there's an error (like a network issue), return null
+    return null;
   }
 };

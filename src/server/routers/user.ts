@@ -1,3 +1,4 @@
+import { verifySignature } from "@server/auth";
 import { prisma } from "@server/prisma";
 import { checkAddressAvailability } from "@server/utils/checkAddress";
 import { deleteEmptyUser } from "@server/utils/deleteEmptyUser";
@@ -5,7 +6,6 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { generateNonceForLogin } from "../utils/nonce";
-import { verifySignature } from "@server/auth";
 
 export const userRouter = createTRPCRouter({
   getNonce: publicProcedure
@@ -25,18 +25,19 @@ export const userRouter = createTRPCRouter({
       }
       return { nonce };
     }),
-  getNonceProtected: protectedProcedure.query(async ({ ctx }) => {
-    const { session } = ctx;
-    const nonce = nanoid();
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: { nonce },
-    });
-    if (!updatedUser) {
-      throw new Error("Unable to generate nonce");
-    }
-    return { nonce };
-  }),
+  getNonceProtected: protectedProcedure
+    .query(async ({ ctx }) => {
+      const { session } = ctx;
+      const nonce = nanoid();
+      const updatedUser = await prisma.user.update({
+        where: { id: session.user.id },
+        data: { nonce },
+      });
+      if (!updatedUser) {
+        throw new Error("Unable to generate nonce");
+      }
+      return { nonce };
+    }),
   checkAddressAvailable: publicProcedure
     .input(
       z.object({

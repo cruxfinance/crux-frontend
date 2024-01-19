@@ -31,6 +31,7 @@ import CollateralizedDebtTable from "@components/portfolio/positions/Collaterali
 import StakedPositions from "@components/portfolio/positions/StakedPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";
 import { useSession } from "next-auth/react";
+import Positions from "@components/portfolio/positions/Positions";
 
 export interface IExtendedToken extends IPieToken {
   tokenId: string;
@@ -80,22 +81,22 @@ const Portfolio = () => {
   const [exchangeRate, setExchangeRate] = useState(1);
 
   useEffect(() => {
-    if (
+    const getAddresses = localStorage.getItem("crux_portfolio_address_list");
+    const parsedAddresses = getAddresses ? JSON.parse(getAddresses) : [];
+    if (parsedAddresses && parsedAddresses.length > 0 && parsedAddresses[0] !== "") {
+      getExchange();
+      setAddressList(parsedAddresses);
+      fetchData(parsedAddresses);
+    }
+    else if (
       session?.status === "authenticated" &&
       session?.data?.user?.address !== undefined
     ) {
-      localStorage.setItem(
-        "crux_portfolio_address_list",
-        JSON.stringify([session.data.user.address])
-      );
-    }
-    const getAddresses = localStorage.getItem("crux_portfolio_address_list");
-    if (getAddresses && JSON.parse(getAddresses).length > 0) {
       getExchange();
-      setAddressList(JSON.parse(getAddresses));
-      fetchData(JSON.parse(getAddresses));
+      setAddressList([session.data.user.address]);
+      fetchData([session.data.user.address]);
     }
-  }, [session]);
+  }, [])
 
   const getExchange = async () => {
     try {
@@ -237,8 +238,8 @@ const Portfolio = () => {
           name: `${item.wrapped_tokens[0].token_name
             .split("_")[1]
             .slice(0, 3)}/${item.wrapped_tokens[0].token_name
-            .split("_")[0]
-            .slice(0, 3)} YF (${fetchAcc})`,
+              .split("_")[0]
+              .slice(0, 3)} YF (${fetchAcc})`,
           description: item.token_description,
           amount: adjustDecimals(item.token_amount, item.decimals),
           value:
@@ -280,8 +281,8 @@ const Portfolio = () => {
         wrappedTokenAmounts:
           item.wrapped_tokens.length > 0
             ? item.wrapped_tokens.map((token) =>
-                adjustDecimals(token.token_amount, token.decimals)
-              )
+              adjustDecimals(token.token_amount, token.decimals)
+            )
             : undefined,
       };
       return newItem;
@@ -490,27 +491,27 @@ const Portfolio = () => {
         </Grid>
       </Grid>
       <Box sx={{ mb: 2 }}>
-        <PositionTable
+        <Positions
           currency={currency}
-          exchangeRate={exchangeRate}
+          setCurrency={setCurrency}
+          addressList={addressList}
+        />
+      </Box>
+      <Box sx={{ mb: 2 }}>
+        <StakedPositions
+          currency={currency}
+          setCurrency={setCurrency}
+          addressList={addressList}
+        />
+      </Box>
+      <Box sx={{ mb: 2 }}>
+        <LiquidityPositions
+          currency={currency}
+          setCurrency={setCurrency}
           addressList={addressList}
         />
       </Box>
       {/* <Box sx={{ mb: 2 }}>
-        <StakedPositions
-          currency={currency}
-          exchangeRate={exchangeRate}
-          tokenList={sortedFilteredTokensList}
-        />
-      </Box> */}
-      {/* <Box sx={{ mb: 2 }}>
-        <LiquidityPositions
-          currency={currency}
-          exchangeRate={exchangeRate}
-          tokenList={sortedFilteredTokensList}
-        />
-      </Box>
-      <Box sx={{ mb: 2 }}>
         <CollateralizedDebtTable
           currency={currency}
           exchangeRate={exchangeRate}

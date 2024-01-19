@@ -12,15 +12,6 @@ import { currencies, Currencies } from '@lib/utils/currencies';
 import { TokenDataPlus } from "@pages/tokens/[tokenId]";
 import Link from "../Link";
 
-export interface ITrade {
-  timestamp: Date;
-  type: string;
-  price: number;
-  totalToken: number;
-  totalExchange: number;
-  wallet: string;
-}
-
 export interface PropsType {
   currency: Currencies;
   tokenInfo: TokenDataPlus;
@@ -66,20 +57,20 @@ const TokenStats: FC<PropsType> = ({ currency, tokenInfo }) => {
           <Grid>Diluted market cap: </Grid>
           <Grid>{currencies[currency] + formatNumber(tokenInfo.mktCap)}</Grid>
         </Grid>
-        <Grid container justifyContent="space-between">
+        {/* <Grid container justifyContent="space-between">
           <Grid>Liquidity: </Grid>
           <Grid>{currencies[currency] + formatNumber(tokenInfo.liquidity)}</Grid>
         </Grid>
         <Grid container justifyContent="space-between">
           <Grid>24hr Volume: </Grid>
           <Grid>{currencies[currency] + formatNumber(tokenInfo.vol)}</Grid>
-        </Grid>
+        </Grid> */}
       </Box>
-      <Box sx={{ mb: 2 }}>
+      {/* <Box sx={{ mb: 2 }}>
         <Button variant="contained" sx={{ mr: 2 }}>Add to watchlist</Button>
         <Button variant="outlined">Trade</Button>
       </Box>
-      <Typography sx={{ mb: 2 }}>Links to token website and socials</Typography>
+      <Typography sx={{ mb: 2 }}>Links to token website and socials</Typography> */}
 
     </>
   );

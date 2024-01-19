@@ -1,40 +1,21 @@
 import React, { FC } from 'react';
 import {
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import dynamic from "next/dynamic";
-import {
   ChartingLibraryWidgetOptions,
 } from "@lib/charts/charting_library";
 import { TVChartContainer } from '@components/charts/AdvancedChart';
 
-// const TVChartContainer = dynamic(
-//   () =>
-//     import("@components/charts/AdvancedChart").then((mod) => mod.TVChartContainer),
-//   { ssr: false }
-// );
+export interface PropsType {
+  defaultWidgetProps: Partial<ChartingLibraryWidgetOptions>
+  currency: string;
+}
 
 const MemoizedTVChartContainer = React.memo(TVChartContainer);
 
-export interface ITrade {
-  timestamp: Date;
-  type: string;
-  price: number;
-  totalToken: number;
-  totalExchange: number;
-  wallet: string;
-}
-
-export interface PropsType {
-  defaultWidgetProps: Partial<ChartingLibraryWidgetOptions>
-}
-
-const TvChart: FC<PropsType> = ({ defaultWidgetProps }) => {
+const TvChart: FC<PropsType> = ({ defaultWidgetProps, currency }) => {
   return (
     <>
       {defaultWidgetProps !== undefined
-        ? <MemoizedTVChartContainer {...defaultWidgetProps} />
+        ? <MemoizedTVChartContainer defaultWidgetProps={defaultWidgetProps} currency={currency} />
         : 'Chart loading'
       }
     </>
@@ -42,7 +23,3 @@ const TvChart: FC<PropsType> = ({ defaultWidgetProps }) => {
 };
 
 export default TvChart;
-
-
-
-

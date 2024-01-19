@@ -135,16 +135,16 @@ const mainTheme = [{
         }
       },
     },
-    MuiPaper: {
-      defaultProps: {
-        elevation: 0,
-      },
-      styleOverrides: {
-        root: {
-          borderRadius: '16px',
-        }
-      },
-    },
+    // MuiPaper: {
+    //   defaultProps: {
+    //     elevation: 0,
+    //   },
+    //   styleOverrides: {
+    //     root: {
+    //       borderRadius: '16px',
+    //     }
+    //   },
+    // },
     MuiFilledInput: {
       styleOverrides: {
         root: {
@@ -311,7 +311,8 @@ let darkTheme = createTheme({
   palette: {
     mode: "dark",
     background: {
-      default: 'rgb(0,1,8)',
+      // default: 'rgb(0,1,8)',
+      default: '#0B0C15',
       paper: 'rgba(16,19,30)',
       transparent: 'rgba(12,15,27,0.25)',
       hover: '#212737'
@@ -342,26 +343,28 @@ let darkTheme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          background: 'radial-gradient(at right top, rgba(16,20,34,0.8), rgba(1, 4, 10, 0.8))',
-          backdropFilter: "blur(10px)",
-          boxShadow: `10px 10px 20px 5px rgba(0,0,0,0.8)`,
-          '&:before': {
-            content: '""',
-            position: 'absolute',
-            zIndex: -1,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            // height: '1px',
-            padding: '1px',
-            borderRadius: '15px',
-            background: 'linear-gradient(to right, rgba(16,20,34,0.4), rgba(76,32,70,0.1), rgba(120,20,70,0.1), rgba(16,20,34,0.4))',
-            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-            mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-            WebkitMaskComposite: 'xor',
-            maskComposite: 'exclude'
-          }
+          background: 'radial-gradient(at right top, #12121B, #0A0D15)',
+          border: '1px solid rgba(200, 225, 255, 0.1)',
+          borderRadius: '16px'
+          // backdropFilter: "blur(20px)",
+          // boxShadow: `10px 10px 20px 5px rgba(0,0,0,0.3)`,
+          // '&:before': {
+          //   content: '""',
+          //   position: 'absolute',
+          //   zIndex: -1,
+          //   top: 0,
+          //   right: 0,
+          //   bottom: 0,
+          //   left: 0,
+          //   // height: '1px',
+          //   padding: '1px',
+          //   borderRadius: '15px',
+          //   background: 'linear-gradient(to right, rgba(30,40,54,0.9), rgba(56,42,60,0.6), rgba(30,40,54,0.9))',
+          //   WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          //   mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          //   WebkitMaskComposite: 'xor',
+          //   maskComposite: 'exclude'
+          // }
         },
       },
     },
@@ -394,27 +397,28 @@ let darkTheme = createTheme({
     MuiFilledInput: {
       styleOverrides: {
         root: {
-          borderColor: 'rgba(200, 225, 255, 0.2)',
-          background: 'radial-gradient(at right top, rgba(16,20,34,0.9), rgba(1, 4, 10, 0.9))',
-          backdropFilter: "blur(10px)",
-          boxShadow: `10px 10px 20px 5px rgba(0,0,0,0.8)`,
-          '&:before': {
-            content: '""',
-            position: 'absolute',
-            zIndex: -1,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            // height: '1px',
-            padding: '1px',
-            borderRadius: '15px',
-            background: 'linear-gradient(to right, rgba(16,20,34,0.4), rgba(76,32,70,0.1), rgba(120,20,70,0.1), rgba(16,20,34,0.4))',
-            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-            mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-            WebkitMaskComposite: 'xor',
-            maskComposite: 'exclude'
-          },
+          borderColor: 'rgba(200, 225, 255, 0.3)',
+          background: 'radial-gradient(at right top, #12121B, #0A0D15)',
+
+          // backdropFilter: "blur(20px)",
+          // boxShadow: `10px 10px 20px 5px rgba(0,0,0,0.8)`,
+          // '&:before': {
+          //   content: '""',
+          //   position: 'absolute',
+          //   zIndex: -1,
+          //   top: 0,
+          //   right: 0,
+          //   bottom: 0,
+          //   left: 0,
+          //   // height: '1px',
+          //   padding: '1px',
+          //   borderRadius: '15px',
+          //   background: 'linear-gradient(to right, rgba(30,40,54,0.4), rgba(56,32,70,0.3), rgba(80,20,70,0.3), rgba(16,20,34,0.8))',
+          //   WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          //   mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          //   WebkitMaskComposite: 'xor',
+          //   maskComposite: 'exclude'
+          // },
           '&:hover': {
             borderColor: lightPrimaryMain
           }

@@ -12,8 +12,8 @@ import {
   Avatar,
   CircularProgress
 } from '@mui/material';
-import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
-import TokenSort from '@components/tokens/SortBy'
+import Grid from '@mui/material/Unstable_Grid2';
+import TokenSort from '@components/tokens/TokenSort'
 import TokenFilterOptions from '@components/tokens/Filters'
 import { formatNumber } from '@lib/utils/general';
 import { useRouter } from 'next/router';
@@ -112,7 +112,7 @@ const Tokens: FC = () => {
     }
   }
 
-  
+
 
   const mapApiDataToTokenData = async ({
     name,
@@ -222,15 +222,16 @@ const Tokens: FC = () => {
 
   return (
     <Container>
-      <Grid container justifyContent="space-between" alignItems="flex-end" sx={{ mb: 2 }}>
-        <Grid>
-          <Grid container alignItems="center" sx={{ mb: 2 }} spacing={2}>
+      <Box sx={{ mb: 2, display: 'flex', flexDirection: 'row' }}>
+        <Box>
+          <Grid container alignItems="center" spacing={2}>
             <Grid>
               <TokenSort sorting={sorting} setSorting={setSorting} />
             </Grid>
             <Grid>
               <ToggleButtonGroup
                 exclusive
+                size="small"
                 value={timeframe.filter_window}
                 onChange={handleTimeframeChange}
               >
@@ -259,20 +260,19 @@ const Tokens: FC = () => {
               </Button>
             </Grid>
           </Grid>
-        </Grid>
-        <Grid sx={{ textAlign: 'right' }}>
+        </Box>
+        <Box sx={{ flexGrow: 1, textAlign: 'right' }}>
           <ToggleButtonGroup
             value={currency}
             exclusive
             onChange={handleCurrencyChange}
-            sx={{ mb: 1 }}
             size="small"
           >
             <ToggleButton value="USD">USD</ToggleButton>
             <ToggleButton value="ERG">Erg</ToggleButton>
           </ToggleButtonGroup>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       <TokenFilterOptions filters={filters} setFilters={setFilters} open={filterModalOpen} setOpen={setFilterModalOpen} />
 
@@ -328,16 +328,22 @@ const Tokens: FC = () => {
                   </Grid>
                 </Grid>
               </Box>
-              <Box sx={{ height: 'calc(100vh - 362px)', overflowY: 'scroll', overflowX: 'hidden' }}>
+              <Box sx={{
+                // height: 'calc(100vh - 200px)', 
+                // overflowY: 'scroll',
+                overflowX: 'hidden'
+              }}>
                 {loading && initialLoading
                   ? (
-                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                      <Box sx={{ mb: 2 }}>
-                        <CircularProgress size={60} />
+                    <Box sx={{ position: 'relative', minHeight: '300px' }}>
+                      <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <Box sx={{ mb: 2 }}>
+                          <CircularProgress size={60} />
+                        </Box>
+                        <Typography>
+                          Loading assets...
+                        </Typography>
                       </Box>
-                      <Typography>
-                        Loading assets...
-                      </Typography>
                     </Box>
                   ) : error ? (
                     <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
@@ -467,7 +473,11 @@ const Tokens: FC = () => {
                   </Grid>
                 </Grid>
               </Box>
-              <Box sx={{ height: 'calc(70vh)', overflowY: 'scroll', overflowX: 'hidden' }}>
+              <Box sx={{
+                // height: 'calc(70vh)', 
+                // overflowY: 'scroll', 
+                overflowX: 'hidden'
+              }}>
                 {loading && initialLoading
                   ? (
                     <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>

@@ -30,8 +30,6 @@ interface ITokenSummary {
   setLoading: React.Dispatch<React.SetStateAction<{ [key: string]: boolean }>>
 }
 
-const ICON_URL = 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/'
-
 const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBoxHeight, setLoading, totalValue, exchangeRate }) => {
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [reducedTokensList, setReducedTokensList] = useState<IPieToken[]>([])
@@ -157,7 +155,7 @@ const TokenSummary: FC<ITokenSummary> = ({ tokenList, currency, boxHeight, setBo
                   key={i + ':' + item.tokenId}
                 >
                   <Box sx={{ pt: '2px' }}>
-                    <Avatar src={ICON_URL +
+                    <Avatar src={"icons/tokens/" +
                       (
                         item.wrappedTokenIds && (item.wrappedTokenIds as string[]).length > 0
                           ? item.wrappedTokenIds[0]

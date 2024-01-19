@@ -11,7 +11,8 @@ import {
   ToggleButton,
   CircularProgress,
   BottomNavigation,
-  BottomNavigationAction
+  BottomNavigationAction,
+  Avatar
 } from '@mui/material';
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { useRouter } from 'next/router';
@@ -28,6 +29,8 @@ import InfoIcon from '@mui/icons-material/Info';
 import HistoryIcon from '@mui/icons-material/History';
 import { scroller } from 'react-scroll';
 import TvChart from '@components/tokenInfo/TvChart';
+import { checkLocalIcon } from '@lib/utils/icons';
+import { TVChartContainer } from '@components/charts/AdvancedChart';
 
 type TokenInfoApi = {
   token_id: string;
@@ -102,11 +105,12 @@ const TokenInfo: FC = () => {
       });
 
       const data: TokenInfoApi = await response.json();
+      const isLocalIcon = await checkLocalIcon(tokenId)
       const thisTokenInfo = {
         name: data.token_name,
         ticker: data.token_name,
         tokenId: tokenId,
-        icon: 'https://raw.githubusercontent.com/spectrum-finance/token-logos/db79f78637ad36826f4bd6cb10ccf30faf883fc7/logos/ergo/' + tokenId + '.svg',
+        icon: isLocalIcon ?? '',
         price: data.value_in_erg,
         pctChange1h: 0,
         pctChange1d: 0,
@@ -123,6 +127,7 @@ const TokenInfo: FC = () => {
         burnedSupply: data.burned_supply,
         description: data.token_description
       };
+
       if (thisTokenInfo !== null && thisTokenInfo.name !== undefined) {
         setDefaultWidgetProps({
           symbol: thisTokenInfo.name,
@@ -164,7 +169,7 @@ const TokenInfo: FC = () => {
       })
     }
   };
-
+  console.log(currency)
   return (
     <Box id="stats" sx={{ mx: 2 }}>
       <Box
@@ -193,7 +198,10 @@ const TokenInfo: FC = () => {
         <>
           <Grid container justifyContent="space-between" alignItems="flex-end" sx={{ mb: 2 }}>
             <Grid>
-              <Typography variant="h2" sx={{ lineHeight: 1, mb: 2 }}>{tokenInfo.name}</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+                <Avatar src={tokenInfo.icon} />
+                <Typography variant="h2" sx={{ lineHeight: 1, mb: 2 }}>{tokenInfo.name}</Typography>
+              </Box>
               <Typography variant="h6" sx={{ lineHeight: 1 }}>{tokenInfo.ticker}/{tradingPair ? tradingPair : 'ERG'}</Typography>
             </Grid>
             <Grid sx={{ textAlign: 'right' }}>
@@ -230,7 +238,8 @@ const TokenInfo: FC = () => {
                 position: 'relative'
               }}>
                 {defaultWidgetProps !== undefined && (
-                  <TvChart defaultWidgetProps={defaultWidgetProps} />
+                  // <TvChart defaultWidgetProps={defaultWidgetProps} currency={currency} />
+                  <TVChartContainer defaultWidgetProps={defaultWidgetProps} currency={currency} />
                 )}
 
               </Paper>

@@ -374,6 +374,10 @@ export interface LibrarySubsessionInfo {
 	 * Session corrections string. See {@link LibrarySymbolInfo.corrections}.
 	 */
 	"session-correction"?: string;
+	/**
+	 * Session to display. See {@link LibrarySymbolInfo.session_display}.
+	 */
+	"session-display"?: string;
 }
 export interface LibrarySymbolInfo {
 	/**
@@ -541,10 +545,10 @@ export interface LibrarySymbolInfo {
 	 *         : symbol.supported_resolutions(resolution);
 	 * ```
 	 *
-	 * In case of absence of `supported_resolutions` in a symbol info all DWM resolutions will be available. Intraday resolutions will be available if `has_intraday` is `true`.
+	 * In case of the absence of `supported_resolutions` in a symbol info, all DWM resolutions will be available. Intraday resolutions will be available if `has_intraday` is `true`.
 	 * Supported resolutions affect available timeframes too. The timeframe will not be available if it requires the resolution that is not supported.
 	 */
-	supported_resolutions: ResolutionString[];
+	supported_resolutions?: ResolutionString[];
 	/**
 	 * Array of resolutions (in minutes) supported directly by the data feed. Each such resolution may be passed to, and should be implemented by, `getBars`. The default of [] means that the data feed supports aggregating by any number of minutes.
 	 *
@@ -580,10 +584,12 @@ export interface LibrarySymbolInfo {
 	 */
 	seconds_multipliers?: string[];
 	/**
-	 * The boolean value showing whether data feed has its own daily resolution bars or not.
+	 * The boolean value specifying whether the datafeed can supply historical data at the daily resolution.
 	 *
-	 * If `has_daily` = `false` then the library will build the respective resolutions using 1-minute bars by itself.
-	 * If not, then it will request those bars from the data feed only if specified resolution belongs to `daily_multipliers`, otherwise an error will be thrown.
+	 * If `has_daily` is set to `false`, all buttons for resolutions that include days are disabled for this particular symbol.
+	 * Otherwise, the library requests daily bars from the datafeed.
+	 * All daily resolutions that the datafeed supplies must be included in the {@link LibrarySymbolInfo.daily_multipliers} array.
+	 *
 	 * @default true
 	 */
 	has_daily?: boolean;
