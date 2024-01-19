@@ -83,7 +83,7 @@ const StakedPositions: FC<StakedPositionsProps> = ({ currency, addressList, setC
 
           const currentCurrency = currency.toLowerCase()
 
-          const totalStake = stakedAmount + unstakedAmount;
+          const totalStake = stakedAmount + rewardAmount;
 
           console.log(currentPrice)
 
