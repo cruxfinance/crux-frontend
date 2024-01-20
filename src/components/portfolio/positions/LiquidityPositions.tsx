@@ -9,7 +9,7 @@ import {
 import { currencies, Currencies } from '@lib/utils/currencies';
 import { formatNumber } from '@lib/utils/general';
 import { trpc } from '@lib/trpc';
-import CruxTable from '@components/CruxTable';
+import CruxTableScroll from '@components/CruxTableScroll';
 import CurrencyButton from '@components/CurrencyButton';
 
 type LiquidityPositionsProps = {
@@ -117,7 +117,7 @@ const LiquidityPositions: FC<LiquidityPositionsProps> = ({ currency, addressList
 
   return (
     <Box>
-      <CruxTable
+      <CruxTableScroll
         title="Liquidity Positions"
         actions={tableActions}
         headers={headers}

@@ -11,7 +11,7 @@ import {
 import { currencies, Currencies } from '@lib/utils/currencies';
 import { formatNumber } from '@lib/utils/general';
 import { trpc } from '@lib/trpc';
-import CruxTable from '@components/CruxTable';
+import CruxTableScroll from '@components/CruxTableScroll';
 import CurrencyButton from '@components/CurrencyButton';
 import dayjs from 'dayjs';
 
@@ -65,6 +65,7 @@ const Positions: FC<PositionsProps> = ({ currency, addressList, setCurrency }) =
           alignItems: "center",
           overflow: "hidden",
           whiteSpace: "nowrap",
+          zIndex: 1
         }}
       >
         <Box sx={{ mr: 1, py: '2px' }}>
@@ -154,7 +155,7 @@ const Positions: FC<PositionsProps> = ({ currency, addressList, setCurrency }) =
 
   return (
     <Box>
-      <CruxTable
+      <CruxTableScroll
         title="Token Positions"
         actions={tableActions}
         headers={headers}
