@@ -9,9 +9,8 @@ import {
 import { currencies, Currencies } from '@lib/utils/currencies';
 import { formatNumber } from '@lib/utils/general';
 import { trpc } from '@lib/trpc';
-import CruxTable from '@components/CruxTable';
 import CurrencyButton from '@components/CurrencyButton';
-import dayjs from 'dayjs';
+import CruxTableScroll from '@components/CruxTableScroll';
 
 type StakedPositionsProps = {
   currency: Currencies;
@@ -83,7 +82,7 @@ const StakedPositions: FC<StakedPositionsProps> = ({ currency, addressList, setC
 
           const currentCurrency = currency.toLowerCase()
 
-          const totalStake = stakedAmount + rewardAmount;
+          const totalStake = stakedAmount + rewardAmount - unstakedAmount;
 
           console.log(currentPrice)
 
@@ -106,7 +105,7 @@ const StakedPositions: FC<StakedPositionsProps> = ({ currency, addressList, setC
 
   return (
     <Box>
-      <CruxTable
+      <CruxTableScroll
         title="Token Positions"
         actions={tableActions}
         headers={headers}

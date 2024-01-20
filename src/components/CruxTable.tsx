@@ -235,7 +235,7 @@ const CruxTable = <T extends Record<string, any>>({
           <TableBody sx={{
             '& > tr:last-child > td': {
               borderBottom: 'none',
-              '&:first-child': {
+              '&:first-of-type': {
                 borderRadius: '0 0 0 16px',
               },
               '&:last-child': {

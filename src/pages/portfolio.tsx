@@ -1,18 +1,13 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Typography,
   Box,
-  List,
-  ListItem,
-  Container,
   Paper,
   Divider,
   CircularProgress,
   Button,
   useMediaQuery,
   useTheme,
-  TextField,
-  FilledInput,
+  TextField
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import Balance from "@components/portfolio/Balance";
@@ -24,10 +19,7 @@ import { INftItem } from "@components/portfolio/NftList";
 import ValueLocked from "@components/portfolio/ValueLocked";
 import { Currencies } from "../lib/utils/currencies";
 import { adjustDecimals } from "../lib/utils/general";
-import { IBalance } from "@components/portfolio/Balance";
 import HistoricValues from "@components/portfolio/HistoricValues";
-import PositionTable from "@components/portfolio/positions/PositionTable";
-import CollateralizedDebtTable from "@components/portfolio/positions/CollateralizedDebtTable";
 import StakedPositions from "@components/portfolio/positions/StakedPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";
 import { useSession } from "next-auth/react";
@@ -363,133 +355,135 @@ const Portfolio = () => {
   };
 
   return (
-    <Box sx={{ mx: 2 }}>
-      <Grid container sx={{ mb: 2 }} spacing={2} alignItems="center">
-        <Grid xs>
-          <TextField
-            id="wallet-addresses"
-            variant="filled"
-            value={addressList.join(", ")}
-            onChange={handleChangeAddressList}
-            fullWidth
-            placeholder="Any number of wallet addresses, separated by commas"
-          />
+    <>
+      <Box sx={{ mx: 2 }}>
+        <Grid container sx={{ mb: 2 }} spacing={2} alignItems="center">
+          <Grid xs>
+            <TextField
+              id="wallet-addresses"
+              variant="filled"
+              value={addressList.join(", ")}
+              onChange={handleChangeAddressList}
+              fullWidth
+              placeholder="Any number of wallet addresses, separated by commas"
+            />
+          </Grid>
+          <Grid xs="auto">
+            <Button variant="contained" onClick={() => fetchData(addressList)}>
+              Submit
+            </Button>
+          </Grid>
         </Grid>
-        <Grid xs="auto">
-          <Button variant="contained" onClick={() => fetchData(addressList)}>
-            Submit
-          </Button>
-        </Grid>
-      </Grid>
-      <Box
-        sx={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          opacity: isLoading ? "1" : "0",
-          width: "100vw",
-          height: "100vh",
-          background: "rgba(24,28,33,1)",
-          zIndex: 999,
-          color: "#fff",
-          transition: "opacity 500ms",
-          pointerEvents: isLoading ? "auto" : "none",
-        }}
-      >
-        <CircularProgress
-          color="inherit"
+        <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            opacity: isLoading ? "1" : "0",
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(24,28,33,1)",
+            zIndex: 999,
+            color: "#fff",
+            transition: "opacity 500ms",
+            pointerEvents: isLoading ? "auto" : "none",
           }}
-        />
-      </Box>
-      <Grid
-        container
-        alignItems="stretch"
-        spacing={3}
-        sx={{ position: "relative", mb: 2 }}
-      >
-        <Grid xs={12} lg={9}>
-          <Paper sx={{ p: 3, width: "100%", position: "relative" }}>
-            <Grid container spacing={4} direction={{ xs: "column", md: "row" }}>
-              <Grid xs={12} md={4}>
-                <Balance
-                  balance={totalValue}
-                  setCurrency={setCurrency}
-                  tvl={totalValueLocked}
-                  currency={currency}
-                  exchangeRate={exchangeRate}
-                  apy={0}
-                  pctChange={1.2}
-                />
-              </Grid>
-              <Grid
-                xs={12}
-                md={8}
-                container
-                direction={{ xs: "column", md: "row" }}
-              >
-                <Grid>
-                  {upMd ? <Divider orientation="vertical" /> : <Divider />}
-                </Grid>
-                <Grid xs>
-                  <TokenSummary
-                    totalValue={totalValue}
-                    tokenList={sortedFilteredTokensList}
+        >
+          <CircularProgress
+            color="inherit"
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          />
+        </Box>
+        <Grid
+          container
+          alignItems="stretch"
+          spacing={3}
+          sx={{ position: "relative", mb: 2 }}
+        >
+          <Grid xs={12} lg={9}>
+            <Paper sx={{ p: 3, width: "100%", position: "relative" }}>
+              <Grid container spacing={4} direction={{ xs: "column", md: "row" }}>
+                <Grid xs={12} md={4}>
+                  <Balance
+                    balance={totalValue}
+                    setCurrency={setCurrency}
+                    tvl={totalValueLocked}
                     currency={currency}
-                    boxHeight={boxHeight}
-                    setBoxHeight={setBoxHeight}
-                    setLoading={setLoading}
                     exchangeRate={exchangeRate}
+                    apy={0}
+                    pctChange={1.2}
                   />
                 </Grid>
+                <Grid
+                  xs={12}
+                  md={8}
+                  container
+                  direction={{ xs: "column", md: "row" }}
+                >
+                  <Grid>
+                    {upMd ? <Divider orientation="vertical" /> : <Divider />}
+                  </Grid>
+                  <Grid xs>
+                    <TokenSummary
+                      totalValue={totalValue}
+                      tokenList={sortedFilteredTokensList}
+                      currency={currency}
+                      boxHeight={boxHeight}
+                      setBoxHeight={setBoxHeight}
+                      setLoading={setLoading}
+                      exchangeRate={exchangeRate}
+                    />
+                  </Grid>
+                </Grid>
               </Grid>
-            </Grid>
-          </Paper>
+            </Paper>
+          </Grid>
+          <Grid xs={12} sm={6} lg={3}>
+            <Paper
+              sx={{ p: 3, width: "100%", height: "100%", position: "relative" }}
+            >
+              <NftList
+                tokenList={filteredNfts}
+                boxHeight={boxHeight}
+                setBoxHeight={setBoxHeight}
+              />
+            </Paper>
+          </Grid>
+          <Grid xs={12} sm={6} lg={3} sx={{ position: "relative", zIndex: 10 }}>
+            <Paper sx={{ p: 3, width: "100%", height: "100%" }}>
+              <ValueLocked
+                currency={currency}
+                exchangeRate={exchangeRate}
+                tokenList={sortedFilteredTokensList}
+                boxHeight={boxHeight}
+              />
+            </Paper>
+          </Grid>
+          <Grid xs={12} lg={9}>
+            <Paper
+              sx={{
+                py: 3,
+                px: upSm ? 3 : 0,
+                width: "100%",
+                height: "100%",
+                position: "relative",
+              }}
+            >
+              <HistoricValues
+                tokenList={sortedFilteredTokensList}
+                totalValue={totalValue}
+                currency={currency}
+                exchangeRate={exchangeRate}
+              />
+            </Paper>
+          </Grid>
         </Grid>
-        <Grid xs={12} sm={6} lg={3}>
-          <Paper
-            sx={{ p: 3, width: "100%", height: "100%", position: "relative" }}
-          >
-            <NftList
-              tokenList={filteredNfts}
-              boxHeight={boxHeight}
-              setBoxHeight={setBoxHeight}
-            />
-          </Paper>
-        </Grid>
-        <Grid xs={12} sm={6} lg={3} sx={{ position: "relative", zIndex: 10 }}>
-          <Paper sx={{ p: 3, width: "100%", height: "100%" }}>
-            <ValueLocked
-              currency={currency}
-              exchangeRate={exchangeRate}
-              tokenList={sortedFilteredTokensList}
-              boxHeight={boxHeight}
-            />
-          </Paper>
-        </Grid>
-        <Grid xs={12} lg={9}>
-          <Paper
-            sx={{
-              py: 3,
-              px: upSm ? 3 : 0,
-              width: "100%",
-              height: "100%",
-              position: "relative",
-            }}
-          >
-            <HistoricValues
-              tokenList={sortedFilteredTokensList}
-              totalValue={totalValue}
-              currency={currency}
-              exchangeRate={exchangeRate}
-            />
-          </Paper>
-        </Grid>
-      </Grid>
+      </Box>
       <Box sx={{ mb: 2 }}>
         <Positions
           currency={currency}
@@ -511,14 +505,7 @@ const Portfolio = () => {
           addressList={addressList}
         />
       </Box>
-      {/* <Box sx={{ mb: 2 }}>
-        <CollateralizedDebtTable
-          currency={currency}
-          exchangeRate={exchangeRate}
-          tokenList={sortedFilteredTokensList}
-        />
-      </Box> */}
-    </Box>
+    </>
   );
 };
 
