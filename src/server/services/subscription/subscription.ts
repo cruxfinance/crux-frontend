@@ -97,7 +97,7 @@ export const renewSubscription = async (subcriptionId: string) => {
   const tokenPriceInfo = await getTokenPriceInfo(paymentInstrument.tokenId);
   const amountToCharge = Math.floor(
     (Number(subcription.requiredAmountUSD) / tokenPriceInfo.tokenPrice) *
-      Math.pow(10, tokenPriceInfo.tokenDecimals - 2) // USD decimal adjustment 
+      Math.pow(10, tokenPriceInfo.tokenDecimals - 2) // USD decimal adjustment
   );
   const now = Math.floor(new Date().getTime() / (60 * 60 * 1000));
   const charge = await chargePaymentInstrument({
@@ -119,4 +119,18 @@ export const renewSubscription = async (subcriptionId: string) => {
     subcription: updatedSubscription,
     charge: charge.charge,
   };
+};
+
+export const findSubscriptions = async (userId: string) => {
+  const subscriptionIds = (
+    await prisma.subscription.findMany({
+      where: {
+        userId: userId,
+      },
+    })
+  ).map((subcription) => subcription.id);
+  const subscriptions = await Promise.all(
+    subscriptionIds.map((subscriptionId) => getSubscription(subscriptionId))
+  );
+  return subscriptions;
 };
