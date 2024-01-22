@@ -114,9 +114,7 @@ export const getPaymentInstrument = async (paymentInstrumentId: string) => {
       };
     }
     const updatedTransactions = await Promise.all(
-      transactions.map(
-        async (transaction) => await getTransaction(transaction.id)
-      )
+      transactions.map((transaction) => getTransaction(transaction.id))
     );
     const updatedPendingTransactions = updatedTransactions.filter(
       (transaction) => transaction?.status === TransactionStatus.PENDING
@@ -285,4 +283,18 @@ export const addPaymentInstrumentBalance = async (
       lock
     );
   }
+};
+
+export const findPaymentInstruments = async (userId: string) => {
+  const paymentInstrumentIds = (
+    await prisma.paymentInstrument.findMany({
+      where: { userId: userId },
+    })
+  ).map((paymentInstrument) => paymentInstrument.id);
+  const paymentInstruments = await Promise.all(
+    paymentInstrumentIds.map((paymentInstrumentId) =>
+      getPaymentInstrument(paymentInstrumentId)
+    )
+  );
+  return paymentInstruments;
 };
