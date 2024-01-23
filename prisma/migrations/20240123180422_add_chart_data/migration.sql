@@ -11,7 +11,7 @@ CREATE TABLE "ChartData" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ChartData_user_id_key" ON "ChartData"("user_id");
+CREATE UNIQUE INDEX "ChartData_user_id_symbol_key" ON "ChartData"("user_id", "symbol");
 
 -- AddForeignKey
 ALTER TABLE "ChartData" ADD CONSTRAINT "ChartData_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
