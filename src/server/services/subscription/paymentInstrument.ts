@@ -234,8 +234,8 @@ interface AddPaymentInstrumentBalance {
 export const addPaymentInstrumentBalance = async (
   input: AddPaymentInstrumentBalance
 ) => {
-  if (input.amount <= 0) {
-    throw new Error(`Amount should be positive.`);
+  if (input.amount <= 0 || !Number.isInteger(input.amount)) {
+    throw new Error(`Amount should be a positive integer.`);
   }
   const lock = await acquireTransactionalLock(
     `addPaymentInstrumentBalance.${input.paymentInstrumentId}`

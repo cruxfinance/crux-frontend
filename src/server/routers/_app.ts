@@ -2,6 +2,7 @@ import { createTRPCRouter } from "@server/trpc";
 import { authRouter } from "./auth";
 import { portfolioRouter } from "./portfolio";
 import { userRouter } from "./user";
+import { subscriptionRouter } from "./subscription";
 
 /**
  * This is the primary router for your server.
@@ -12,6 +13,7 @@ export const appRouter = createTRPCRouter({
   auth: authRouter,
   portfolio: portfolioRouter,
   user: userRouter,
+  subscription: subscriptionRouter,
 });
 
 // export type definition of API

@@ -24,13 +24,13 @@ interface SubscriptionConfig {
 }
 
 export const SUBSCRIPTION_CONFIG: SubscriptionConfig[] = [
-  {
-    id: "monthly_basic_plan",
-    name: "Monthly Basic",
-    subscriptionPeriodMonths: 1,
-    allowedPriviledgeLevel: UserPrivilegeLevel.BASIC,
-    amountUSD: 0.2,
-    discountedAmountUSD: 0.1,
-    allowedTokenIds: [ERG_CONFIG],
-  },
+  // {
+  //   id: "monthly_basic_plan",
+  //   name: "Monthly Basic",
+  //   subscriptionPeriodMonths: 1,
+  //   allowedPriviledgeLevel: UserPrivilegeLevel.BASIC,
+  //   amountUSD: 5.99,
+  //   discountedAmountUSD: 4.89,
+  //   allowedTokenIds: [ERG_CONFIG],
+  // },
 ];

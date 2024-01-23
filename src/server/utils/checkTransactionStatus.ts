@@ -1,6 +1,7 @@
 import { TransactionStatus } from "@prisma/client";
-import { explorerApi } from "@server/services/axiosInstance";
+import { explorerApi, cruxApi } from "@server/services/axiosInstance";
 
+// TODO: Migrate to crux/tx_status API
 export const checkTransactionStatus = async (transactionId: string) => {
   try {
     const res = await explorerApi.get(`/api/v1/transactions/${transactionId}`);
