@@ -23,7 +23,6 @@ export const getTokenPriceInfo = async (tokenId: string | null) => {
       tokenDecimals: tokenDecimals,
     };
   } catch (e: any) {
-    console.log(e);
     throw new Error(
       "Token price API in facing availability issues. Try again later."
     );
