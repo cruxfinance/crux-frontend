@@ -122,7 +122,8 @@ const LiquidityPositions: FC<LiquidityPositionsProps> = ({ currency, addressList
         actions={tableActions}
         headers={headers}
         data={tableData}
-        tooltips={extraInfo} />
+        loading={lpPositions.isLoading}
+      />
     </Box>
   );
 };

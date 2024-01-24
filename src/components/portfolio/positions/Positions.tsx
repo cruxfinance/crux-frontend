@@ -160,7 +160,7 @@ const Positions: FC<PositionsProps> = ({ currency, addressList, setCurrency }) =
         actions={tableActions}
         headers={headers}
         data={tableData}
-      // tooltips={extraInfo} 
+        loading={positions.isLoading}
       />
     </Box>
   );

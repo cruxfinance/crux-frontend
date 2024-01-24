@@ -110,7 +110,7 @@ const StakedPositions: FC<StakedPositionsProps> = ({ currency, addressList, setC
         actions={tableActions}
         headers={headers}
         data={tableData}
-      // tooltips={extraInfo} 
+        loading={stakedPositions.isLoading}
       />
     </Box>
   );

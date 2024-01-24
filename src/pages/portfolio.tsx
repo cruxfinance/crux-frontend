@@ -68,7 +68,8 @@ const Portfolio = () => {
     IReducedToken[]
   >([]);
   // const [tokenList, setTokenList] = useState<IPortfolioToken[]>([])
-  const [addressList, setAddressList] = useState<string[]>([]);
+  const [addressList, setAddressList] = useState<string>('');
+  const [submittedAddressList, setSubmittedAddressList] = useState<string[]>([]);
   const [totalValueLocked, setTotalValueLocked] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState(1);
 
@@ -85,7 +86,7 @@ const Portfolio = () => {
       session?.data?.user?.address !== undefined
     ) {
       getExchange();
-      setAddressList([session.data.user.address]);
+      setAddressList(session.data.user.address);
       fetchData([session.data.user.address]);
     }
   }, [])
@@ -188,6 +189,7 @@ const Portfolio = () => {
   let fetchAcc = 1;
 
   const fetchData = async (thisAddressList: string[]) => {
+    setSubmittedAddressList(thisAddressList)
     const data = await fetchTokenData(thisAddressList);
 
     // remove NFTs & tokens with no dex value
@@ -349,8 +351,6 @@ const Portfolio = () => {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const addresses = event.target.value
-      .split(",")
-      .map((address) => address.trim());
     setAddressList(addresses);
   };
 
@@ -362,14 +362,14 @@ const Portfolio = () => {
             <TextField
               id="wallet-addresses"
               variant="filled"
-              value={addressList.join(", ")}
+              value={addressList}
               onChange={handleChangeAddressList}
               fullWidth
               placeholder="Any number of wallet addresses, separated by commas"
             />
           </Grid>
           <Grid xs="auto">
-            <Button variant="contained" onClick={() => fetchData(addressList)}>
+            <Button variant="contained" onClick={() => fetchData(addressList.split(",").map((address) => address.trim()))}>
               Submit
             </Button>
           </Grid>
@@ -488,21 +488,21 @@ const Portfolio = () => {
         <Positions
           currency={currency}
           setCurrency={setCurrency}
-          addressList={addressList}
+          addressList={submittedAddressList}
         />
       </Box>
       <Box sx={{ mb: 2 }}>
         <StakedPositions
           currency={currency}
           setCurrency={setCurrency}
-          addressList={addressList}
+          addressList={submittedAddressList}
         />
       </Box>
       <Box sx={{ mb: 2 }}>
         <LiquidityPositions
           currency={currency}
           setCurrency={setCurrency}
-          addressList={addressList}
+          addressList={submittedAddressList}
         />
       </Box>
     </>
