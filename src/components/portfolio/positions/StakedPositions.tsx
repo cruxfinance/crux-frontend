@@ -106,7 +106,7 @@ const StakedPositions: FC<StakedPositionsProps> = ({ currency, addressList, setC
   return (
     <Box>
       <CruxTableScroll
-        title="Token Positions"
+        title="Staking Positions"
         actions={tableActions}
         headers={headers}
         data={tableData}
