@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Box, Paper, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography, IconButton, useTheme
+  Box, Paper, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography, IconButton, useTheme, CircularProgress
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
@@ -15,6 +15,7 @@ interface ICruxTableScrollProps<T> {
   headers: string[][];
   tooltips?: CruxTableHeaderTooltip[];
   actions?: React.ReactNode;
+  loading: boolean;
 }
 
 const CruxTableScroll = <T extends Record<string, any>>({
@@ -22,7 +23,8 @@ const CruxTableScroll = <T extends Record<string, any>>({
   data,
   headers,
   tooltips,
-  actions
+  actions,
+  loading
 }: ICruxTableScrollProps<T>) => {
   const boxRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
@@ -119,7 +121,7 @@ const CruxTableScroll = <T extends Record<string, any>>({
     </TableCell>
   );
 
-  if (data.length > 0) return (
+  return (
     <Box
       ref={boxRef}
       onMouseDown={onMouseDown}
@@ -179,87 +181,97 @@ const CruxTableScroll = <T extends Record<string, any>>({
               {actions}
             </Box>}
         </Box>
-        <Table ref={tableRef} size="small" sx={{ borderRadius: '0 0 16px 16px' }}>
-          <TableHead
-            ref={headerRef}
-            style={{
-              ...headerStyles,
-              zIndex: 2,
-              position: 'relative',
-              transition: 'transform 0.1s ease',
-              background: theme.palette.background.default
-            }}
-          >
-            <TableRow>
-              {headers.map((headerLabels, index) => (
-                <TableCell
-                  key={`header-${index}`}
-                  colSpan={1}
-                  sx={{ zIndex: 2 }}
-                >
-                  <Box sx={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center'
-                  }}>
-                    <Box>
-                      {headerLabels.map((label, labelIndex) => (
-                        <Typography key={`label-${labelIndex}`}>
-                          {label}
-                        </Typography>
-                      ))}
-                    </Box>
-                    {tooltips && (() => {
-                      const tooltip = tooltips.find(t => t.index === index);
-                      return tooltip && (
-                        <Box>
-                          <Tooltip title={tooltip.text} arrow placement="top">
-                            <IconButton><InfoOutlinedIcon width={16} height={16} /></IconButton>
-                          </Tooltip>
-                        </Box>
-                      );
-                    })()}
-                  </Box>
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody sx={{
-            overflowX: 'auto',
-            '& > tr:last-child > td': {
-              borderBottom: 'none',
-              '&:first-of-type': {
-                borderRadius: '0 0 0 16px',
-              },
-              '&:last-child': {
-                borderRadius: '0 0 16px 0',
-              }
-            }
-          }}>
-            {data.map((item, index) => (
-              <TableRow key={index}
-                sx={{
-                  '&:nth-of-type(odd)': {
-                    backgroundColor: theme.palette.mode === 'dark'
-                      ? 'rgba(205,205,235,0.05)'
-                      : 'rgba(0,0,0,0.05)'
-                  },
-                  '&:hover': {
-                    background: theme.palette.mode === 'dark'
-                      ? 'rgba(205,205,235,0.15)'
-                      : 'rgba(0,0,0,0.1)'
-                  }
+        {loading
+          ? <Box sx={{ py: 4, textAlign: 'center' }}>
+            <Box sx={{ mb: 2 }}>
+              <CircularProgress size={60} />
+            </Box>
+            <Typography>
+              Loading data...
+            </Typography>
+          </Box>
+          : data.length > 0
+            ? <Table ref={tableRef} size="small" sx={{ borderRadius: '0 0 16px 16px' }}>
+              <TableHead
+                ref={headerRef}
+                style={{
+                  ...headerStyles,
+                  zIndex: 2,
+                  position: 'relative',
+                  transition: 'transform 0.1s ease',
+                  background: theme.palette.background.default
                 }}
               >
-                {headers.map((header, index) => renderRowCell(item, header, index))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                <TableRow>
+                  {headers.map((headerLabels, index) => (
+                    <TableCell
+                      key={`header-${index}`}
+                      colSpan={1}
+                      sx={{ zIndex: 2 }}
+                    >
+                      <Box sx={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center'
+                      }}>
+                        <Box>
+                          {headerLabels.map((label, labelIndex) => (
+                            <Typography key={`label-${labelIndex}`}>
+                              {label}
+                            </Typography>
+                          ))}
+                        </Box>
+                        {tooltips && (() => {
+                          const tooltip = tooltips.find(t => t.index === index);
+                          return tooltip && (
+                            <Box>
+                              <Tooltip title={tooltip.text} arrow placement="top">
+                                <IconButton><InfoOutlinedIcon width={16} height={16} /></IconButton>
+                              </Tooltip>
+                            </Box>
+                          );
+                        })()}
+                      </Box>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody sx={{
+                overflowX: 'auto',
+                '& > tr:last-child > td': {
+                  borderBottom: 'none',
+                  '&:first-of-type': {
+                    borderRadius: '0 0 0 16px',
+                  },
+                  '&:last-child': {
+                    borderRadius: '0 0 16px 0',
+                  }
+                }
+              }}>
+                {data.map((item, index) => (
+                  <TableRow key={index}
+                    sx={{
+                      '&:nth-of-type(odd)': {
+                        backgroundColor: theme.palette.mode === 'dark'
+                          ? 'rgba(205,205,235,0.05)'
+                          : 'rgba(0,0,0,0.05)'
+                      },
+                      '&:hover': {
+                        background: theme.palette.mode === 'dark'
+                          ? 'rgba(205,205,235,0.15)'
+                          : 'rgba(0,0,0,0.1)'
+                      }
+                    }}
+                  >
+                    {headers.map((header, index) => renderRowCell(item, header, index))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            : <Box sx={{ py: 4, textAlign: 'center' }}>No data</Box>}
       </Paper>
     </Box>
   )
-  else return <></>
 };
 
 export default CruxTableScroll;
