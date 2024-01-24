@@ -86,16 +86,15 @@ export const getUnsignedTransaction = async (
     };
   });
   const outputs = [
-    outputBox(recipientAddress, transferAmount, currentHeight + 1),
-    feeBox(currentHeight + 1),
+    outputBox(recipientAddress, transferAmount, currentHeight),
+    feeBox(currentHeight),
   ];
   const unsignedTransaction = {
     inputs,
     dataInputs: [],
     outputs: [
       ...outputs,
-      changeBox(senderAddress, inputs, outputs, currentHeight + 1),
-      ,
+      changeBox(senderAddress, inputs, outputs, currentHeight),
     ],
   };
   const txId = UnsignedTransaction.from_json(
@@ -186,7 +185,7 @@ const changeBox = (
     creationHeight: creationHeight,
     assets: Array.from(diff.entries())
       .filter((entry) => entry[0] !== ERG)
-      .filter((entry) => entry[1] === 0)
+      .filter((entry) => entry[1] !== 0)
       .map((entry) => {
         return { tokenId: entry[0], amount: entry[1].toString() };
       }),

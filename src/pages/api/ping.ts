@@ -8,4 +8,17 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 };
 
+/**
+ * Testing Util
+ */
+const parse = (object: any) => {
+  return JSON.parse(
+    JSON.stringify(
+      object,
+      (key, value) =>
+        typeof value === "bigint" ? Number(value.toString()) : value // return everything else unchanged
+    )
+  );
+};
+
 export default handler;
