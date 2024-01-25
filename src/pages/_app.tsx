@@ -12,10 +12,13 @@ import AlertWrapper, { IAlertMessages } from "@components/AlertWrapper";
 import { trpc } from "@lib/trpc";
 import { SessionProvider } from "next-auth/react";
 import { WalletProvider } from "@contexts/WalletContext";
+import { useRouter } from "next/router";
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
   const [alert, setAlert] = useState<IAlertMessages[]>([]);
+  const router = useRouter()
+  const isNoLayoutPage = router.pathname === '/ergopad-chart'
 
   return (
     <>
@@ -30,11 +33,15 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <ThemeProvider theme={theme}>
             <CssBaseline enableColorScheme />
-              <WalletProvider>
+            <WalletProvider>
+              {isNoLayoutPage ? (
+                <Component {...pageProps} />
+              ) : (
                 <Layout>
                   <Component {...pageProps} />
                 </Layout>
-              </WalletProvider>
+              )}
+            </WalletProvider>
             <AlertWrapper
               alerts={alert}
               close={(i: number) => {
