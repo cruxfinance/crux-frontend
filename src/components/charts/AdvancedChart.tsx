@@ -7,9 +7,10 @@ import { useTheme, useMediaQuery } from "@mui/material";
 interface TVProps {
   defaultWidgetProps: Partial<ChartingLibraryWidgetOptions>;
   currency: string;
+  height?: string;
 }
 
-export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency }) => {
+export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency, height }) => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
 
@@ -91,7 +92,7 @@ export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency }) 
 
   return (
     <>
-      <div ref={chartContainerRef} className={styles.TVChartContainer} style={{ height: '80vh' }} />
+      <div ref={chartContainerRef} className={styles.TVChartContainer} style={{ height: height ? height : '80vh' }} />
     </>
   );
 };
