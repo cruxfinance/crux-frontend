@@ -37,6 +37,7 @@ const TokenInfo: FC = () => {
         <Box>
           <Link
             href="https://cruxfinance.io"
+            target="_blank"
             sx={{
               display: 'flex',
               flexDirection: 'row',
