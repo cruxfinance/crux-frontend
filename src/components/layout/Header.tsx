@@ -1,57 +1,57 @@
-import React, { FC, useContext, useEffect } from 'react';
+import React, { FC, useContext, useEffect } from "react";
 import AppBar from "@mui/material/AppBar";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import {
-  // Theme, 
+  // Theme,
   Fade,
   Divider,
   IconButton,
   Button,
   Avatar,
   useMediaQuery,
-  useTheme
-} from '@mui/material';
+  useTheme,
+} from "@mui/material";
 import Box from "@mui/material/Box";
-import Link from '@components/Link'
+import Link from "@components/Link";
 // import { ThemeContext } from "@contexts/ThemeContext";
-import Logo from '@components/svgs/Logo';
-import NotificationsMenu from '@components/notifications/NotificationsMenu'
-import UserMenu from '@components/user/UserMenu';
-import MenuIcon from '@mui/icons-material/Menu';
-import ClearIcon from '@mui/icons-material/Clear';
+import Logo from "@components/svgs/Logo";
+import NotificationsMenu from "@components/notifications/NotificationsMenu";
+import UserMenu from "@components/user/UserMenu";
+import MenuIcon from "@mui/icons-material/Menu";
+import ClearIcon from "@mui/icons-material/Clear";
 import useScrollTrigger from "@mui/material/useScrollTrigger";
-import SocialGrid from './SocialGrid';
+import SocialGrid from "./SocialGrid";
 // import { DarkTheme, LightTheme } from "@theme/theme";
 // import Brightness4Icon from '@mui/icons-material/Brightness4';
 // import Brightness7Icon from '@mui/icons-material/Brightness7';
 // import IconButton from "@mui/material/IconButton";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 
 const pages = [
   {
     name: "Tokens",
-    link: "/tokens"
+    link: "/tokens",
   },
   {
     name: "Portfolio",
-    link: "/portfolio"
+    link: "/portfolio",
   },
   {
     name: "Alerts",
     link: "/alerts",
-    disabled: true
+    disabled: true,
   },
   {
     name: "Trading Floor",
     link: "/trading-floor",
-    disabled: true
+    disabled: true,
   },
   {
     name: "Accounting",
     link: "/accounting",
-    disabled: true
+    disabled: true,
   },
 ];
 
@@ -65,16 +65,14 @@ interface INavItemProps {
   };
 }
 
-interface IHeaderProps {
+interface IHeaderProps {}
 
-}
-
-const Header: FC<IHeaderProps> = ({ }) => {
+const Header: FC<IHeaderProps> = ({}) => {
   // const {
   //   theme,
-  //   // setTheme 
+  //   // setTheme
   // } = useContext(ThemeContext);
-  const theme = useTheme()
+  const theme = useTheme();
   const [navbarOpen, setNavbarOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
 
@@ -83,7 +81,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
   const upLg = useMediaQuery(theme.breakpoints.up("lg"));
 
   const handleDialogOpen = () => {
-    setNavbarOpen(false)
+    setNavbarOpen(false);
     setNotificationsOpen(true);
   };
 
@@ -93,14 +91,12 @@ const Header: FC<IHeaderProps> = ({ }) => {
 
   const handleNavbarToggle = () => {
     if (navbarOpen === true) {
-      setNavbarOpen(false)
+      setNavbarOpen(false);
+    } else {
+      setNavbarOpen(true);
+      setNotificationsOpen(false);
     }
-    else {
-      setNavbarOpen(true)
-      setNotificationsOpen(false)
-    }
-
-  }
+  };
 
   // const toggleTheme = () => {
   //   setTheme((prevTheme: Theme) => (prevTheme === LightTheme ? DarkTheme : LightTheme));
@@ -109,13 +105,17 @@ const Header: FC<IHeaderProps> = ({ }) => {
   //   // console.log(temp)
   // };
 
-  const NavigationListItem: React.FC<INavItemProps> = ({ size, fontWeight, page }) => {
+  const NavigationListItem: React.FC<INavItemProps> = ({
+    size,
+    fontWeight,
+    page,
+  }) => {
     return (
       <Grid item>
         <Box
           sx={{
-            display: 'inline-block',
-            position: 'relative',
+            display: "inline-block",
+            position: "relative",
             // "&::after": {
             //   content: '""',
             //   position: 'absolute',
@@ -133,10 +133,10 @@ const Header: FC<IHeaderProps> = ({ }) => {
             <Typography
               sx={{
                 color: theme.palette.text.secondary,
-                fontSize: size ? size.toString() + 'px' : '16px',
+                fontSize: size ? size.toString() + "px" : "16px",
                 textDecoration: "none",
-                fontWeight: fontWeight ? fontWeight : '600',
-                px: '8px',
+                fontWeight: fontWeight ? fontWeight : "600",
+                px: "8px",
               }}
             >
               {page.name}
@@ -146,19 +146,21 @@ const Header: FC<IHeaderProps> = ({ }) => {
               <Link
                 href={page.link}
                 sx={{
-                  color: router.pathname === page.link ? theme.palette.primary.main : theme.palette.text.primary,
+                  color:
+                    router.pathname === page.link
+                      ? theme.palette.primary.main
+                      : theme.palette.text.primary,
                   "&:hover": {
                     color: theme.palette.primary.main,
                   },
                 }}
-
               >
                 <Typography
                   sx={{
-                    fontSize: size ? size.toString() + 'px' : '16px',
+                    fontSize: size ? size.toString() + "px" : "16px",
                     textDecoration: "none",
-                    fontWeight: fontWeight ? fontWeight : '500',
-                    px: '8px',
+                    fontWeight: fontWeight ? fontWeight : "500",
+                    px: "8px",
                   }}
                 >
                   {page.name}
@@ -172,7 +174,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
   };
 
   const trigger = useScrollTrigger({
-    disableHysteresis: router.pathname === '/' ? true : false,
+    disableHysteresis: router.pathname === "/" ? true : false,
     threshold: 0,
   });
 
@@ -183,31 +185,33 @@ const Header: FC<IHeaderProps> = ({ }) => {
         elevation={12}
         sx={{
           zIndex: 91,
-          border: 'none',
+          border: "none",
           // top: trigger && router.pathname !== '/' ? '-60px' : 0,
           borderBottom: `none`,
           // backdropFilter: "blur(10px)",
-          backdropFilter: 'none',
-          borderRadius: '0px',
-          background: navbarOpen || notificationsOpen
-            ? theme.palette.background.default
-            : 'none',
+          backdropFilter: "none",
+          borderRadius: "0px",
+          background:
+            navbarOpen || notificationsOpen
+              ? theme.palette.background.default
+              : "none",
           // boxShadow: router.pathname === '/'
           //   // && !trigger
           //   ? 'none'
           //   : '3px 3px 15px 5px rgba(0,0,0,0.5)',
-          boxShadow: 'none!important',
+          boxShadow: "none!important",
           // background: navbarOpen || notificationsOpen
           //   ? theme.palette.background.default
           //   : router.pathname === '/'
           //     // && !trigger
           //     ? 'none'
           //     : 'radial-gradient(at right top, #12121B, #0A0D15)',
-          transition: 'background 200ms, box-shadow 200ms, top 400ms',
-          '&:before': {
-            p: 0
+          transition: "background 200ms, box-shadow 200ms, top 400ms",
+          "&:before": {
+            p: 0,
           },
-          mb: '24px'
+          mb: "24px",
+          width: "100vw",
         }}
       >
         <Box sx={{ mx: 2 }}>
@@ -217,37 +221,34 @@ const Header: FC<IHeaderProps> = ({ }) => {
             alignItems="center"
             sx={{
               // height: router.pathname === '/'
-              //   // && !trigger 
+              //   // && !trigger
               //   && upMd
               //   ? "90px"
               //   : '60px',
-              height: '90px',
-              transition: 'height 400ms'
+              height: "90px",
+              transition: "height 400ms",
             }}
           >
-            <Grid
-              item
-              alignItems="center"
-            >
+            <Grid item alignItems="center">
               <Link
                 href="/"
                 sx={{
-                  display: 'block',
-                  '&:hover': {
-                    '& span': {
-                      color: theme.palette.primary.main
+                  display: "block",
+                  "&:hover": {
+                    "& span": {
+                      color: theme.palette.primary.main,
                     },
-                    '& .MuiSvgIcon-root': {
-                      color: theme.palette.primary.main
-                    }
-                  }
+                    "& .MuiSvgIcon-root": {
+                      color: theme.palette.primary.main,
+                    },
+                  },
                 }}
               >
                 <Logo
                   sx={{
-                    display: 'inline-block',
-                    verticalAlign: 'middle',
-                    mr: '3px',
+                    display: "inline-block",
+                    verticalAlign: "middle",
+                    mr: "3px",
                     // fontSize: '64px',
                     color: theme.palette.text.primary,
                   }}
@@ -256,11 +257,11 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   component="span"
                   sx={{
                     color: theme.palette.text.primary,
-                    fontSize: '1.6rem!important',
-                    fontWeight: '700',
+                    fontSize: "1.6rem!important",
+                    fontWeight: "700",
                     lineHeight: 1,
-                    display: upLg ? 'inline-block' : 'none',
-                    verticalAlign: 'middle',
+                    display: upLg ? "inline-block" : "none",
+                    verticalAlign: "middle",
                     fontFamily: '"Jura", sans-serif',
                   }}
                 >
@@ -269,23 +270,29 @@ const Header: FC<IHeaderProps> = ({ }) => {
               </Link>
             </Grid>
             <Grid item sx={{ display: { xs: "none", md: "flex" } }}>
-              <Grid
-                container
-                spacing={2}
-              >
+              <Grid container spacing={2}>
                 {pages.map((page, i) => (
-                  <NavigationListItem size={16} key={i} page={page} fontWeight={500} />
+                  <NavigationListItem
+                    size={16}
+                    key={i}
+                    page={page}
+                    fontWeight={500}
+                  />
                 ))}
               </Grid>
             </Grid>
             <Grid item>
-
               <Grid container spacing={2} alignItems="center">
                 {/* <IconButton onClick={toggleTheme} sx={{ color: theme.palette.text.primary }}>
                     {(theme === DarkTheme) ? <Brightness7Icon /> : <Brightness4Icon />}
                   </IconButton> */}
                 <Grid item>
-                  <NotificationsMenu dialogOpen={notificationsOpen} setDialogOpen={setNotificationsOpen} handleDialogClose={handleDialogClose} handleDialogOpen={handleDialogOpen} />
+                  <NotificationsMenu
+                    dialogOpen={notificationsOpen}
+                    setDialogOpen={setNotificationsOpen}
+                    handleDialogClose={handleDialogClose}
+                    handleDialogOpen={handleDialogOpen}
+                  />
                 </Grid>
                 <Grid item>
                   <UserMenu />
@@ -295,10 +302,11 @@ const Header: FC<IHeaderProps> = ({ }) => {
                     sx={{ p: 0 }}
                     onClick={() => handleNavbarToggle()}
                   >
-                    {!navbarOpen
-                      ? <MenuIcon color="primary" />
-                      : <ClearIcon color="primary" />
-                    }
+                    {!navbarOpen ? (
+                      <MenuIcon color="primary" />
+                    ) : (
+                      <ClearIcon color="primary" />
+                    )}
                   </IconButton>
                 </Grid>
               </Grid>
@@ -306,7 +314,12 @@ const Header: FC<IHeaderProps> = ({ }) => {
           </Grid>
         </Box>
       </AppBar>
-      <Fade in={navbarOpen} style={{ transitionDuration: "200ms" }} mountOnEnter unmountOnExit>
+      <Fade
+        in={navbarOpen}
+        style={{ transitionDuration: "200ms" }}
+        mountOnEnter
+        unmountOnExit
+      >
         <Box
           sx={{
             height: "calc(100vh - 90px)",
@@ -322,11 +335,11 @@ const Header: FC<IHeaderProps> = ({ }) => {
         >
           <Box
             sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-end',
-              height: '100%',
-              pb: 2
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+              height: "100%",
+              pb: 2,
             }}
           >
             <Box>
@@ -337,7 +350,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 justifyContent="flex-end"
                 alignItems="flex-start"
                 sx={{
-                  mb: 3
+                  mb: 3,
                 }}
               >
                 {pages.map((page) => (
@@ -346,11 +359,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
               </Grid>
             </Box>
             <Box>
-              <Grid
-                container
-                direction="column"
-                spacing={4}
-              >
+              <Grid container direction="column" spacing={4}>
                 {/* <Grid item>
                   <Button variant="contained" fullWidth>New transaction</Button>
                 </Grid> */}
@@ -358,19 +367,35 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   <Divider />
                 </Grid>
                 <Grid item>
-                  <Typography variant="h5" gutterBottom fontWeight="800" fontSize="14px" >
+                  <Typography
+                    variant="h5"
+                    gutterBottom
+                    fontWeight="800"
+                    fontSize="14px"
+                  >
                     Follow us on social media
                   </Typography>
-                  <Typography variant="body2" gutterBottom sx={{ mb: 4 }} fontSize="14px" >
-                    Interacting with our socials helps us reach a wider audience.
+                  <Typography
+                    variant="body2"
+                    gutterBottom
+                    sx={{ mb: 4 }}
+                    fontSize="14px"
+                  >
+                    Interacting with our socials helps us reach a wider
+                    audience.
                   </Typography>
-                  <Grid container direction="row" spacing={3} sx={{ fontSize: '24px' }}>
+                  <Grid
+                    container
+                    direction="row"
+                    spacing={3}
+                    sx={{ fontSize: "24px" }}
+                  >
                     <SocialGrid
                       telegram="https://t.me/CruxFinance"
                       discord="https://discord.gg/tZEd3PadtD"
                       // github=""
                       twitter="https://twitter.com/cruxfinance"
-                    // medium=""
+                      // medium=""
                     />
                   </Grid>
                 </Grid>

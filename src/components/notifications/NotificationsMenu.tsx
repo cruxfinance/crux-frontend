@@ -305,10 +305,8 @@ const NotificationsMenu: FC<INotificationsProps> = ({
           // zIndex: 100,
           mt: "10px",
           "& .MuiPopover-paper": {
-            overflow: "visible",
+            overflow: "hidden",
             background: theme.palette.background.paper,
-            // filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-            borderRadius: "0 0 12px 12px",
           },
         }}
       >

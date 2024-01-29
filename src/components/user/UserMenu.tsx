@@ -11,9 +11,8 @@ import { signIn, signOut } from "next-auth/react";
 import { useWallet } from "@contexts/WalletContext";
 import Link from "next/link";
 import SettingsIcon from "@mui/icons-material/Settings";
-import SubscriptionsIcon from '@mui/icons-material/Subscriptions';
 
-interface IUserMenuProps { }
+interface IUserMenuProps {}
 
 const UserMenu: FC<IUserMenuProps> = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -120,7 +119,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
           variant="contained"
           disabled={providerLoading}
           sx={{ my: "5px" }}
-        // disabled
+          // disabled
         >
           {providerLoading ? "Loading..." : "Sign In"}
         </Button>
@@ -139,8 +138,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
               {providerLoading
                 ? "Loading..."
                 : wallet
-                  ? getShortAddress(wallet)
-                  : "No wallet"}
+                ? getShortAddress(wallet)
+                : "No wallet"}
             </Typography>
           </Button>
           <Menu
@@ -206,12 +205,12 @@ const UserMenu: FC<IUserMenuProps> = () => {
               </Link>
             </Box> */}
             <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
-              <Link href="/user/subscriptions" passHref>
+              <Link href="/user/payment-instruments" passHref>
                 <MenuItem>
                   <ListItemIcon>
-                    <SubscriptionsIcon fontSize="small" />
+                    <SettingsIcon fontSize="small" />
                   </ListItemIcon>
-                  Subscriptions
+                  Manage Account
                 </MenuItem>
               </Link>
             </Box>
@@ -228,8 +227,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
         open={modalOpen}
         setOpen={setModalOpen}
         setLoading={setProviderLoading}
-      // setDappConnected={setDappConnected}
-      // connectDapp={dappConnection}
+        // setDappConnected={setDappConnected}
+        // connectDapp={dappConnection}
       />
     </>
   );
