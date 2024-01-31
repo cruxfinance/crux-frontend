@@ -34,23 +34,11 @@ export const allowedTokens: AllowedToken[] = [
     decimals: 9,
   },
   {
-    id: "d71693c49a84fbbecd4908c94813b46514b18b67a99952dc1e6e4791556de413",
-    name: "ergopad",
-    icon: null,
-    decimals: 2,
-  },
-  {
-    id: "1fd6e032e8476c4aa54c18c1a308dce83940e8f4a28f576440513ed7326ad489",
-    name: "Paideia",
-    icon: null,
-    decimals: 4,
-  },
-  {
     id: "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365",
     name: "CRUX",
     icon: null,
     decimals: 4
-  },
+  }
 ];
 
 export const getIcon = async (id: string) => {
@@ -109,7 +97,7 @@ const CreatePaymentInstrument = () => {
 
   return (
     <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
-      <Typography variant="h6">Add a new Payment Instrument</Typography>
+      <Typography variant="h6">Add a new currency</Typography>
       <Box sx={{ width: "50%" }}>
         <FormControl fullWidth sx={{ mt: 2, mb: 3 }}>
           <InputLabel id="token-select-label">Token</InputLabel>

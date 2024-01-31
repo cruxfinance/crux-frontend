@@ -110,3 +110,8 @@ type ParsedWallet = {
   usedAddresses: string[];
   unusedAddresses: string[];
 };
+
+interface SideNavItem {
+  header: string;
+  items: { subtitle: string; link?: string }[];
+}

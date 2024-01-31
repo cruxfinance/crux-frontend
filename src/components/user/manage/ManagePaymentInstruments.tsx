@@ -132,7 +132,7 @@ const ManagePaymentInstruments = () => {
     <Fragment>
       <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          View and Manage Existing Payment Instruments
+          Current Balances
         </Typography>
         <Box>
           {loading && (

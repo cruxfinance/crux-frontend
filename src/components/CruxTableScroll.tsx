@@ -264,7 +264,7 @@ const CruxTableScroll = <T extends Record<string, any>>({
                 ))}
               </TableBody>
             </Table>
-            : <Box sx={{ py: 4, textAlign: 'center' }}>No data</Box>}
+            : <Box sx={{ py: 4, textAlign: 'center' }}>No data to display</Box>}
       </Paper>
     </Box>
   )

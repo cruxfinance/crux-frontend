@@ -50,8 +50,7 @@ const pages = [
   },
   {
     name: "Accounting",
-    link: "/accounting",
-    disabled: true,
+    link: "/accounting"
   },
 ];
 
@@ -65,9 +64,9 @@ interface INavItemProps {
   };
 }
 
-interface IHeaderProps {}
+interface IHeaderProps { }
 
-const Header: FC<IHeaderProps> = ({}) => {
+const Header: FC<IHeaderProps> = ({ }) => {
   // const {
   //   theme,
   //   // setTheme
@@ -395,7 +394,7 @@ const Header: FC<IHeaderProps> = ({}) => {
                       discord="https://discord.gg/tZEd3PadtD"
                       // github=""
                       twitter="https://twitter.com/cruxfinance"
-                      // medium=""
+                    // medium=""
                     />
                   </Grid>
                 </Grid>
