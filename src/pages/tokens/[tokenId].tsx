@@ -169,7 +169,6 @@ const TokenInfo: FC = () => {
       })
     }
   };
-  console.log(currency)
   return (
     <Box id="stats" sx={{ mx: 2 }}>
       <Box
