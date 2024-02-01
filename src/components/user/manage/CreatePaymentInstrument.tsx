@@ -4,7 +4,6 @@ import { LoadingButton } from "@mui/lab";
 import {
   Avatar,
   Box,
-  Button,
   FormControl,
   InputLabel,
   ListItemIcon,
@@ -37,8 +36,8 @@ export const allowedTokens: AllowedToken[] = [
     id: "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365",
     name: "CRUX",
     icon: null,
-    decimals: 4
-  }
+    decimals: 4,
+  },
 ];
 
 export const getIcon = async (id: string) => {

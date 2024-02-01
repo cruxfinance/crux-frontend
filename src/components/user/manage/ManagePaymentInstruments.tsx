@@ -66,12 +66,16 @@ const ManagePaymentInstruments = () => {
   const [loading, setLoading] = useState(true);
   const [dialogLoading, setDialogLoading] = useState(false);
 
-  const query = trpc.subscription.findPaymentInstruments.useQuery(undefined, {
-    onSuccess: (data) => {
-      setPaymentInstruments(data);
-      setLoading(false);
-    },
-  });
+  const query =
+    trpc.subscription.findOrCreateDefaultPaymentInstruments.useQuery(
+      undefined,
+      {
+        onSuccess: (data) => {
+          setPaymentInstruments(data);
+          setLoading(false);
+        },
+      }
+    );
   const addBalanceMutation =
     trpc.subscription.addPaymentInstrumentBalance.useMutation();
 
@@ -161,7 +165,7 @@ const ManagePaymentInstruments = () => {
     <Fragment>
       <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          Current Balances
+          View and Manage Payment Instruments
         </Typography>
         <Box>
           {loading && (
