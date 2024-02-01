@@ -1,5 +1,5 @@
 import React, { FC, useState, useEffect } from "react";
-import { Typography, Button, Box } from "@mui/material";
+import { Typography, Button, Box, Divider, Avatar, useTheme } from "@mui/material";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -11,11 +11,15 @@ import { signIn, signOut } from "next-auth/react";
 import { useWallet } from "@contexts/WalletContext";
 import Link from "next/link";
 import SettingsIcon from "@mui/icons-material/Settings";
-import SubscriptionsIcon from '@mui/icons-material/Subscriptions';
+import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
+import EventRepeatOutlinedIcon from '@mui/icons-material/EventRepeatOutlined';
+import { useRouter } from "next/router";
 
 interface IUserMenuProps { }
 
 const UserMenu: FC<IUserMenuProps> = () => {
+  const theme = useTheme()
+  const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false);
   const [addWalletModal, setAddWalletModal] = useState(false);
   const {
@@ -182,40 +186,43 @@ const UserMenu: FC<IUserMenuProps> = () => {
             transformOrigin={{ horizontal: "right", vertical: "top" }}
             anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
           >
-            {/* <MenuItem
-              sx={{ mt: '6px' }}
-            // onClick={() => router.push('/users/' + walletContext.wallet.getChangeAddress)}
+            <MenuItem
+              onClick={() => router.push('/user')}
+              sx={{ '&:hover': { background: 'rgba(150,150,150,0.05)' } }}
             >
-              <Avatar src={sessionData?.user.image} variant="rounded" /> View Profile
-            </MenuItem>
-            <Divider /> */}
-            {/* <MenuItem onClick={() => router.push('/user-settings/')}>
-              <ListItemIcon>
-                <Settings fontSize="small" />
+              <ListItemIcon sx={{ pl: '4px' }}>
+                <Avatar
+                  src={sessionData?.user.image}
+                  sx={{
+                    width: '20px !important',
+                    height: '20px !important',
+
+                    bgcolor: theme.palette.secondary.main
+                  }}
+                />
               </ListItemIcon>
-              Edit Profile
-            </MenuItem> */}
-            {/* <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
-              <Link href="/user/connected-wallets" passHref>
-                <MenuItem>
-                  <ListItemIcon>
-                    <AccountBalanceWalletIcon fontSize="small" />
-                  </ListItemIcon>
-                  Connected wallets
-                </MenuItem>
-              </Link>
-            </Box> */}
-            <Box sx={{ "&:hover a": { textDecoration: "none!important" } }}>
-              <Link href="/user/subscriptions" passHref>
-                <MenuItem>
-                  <ListItemIcon>
-                    <SubscriptionsIcon fontSize="small" />
-                  </ListItemIcon>
-                  Subscriptions
-                </MenuItem>
-              </Link>
-            </Box>
-            <MenuItem onClick={clearWallet}>
+              User Profile
+            </MenuItem>
+            <MenuItem
+              onClick={() => router.push('/user/subscription')}
+              sx={{ '&:hover': { background: 'rgba(150,150,150,0.05)' } }}
+            >
+              <ListItemIcon>
+                <EventRepeatOutlinedIcon fontSize="small" />
+              </ListItemIcon>
+              Subscription
+            </MenuItem>
+            <MenuItem
+              onClick={() => router.push('/user/payments')}
+              sx={{ '&:hover': { background: 'rgba(150,150,150,0.05)' } }}
+            >
+              <ListItemIcon>
+                <ReceiptOutlinedIcon fontSize="small" />
+              </ListItemIcon>
+              Payments
+            </MenuItem>
+            <Divider sx={{ mb: '3px' }} />
+            <MenuItem onClick={clearWallet} sx={{ '&:hover': { background: 'rgba(150,150,150,0.05)' } }}>
               <ListItemIcon>
                 <Logout fontSize="small" />
               </ListItemIcon>

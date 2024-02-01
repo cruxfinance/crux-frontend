@@ -36,21 +36,17 @@ const CruxTableScroll = <T extends Record<string, any>>({
   const [paperWidth, setPaperWidth] = useState(0);
 
   useEffect(() => {
-    console.log("Adding event listeners");
     window.addEventListener('scroll', updateHeaderPosition);
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
       if (paperRef.current) {
         setPaperWidth(paperRef.current.offsetWidth);
-        console.log(window.innerWidth)
-        console.log(paperRef.current.offsetWidth)
       }
     };
     window.addEventListener('resize', handleResize);
     handleResize();
 
     return () => {
-      console.log("Removing event listeners");
       window.removeEventListener('scroll', updateHeaderPosition);
       window.removeEventListener('resize', handleResize);
     };
@@ -268,7 +264,7 @@ const CruxTableScroll = <T extends Record<string, any>>({
                 ))}
               </TableBody>
             </Table>
-            : <Box sx={{ py: 4, textAlign: 'center' }}>No data</Box>}
+            : <Box sx={{ py: 4, textAlign: 'center' }}>No data to display</Box>}
       </Paper>
     </Box>
   )

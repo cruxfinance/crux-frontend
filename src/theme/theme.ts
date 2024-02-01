@@ -345,7 +345,7 @@ let darkTheme = createTheme({
         root: {
           background: 'radial-gradient(at right top, #12121B, #0A0D15)',
           border: '1px solid rgba(200, 225, 255, 0.1)',
-          borderRadius: '16px'
+          borderRadius: '10px'
           // backdropFilter: "blur(20px)",
           // boxShadow: `10px 10px 20px 5px rgba(0,0,0,0.3)`,
           // '&:before': {

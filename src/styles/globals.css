@@ -5,6 +5,12 @@ body {
   overflow-x: hidden;
 }
 
+body {
+  overflow-y: overlay;
+  
+  height: 100%;
+}
+
 a {
   color: inherit;
   text-decoration: none;
