@@ -4,9 +4,11 @@ const accountingNavItems: SideNavItem[] = [
     items: [
       {
         subtitle: "Download Reports",
+        link: "/accounting"
       },
       {
         subtitle: "Transaction Overview",
+        link: "/accounting/transaction-overview"
       }
     ],
   },
@@ -15,6 +17,7 @@ const accountingNavItems: SideNavItem[] = [
     items: [
       {
         subtitle: "Manage Payments",
+        link: "/accounting/payments"
       },
     ],
   }

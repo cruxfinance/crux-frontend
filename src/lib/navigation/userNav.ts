@@ -25,8 +25,9 @@ const userNavItems: SideNavItem[] = [
     header: "Wallet",
     items: [
       {
-        subtitle: "Manage Connected Wallets",
-      },
+        subtitle: "Connected Wallets",
+        link: "/user/wallets",
+      }
     ],
   },
 ];

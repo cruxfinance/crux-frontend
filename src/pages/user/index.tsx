@@ -5,7 +5,7 @@ import userNavItems from "@lib/navigation/userNav"
 
 const UserProfile: NextPage = () => {
   return (
-    <SideMenu title="Manage Account" navItems={userNavItems}>
+    <SideMenu title="Settings" navItems={userNavItems}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>User Profile</Typography>
         <Typography>

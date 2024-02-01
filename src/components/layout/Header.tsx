@@ -12,6 +12,8 @@ import {
   Avatar,
   useMediaQuery,
   useTheme,
+  Dialog,
+  DialogContent,
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import Link from "@components/Link";
@@ -146,7 +148,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 href={page.link}
                 sx={{
                   color:
-                    router.pathname === page.link
+                    router.pathname.includes(page.link)
                       ? theme.palette.primary.main
                       : theme.palette.text.primary,
                   "&:hover": {
@@ -210,7 +212,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
             p: 0,
           },
           mb: "24px",
-          width: "100vw",
+          // width: "100vw",
         }}
       >
         <Box sx={{ mx: 2 }}>
@@ -313,96 +315,103 @@ const Header: FC<IHeaderProps> = ({ }) => {
           </Grid>
         </Box>
       </AppBar>
-      <Fade
-        in={navbarOpen}
-        style={{ transitionDuration: "200ms" }}
-        mountOnEnter
-        unmountOnExit
+      <Dialog
+        open={navbarOpen}
+        onClose={() => setNavbarOpen(false)}
+        fullScreen
       >
-        <Box
-          sx={{
-            height: "calc(100vh - 90px)",
-            width: "100vw",
-            position: "fixed",
-            top: 0,
-            zIndex: 10002,
-            background: theme.palette.background.default,
-            mt: "90px",
-            p: "16px",
-            pb: 0,
-          }}
-        >
+        <DialogContent>
+          <IconButton
+            sx={{ position: 'fixed', top: '25px', right: '8px' }}
+            onClick={() => handleNavbarToggle()}
+          >
+            <ClearIcon color="primary" />
+          </IconButton>
           <Box
             sx={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
               height: "100%",
-              pb: 2,
+              // width: "100vw",
+              // position: "fixed",
+              // top: 0,
+              // zIndex: 10002,
+              // background: theme.palette.background.default,
+              // mt: "90px",
+              // p: "16px",
+              // pb: 0,
             }}
           >
-            <Box>
-              <Grid
-                container
-                spacing={5}
-                direction="column"
-                justifyContent="flex-end"
-                alignItems="flex-start"
-                sx={{
-                  mb: 3,
-                }}
-              >
-                {pages.map((page) => (
-                  <NavigationListItem size={24} key={page.name} page={page} />
-                ))}
-              </Grid>
-            </Box>
-            <Box>
-              <Grid container direction="column" spacing={4}>
-                {/* <Grid item>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "flex-end",
+                height: "100%",
+                pb: 2,
+              }}
+            >
+              <Box>
+                <Grid
+                  container
+                  spacing={5}
+                  direction="column"
+                  justifyContent="flex-end"
+                  alignItems="flex-start"
+                  sx={{
+                    mb: 3,
+                  }}
+                >
+                  {pages.map((page) => (
+                    <NavigationListItem size={24} key={page.name} page={page} />
+                  ))}
+                </Grid>
+              </Box>
+              <Box>
+                <Grid container direction="column" spacing={4}>
+                  {/* <Grid item>
                   <Button variant="contained" fullWidth>New transaction</Button>
                 </Grid> */}
-                <Grid item>
-                  <Divider />
-                </Grid>
-                <Grid item>
-                  <Typography
-                    variant="h5"
-                    gutterBottom
-                    fontWeight="800"
-                    fontSize="14px"
-                  >
-                    Follow us on social media
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    gutterBottom
-                    sx={{ mb: 4 }}
-                    fontSize="14px"
-                  >
-                    Interacting with our socials helps us reach a wider
-                    audience.
-                  </Typography>
-                  <Grid
-                    container
-                    direction="row"
-                    spacing={3}
-                    sx={{ fontSize: "24px" }}
-                  >
-                    <SocialGrid
-                      telegram="https://t.me/CruxFinance"
-                      discord="https://discord.gg/tZEd3PadtD"
-                      // github=""
-                      twitter="https://twitter.com/cruxfinance"
-                    // medium=""
-                    />
+                  <Grid item>
+                    <Divider />
+                  </Grid>
+                  <Grid item>
+                    <Typography
+                      variant="h5"
+                      gutterBottom
+                      fontWeight="800"
+                      fontSize="14px"
+                    >
+                      Follow us on social media
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      gutterBottom
+                      sx={{ mb: 4 }}
+                      fontSize="14px"
+                    >
+                      Interacting with our socials helps us reach a wider
+                      audience.
+                    </Typography>
+                    <Grid
+                      container
+                      direction="row"
+                      spacing={3}
+                      sx={{ fontSize: "24px" }}
+                    >
+                      <SocialGrid
+                        telegram="https://t.me/CruxFinance"
+                        discord="https://discord.gg/tZEd3PadtD"
+                        // github=""
+                        twitter="https://twitter.com/cruxfinance"
+                      // medium=""
+                      />
+                    </Grid>
                   </Grid>
                 </Grid>
-              </Grid>
+              </Box>
             </Box>
           </Box>
-        </Box>
-      </Fade>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

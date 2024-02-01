@@ -9,10 +9,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <Header />
       <Box
         sx={{
-          width: "100vw",
           display: "flex",
           flexDirection: "column",
-          minHeight: "100vh",
+          minHeight: "calc(100vh - 116px)",
         }}
       >
         <Box sx={{ flexGrow: "1", height: "100%" }}>{children}</Box>

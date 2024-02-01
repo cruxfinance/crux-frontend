@@ -7,7 +7,7 @@ import userNavItems from "@lib/navigation/userNav"
 
 const Payments: NextPage = () => {
   return (
-    <SideMenu title="Manage Account" navItems={userNavItems}>
+    <SideMenu title="Settings" navItems={userNavItems}>
       <Box sx={{ mb: 2 }}>
         <ManagePaymentInstruments />
       </Box>

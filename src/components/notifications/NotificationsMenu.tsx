@@ -15,6 +15,7 @@ import {
   Dialog,
   Avatar,
   Fade,
+  DialogContent,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -23,6 +24,7 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import Link from "@mui/material/Link";
 import CloseIcon from "@mui/icons-material/Close";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import ClearIcon from "@mui/icons-material/Clear";
 
 interface IMenuItemProps {
   icon: React.ReactElement;
@@ -173,54 +175,60 @@ const NotificationsMenu: FC<INotificationsProps> = ({
     return (
       <Box
         sx={{
-          minWidth: "420px",
+          // minWidth: "420px",
+          height: '100%',
           maxWidth: isLg ? "420px" : "534px",
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}
       >
-        <Box
-          ref={heightOneRef}
-          sx={{ width: "100%", px: "12px", py: "12px", display: "block" }}
-        >
-          <Typography variant="h6">Notifications</Typography>
-        </Box>
-        <Box
-          sx={{
-            // height: isLg ? '75vh' : `calc(100vh - ${subtractHeight}px)`,
-            overflowY: "scroll",
-            display: "block",
-          }}
-        >
-          <MenuList sx={{ py: 0 }}>
-            {currentMenuItems.length > 0 ? (
-              currentMenuItems.map((item, i) => {
-                const icon = item.success.includes("confirmed") ? (
-                  <CheckCircleIcon fontSize="small" color="success" />
-                ) : item.success.includes("failed") ? (
-                  <CancelIcon fontSize="small" color="error" />
-                ) : (
-                  <ErrorIcon fontSize="small" color="warning" />
-                );
-                if (i < 3) {
-                  return (
-                    <CustomMenuItem
-                      txType={item.txType}
-                      txId={item.txId}
-                      success={item.success}
-                      icon={icon}
-                      time={item.time}
-                      unread={item.unread}
-                      key={item.txId}
-                      index={i}
-                    />
+        <Box>
+          <Box
+            ref={heightOneRef}
+            sx={{ width: "100%", px: "12px", py: "12px", display: "block" }}
+          >
+            <Typography variant="h6">Notifications</Typography>
+          </Box>
+          <Box
+            sx={{
+              // height: isLg ? '75vh' : `calc(100vh - ${subtractHeight}px)`,
+              overflowY: "scroll",
+              display: "block",
+            }}
+          >
+            <MenuList sx={{ py: 0 }}>
+              {currentMenuItems.length > 0 ? (
+                currentMenuItems.map((item, i) => {
+                  const icon = item.success.includes("confirmed") ? (
+                    <CheckCircleIcon fontSize="small" color="success" />
+                  ) : item.success.includes("failed") ? (
+                    <CancelIcon fontSize="small" color="error" />
+                  ) : (
+                    <ErrorIcon fontSize="small" color="warning" />
                   );
-                }
-              })
-            ) : (
-              <MenuItem>
-                <Typography sx={{ py: 1 }}>Ugh... this looks empty!</Typography>
-              </MenuItem>
-            )}
-          </MenuList>
+                  if (i < 3) {
+                    return (
+                      <CustomMenuItem
+                        txType={item.txType}
+                        txId={item.txId}
+                        success={item.success}
+                        icon={icon}
+                        time={item.time}
+                        unread={item.unread}
+                        key={item.txId}
+                        index={i}
+                      />
+                    );
+                  }
+                })
+              ) : (
+                <MenuItem>
+                  <Typography sx={{ py: 1 }}>Ugh... this looks empty!</Typography>
+                </MenuItem>
+              )}
+            </MenuList>
+          </Box>
         </Box>
         <Box
           sx={{
@@ -249,8 +257,8 @@ const NotificationsMenu: FC<INotificationsProps> = ({
               ? handleClick(e)
               : handleClose()
             : dialogOpen
-            ? handleDialogClose()
-            : handleDialogOpen()
+              ? handleDialogClose()
+              : handleDialogOpen()
         }
         sx={{
           "&:hover, &.Mui-focusVisible": {
@@ -260,34 +268,44 @@ const NotificationsMenu: FC<INotificationsProps> = ({
           zIndex: 103,
         }}
       >
-        {open || dialogOpen ? (
-          <CloseIcon />
-        ) : (
-          <Badge badgeContent={numberUnread} color="primary">
-            <NotificationsIcon />
-          </Badge>
-        )}
+        <Badge badgeContent={numberUnread} color="primary">
+          <NotificationsIcon />
+        </Badge>
       </IconButton>
-      <Fade in={dialogOpen} style={{ transitionDuration: "200ms" }}>
-        <Box
-          sx={{
-            height: "calc(100vh - 60px)",
-            width: "100vw",
-            position: "fixed",
-            top: 0,
-            left: 0,
-            bottom: 0,
-            right: 0,
-            zIndex: 102,
-            background: theme.palette.background.default,
-            mt: "60px",
-            p: "16px",
-            pb: 0,
-          }}
-        >
-          <Contents />
-        </Box>
-      </Fade>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        fullScreen
+      >
+        <DialogContent>
+          <IconButton
+            sx={{ position: 'fixed', top: '26px', right: '17px' }}
+            onClick={() => setDialogOpen(false)}
+          >
+            <ClearIcon />
+          </IconButton>
+          <Box
+            sx={{
+              height: "100%",
+              // display: 'flex',
+              // alignItems: 'flex-end'
+              // width: "100vw",
+              // position: "fixed",
+              // top: 0,
+              // left: 0,
+              // bottom: 0,
+              // right: 0,
+              // zIndex: 100000,
+              // background: theme.palette.background.default,
+              // mt: "60px",
+              // p: "16px",
+              // pb: 0,
+            }}
+          >
+            <Contents />
+          </Box>
+        </DialogContent>
+      </Dialog>
       <Popover
         id={id}
         open={open}
