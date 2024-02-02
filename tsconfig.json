@@ -26,8 +26,8 @@
       "@public/*": ["./public/*"],
       "@pages/*": ["./src/pages/*"],
       "@utils/*": ["./src/utils/*"],
-      "@hooks/*": ["./src/hooks/*"],
-      "@contexts/*": ["./src/contexts/*"],
+      "@hooks/*": ["./src/lib/hooks/*"],
+      "@contexts/*": ["./src/lib/contexts/*"],
       "@server/*": ["./src/server/*"],
       "@lib/*": ["./src/lib/*"]
     }

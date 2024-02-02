@@ -1,4 +1,4 @@
-import { FC, Fragment, ReactNode, useState } from "react";
+import { FC, Fragment, ReactNode, useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -13,8 +13,8 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import Grid from "@mui/system/Unstable_Grid/Grid";
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
+import { useScrollLock } from "@contexts/ScrollLockContext";
 
 const DRAWER_WIDTH = 240;
 
@@ -30,11 +30,13 @@ interface SideMenuProps {
   children: ReactNode;
   title: string;
   navItems: SideNavItem[]
+  noMaxWidth?: boolean
 }
 
 const Navigation: FC<{ navItems: SideNavItem[] }> = ({ navItems }) => {
   const router = useRouter();
   const pathname = router.pathname
+
   return <>
     {navItems.map((item, index) => {
       return (
@@ -78,7 +80,7 @@ const Navigation: FC<{ navItems: SideNavItem[] }> = ({ navItems }) => {
   </>
 }
 
-const SideMenu: FC<SideMenuProps> = ({ children, title, navItems }) => {
+const SideMenu: FC<SideMenuProps> = ({ children, title, navItems, noMaxWidth }) => {
   const theme = useTheme()
   const desktop = useMediaQuery(theme.breakpoints.up('sm'))
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -87,6 +89,7 @@ const SideMenu: FC<SideMenuProps> = ({ children, title, navItems }) => {
     setMobileOpen(!mobileOpen);
   };
 
+  const { isLocked, scrollBarCompensation } = useScrollLock();
 
   return (
     <>
@@ -137,6 +140,7 @@ const SideMenu: FC<SideMenuProps> = ({ children, title, navItems }) => {
                 position: 'fixed',
                 bottom: '30px',
                 right: '30px',
+                mr: isLocked ? `${scrollBarCompensation}px` : 0,
                 zIndex: 200,
                 fontWeight: 700,
                 fontSize: '18px'
@@ -152,25 +156,29 @@ const SideMenu: FC<SideMenuProps> = ({ children, title, navItems }) => {
         </>
       }
       {desktop &&
-        <Container maxWidth="lg">
+        <Box sx={{
+          mx: noMaxWidth ? 2 : 'auto',
+          maxWidth: noMaxWidth ? 'none' : '1100px'
+        }}>
           <Typography variant="h3" sx={{ fontWeight: 700, mb: 4 }}>
             {title}
           </Typography>
-          <Grid
-            container
-            spacing={4}
+          <Box
             sx={{
-              flexDirection: "row-reverse",
+              display: 'flex',
+              flexDirection: "row",
+              gap: 4,
+              maxWidth: '100%'
             }}
           >
-            <Grid sm={8} md={9} xs={12}>
-              {children}
-            </Grid>
-            <Grid sm={4} md={3} xs={12} sx={{ flexGrow: 1 }}>
+            <Box sx={{ width: '240px' }}>
               <Navigation navItems={navItems} />
-            </Grid>
-          </Grid>
-        </Container>
+            </Box>
+            <Box sx={{ maxWidth: 'calc(100% - 240px)', flexGrow: 1 }}>
+              {children}
+            </Box>
+          </Box>
+        </Box>
       }
     </>
   );

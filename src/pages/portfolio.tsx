@@ -24,6 +24,7 @@ import StakedPositions from "@components/portfolio/positions/StakedPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";
 import { useSession } from "next-auth/react";
 import Positions from "@components/portfolio/positions/Positions";
+import { WalletProvider, useWallet } from "@lib/contexts/WalletContext";
 
 export interface IExtendedToken extends IPieToken {
   tokenId: string;
@@ -56,7 +57,7 @@ const Portfolio = () => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
-  const session = useSession();
+  const { sessionStatus, sessionData } = useWallet()
   const [boxHeight, setBoxHeight] = useState("auto");
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({
     tokenSummary: true,
@@ -82,12 +83,12 @@ const Portfolio = () => {
       fetchData(parsedAddresses);
     }
     else if (
-      session?.status === "authenticated" &&
-      session?.data?.user?.address !== undefined
+      sessionStatus === "authenticated" &&
+      sessionData?.user?.address !== undefined
     ) {
       getExchange();
-      setAddressList(session.data.user.address);
-      fetchData([session.data.user.address]);
+      setAddressList(sessionData.user.address);
+      fetchData([sessionData.user.address]);
     }
   }, [])
 

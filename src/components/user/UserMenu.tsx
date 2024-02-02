@@ -8,12 +8,13 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import SignIn from "./SignIn";
 import { getShortAddress } from "@lib/utils/general";
 import { signIn, signOut } from "next-auth/react";
-import { useWallet } from "@contexts/WalletContext";
+import { useWallet } from "@lib/contexts/WalletContext";
 import Link from "next/link";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
 import EventRepeatOutlinedIcon from '@mui/icons-material/EventRepeatOutlined';
 import { useRouter } from "next/router";
+import { useScrollLock } from "@contexts/ScrollLockContext";
 
 interface IUserMenuProps { }
 
@@ -30,6 +31,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
     providerLoading,
     setProviderLoading,
   } = useWallet();
+
+  const { lockScroll, unlockScroll } = useScrollLock();
 
   useEffect(() => {
     // console.log('session: ' + sessionStatus);
@@ -81,9 +84,11 @@ const UserMenu: FC<IUserMenuProps> = () => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    lockScroll()
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {
+    unlockScroll()
     setAnchorEl(null);
   };
 
@@ -196,7 +201,6 @@ const UserMenu: FC<IUserMenuProps> = () => {
                   sx={{
                     width: '20px !important',
                     height: '20px !important',
-
                     bgcolor: theme.palette.secondary.main
                   }}
                 />

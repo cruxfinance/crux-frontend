@@ -1,4 +1,4 @@
-import React, { FC, useContext, useEffect } from "react";
+import React, { FC } from "react";
 import AppBar from "@mui/material/AppBar";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -30,6 +30,7 @@ import SocialGrid from "./SocialGrid";
 // import Brightness7Icon from '@mui/icons-material/Brightness7';
 // import IconButton from "@mui/material/IconButton";
 import { useRouter } from "next/router";
+import { useScrollLock } from "@contexts/ScrollLockContext";
 
 const pages = [
   {
@@ -73,6 +74,8 @@ const Header: FC<IHeaderProps> = ({ }) => {
   //   theme,
   //   // setTheme
   // } = useContext(ThemeContext);
+  const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } = useScrollLock();
+
   const theme = useTheme();
   const [navbarOpen, setNavbarOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
@@ -82,18 +85,22 @@ const Header: FC<IHeaderProps> = ({ }) => {
   const upLg = useMediaQuery(theme.breakpoints.up("lg"));
 
   const handleDialogOpen = () => {
+    lockScroll();
     setNavbarOpen(false);
     setNotificationsOpen(true);
   };
 
   const handleDialogClose = () => {
+    unlockScroll();
     setNotificationsOpen(false);
   };
 
   const handleNavbarToggle = () => {
     if (navbarOpen === true) {
+      unlockScroll();
       setNavbarOpen(false);
     } else {
+      lockScroll();
       setNavbarOpen(true);
       setNotificationsOpen(false);
     }
@@ -322,7 +329,13 @@ const Header: FC<IHeaderProps> = ({ }) => {
       >
         <DialogContent>
           <IconButton
-            sx={{ position: 'fixed', top: '25px', right: '8px' }}
+            sx={{
+              position: 'fixed',
+              top: '25px',
+              right: isLocked
+                ? `${scrollBarCompensation + 8}px`
+                : '8px',
+            }}
             onClick={() => handleNavbarToggle()}
           >
             <ClearIcon color="primary" />

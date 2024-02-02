@@ -12,7 +12,7 @@ import {
   useTheme,
 } from "@mui/material";
 import Link from "@components/Link";
-import { useWallet } from "@contexts/WalletContext";
+import { useWallet } from "@lib/contexts/WalletContext";
 import { AddWalletExpanded } from "./AddWalletModal";
 
 interface IAddMobileOpen {
@@ -49,10 +49,10 @@ const AddMobileOpen: FC<IAddMobileOpen> = ({
       refetchInterval: (
         data:
           | {
-              status: "PENDING" | "SIGNED";
-              signedMessage: string;
-              proof: string;
-            }
+            status: "PENDING" | "SIGNED";
+            signedMessage: string;
+            proof: string;
+          }
           | undefined
       ) => {
         // If the status is 'SIGNED', stop polling

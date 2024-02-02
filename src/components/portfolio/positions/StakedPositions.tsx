@@ -84,8 +84,6 @@ const StakedPositions: FC<StakedPositionsProps> = ({ currency, addressList, setC
 
           const totalStake = stakedAmount + rewardAmount - unstakedAmount;
 
-          console.log(currentPrice)
-
           return {
             "Name": symbolWithName(tokenName, tokenId),
             "Total Stake": formatNumber(totalStake),

@@ -25,6 +25,7 @@ import Link from "@mui/material/Link";
 import CloseIcon from "@mui/icons-material/Close";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import ClearIcon from "@mui/icons-material/Clear";
+import { useScrollLock } from "@contexts/ScrollLockContext";
 
 interface IMenuItemProps {
   icon: React.ReactElement;
@@ -57,15 +58,18 @@ const NotificationsMenu: FC<INotificationsProps> = ({
   handleDialogOpen,
   handleDialogClose,
 }) => {
+  const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } = useScrollLock();
   const theme = useTheme();
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
     null
   );
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    lockScroll();
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {
+    unlockScroll();
     setAnchorEl(null);
   };
   const open = Boolean(anchorEl);
@@ -160,18 +164,6 @@ const NotificationsMenu: FC<INotificationsProps> = ({
   };
 
   const Contents: FC = () => {
-    const heightOneRef = useRef<HTMLInputElement>();
-    const heightTwoRef = useRef<HTMLInputElement>();
-    const [subtractHeight, setSubtractHeight] = useState(0);
-
-    useEffect(() => {
-      const heightOne = heightOneRef.current;
-      const heightTwo = heightTwoRef.current;
-      if (heightOne !== undefined && heightTwo !== undefined) {
-        setSubtractHeight(heightOne.offsetHeight + heightTwo.offsetHeight);
-      }
-    }, [heightOneRef, heightTwoRef]);
-
     return (
       <Box
         sx={{
@@ -185,14 +177,12 @@ const NotificationsMenu: FC<INotificationsProps> = ({
       >
         <Box>
           <Box
-            ref={heightOneRef}
             sx={{ width: "100%", px: "12px", py: "12px", display: "block" }}
           >
             <Typography variant="h6">Notifications</Typography>
           </Box>
           <Box
             sx={{
-              // height: isLg ? '75vh' : `calc(100vh - ${subtractHeight}px)`,
               overflowY: "scroll",
               display: "block",
             }}
@@ -240,7 +230,6 @@ const NotificationsMenu: FC<INotificationsProps> = ({
             bottom: 0,
           }}
           onClick={markAllRead}
-          ref={heightTwoRef}
         >
           <Button fullWidth>Mark all as read</Button>
         </Box>
@@ -254,7 +243,7 @@ const NotificationsMenu: FC<INotificationsProps> = ({
         onClick={(e) =>
           isLg
             ? !anchorEl
-              ? handleClick(e)
+              ? handleOpen(e)
               : handleClose()
             : dialogOpen
               ? handleDialogClose()
@@ -274,13 +263,19 @@ const NotificationsMenu: FC<INotificationsProps> = ({
       </IconButton>
       <Dialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => handleDialogClose()}
         fullScreen
       >
         <DialogContent>
           <IconButton
-            sx={{ position: 'fixed', top: '26px', right: '17px' }}
-            onClick={() => setDialogOpen(false)}
+            sx={{
+              position: 'fixed',
+              top: '26px',
+              right: isLocked
+                ? `${scrollBarCompensation + 7}px`
+                : '7px',
+            }}
+            onClick={() => handleDialogClose()}
           >
             <ClearIcon />
           </IconButton>

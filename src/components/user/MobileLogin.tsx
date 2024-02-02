@@ -14,7 +14,7 @@ import {
 import Link from "@components/Link";
 import { signIn } from "next-auth/react";
 import { isErgoMainnetAddress } from "@lib/utils/general";
-import { useWallet } from "@contexts/WalletContext";
+import { useWallet } from "@lib/contexts/WalletContext";
 
 interface IMobileLogin {
   setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -43,10 +43,10 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
       refetchInterval: (
         data:
           | {
-              status: "PENDING" | "SIGNED";
-              signedMessage: string;
-              proof: string;
-            }
+            status: "PENDING" | "SIGNED";
+            signedMessage: string;
+            proof: string;
+          }
           | undefined
       ) => {
         // If the status is 'SIGNED', stop polling
