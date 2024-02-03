@@ -114,7 +114,7 @@ const CreateSubscription = () => {
       });
       setSelectedPlan(null);
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
     setLoading(false);
   };
