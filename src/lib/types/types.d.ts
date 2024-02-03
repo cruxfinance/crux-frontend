@@ -115,3 +115,6 @@ interface SideNavItem {
   header: string;
   items: { subtitle: string; link?: string }[];
 }
+
+type ArrayElement<ArrayType extends readonly unknown[]> =
+  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;

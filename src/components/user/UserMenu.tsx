@@ -1,26 +1,33 @@
 import React, { FC, useState, useEffect } from "react";
-import { Typography, Button, Box, Divider, Avatar, useTheme } from "@mui/material";
+import {
+  Typography,
+  Button,
+  Box,
+  Divider,
+  Avatar,
+  useTheme,
+} from "@mui/material";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import Logout from "@mui/icons-material/Logout";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import WalletIcon from "@mui/icons-material/Wallet";
 import SignIn from "./SignIn";
 import { getShortAddress } from "@lib/utils/general";
 import { signIn, signOut } from "next-auth/react";
 import { useWallet } from "@lib/contexts/WalletContext";
 import Link from "next/link";
 import SettingsIcon from "@mui/icons-material/Settings";
-import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
-import EventRepeatOutlinedIcon from '@mui/icons-material/EventRepeatOutlined';
+import ReceiptOutlinedIcon from "@mui/icons-material/ReceiptOutlined";
+import EventRepeatOutlinedIcon from "@mui/icons-material/EventRepeatOutlined";
 import { useRouter } from "next/router";
 import { useScrollLock } from "@contexts/ScrollLockContext";
 
-interface IUserMenuProps { }
+interface IUserMenuProps {}
 
 const UserMenu: FC<IUserMenuProps> = () => {
-  const theme = useTheme()
-  const router = useRouter()
+  const theme = useTheme();
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [addWalletModal, setAddWalletModal] = useState(false);
   const {
@@ -129,7 +136,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
           variant="contained"
           disabled={providerLoading}
           sx={{ my: "5px" }}
-        // disabled
+          // disabled
         >
           {providerLoading ? "Loading..." : "Sign In"}
         </Button>
@@ -148,8 +155,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
               {providerLoading
                 ? "Loading..."
                 : wallet
-                  ? getShortAddress(wallet)
-                  : "No wallet"}
+                ? getShortAddress(wallet)
+                : "No wallet"}
             </Typography>
           </Button>
           <Menu
@@ -192,10 +199,10 @@ const UserMenu: FC<IUserMenuProps> = () => {
             anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
           >
             <MenuItem
-              onClick={() => router.push('/user')}
-              sx={{ '&:hover': { background: 'rgba(150,150,150,0.05)' } }}
+              onClick={() => router.push("/user")}
+              sx={{ "&:hover": { background: "rgba(150,150,150,0.05)" } }}
             >
-              <ListItemIcon sx={{ pl: '4px' }}>
+              <ListItemIcon sx={{ pl: "4px" }}>
                 <Avatar
                   src={sessionData?.user.image}
                   sx={{
@@ -208,25 +215,37 @@ const UserMenu: FC<IUserMenuProps> = () => {
               User Profile
             </MenuItem>
             <MenuItem
-              onClick={() => router.push('/user/subscription')}
-              sx={{ '&:hover': { background: 'rgba(150,150,150,0.05)' } }}
+              onClick={() => router.push("/user/subscription")}
+              sx={{ "&:hover": { background: "rgba(150,150,150,0.05)" } }}
             >
               <ListItemIcon>
                 <EventRepeatOutlinedIcon fontSize="small" />
               </ListItemIcon>
-              Subscription
+              Subscriptions
             </MenuItem>
             <MenuItem
-              onClick={() => router.push('/user/payments')}
-              sx={{ '&:hover': { background: 'rgba(150,150,150,0.05)' } }}
+              onClick={() => router.push("/user/payments")}
+              sx={{ "&:hover": { background: "rgba(150,150,150,0.05)" } }}
             >
               <ListItemIcon>
                 <ReceiptOutlinedIcon fontSize="small" />
               </ListItemIcon>
               Payments
             </MenuItem>
-            <Divider sx={{ mb: '3px' }} />
-            <MenuItem onClick={clearWallet} sx={{ '&:hover': { background: 'rgba(150,150,150,0.05)' } }}>
+            <MenuItem
+              onClick={() => router.push("/user/wallets")}
+              sx={{ "&:hover": { background: "rgba(150,150,150,0.05)" } }}
+            >
+              <ListItemIcon>
+                <WalletIcon fontSize="small" />
+              </ListItemIcon>
+              Wallet
+            </MenuItem>
+            <Divider sx={{ mb: "3px" }} />
+            <MenuItem
+              onClick={clearWallet}
+              sx={{ "&:hover": { background: "rgba(150,150,150,0.05)" } }}
+            >
               <ListItemIcon>
                 <Logout fontSize="small" />
               </ListItemIcon>
@@ -239,8 +258,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
         open={modalOpen}
         setOpen={setModalOpen}
         setLoading={setProviderLoading}
-      // setDappConnected={setDappConnected}
-      // connectDapp={dappConnection}
+        // setDappConnected={setDappConnected}
+        // connectDapp={dappConnection}
       />
     </>
   );

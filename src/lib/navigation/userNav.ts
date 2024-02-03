@@ -12,7 +12,7 @@ const userNavItems: SideNavItem[] = [
     header: "Subscriptions",
     items: [
       {
-        subtitle: "Manage Subscription",
+        subtitle: "Manage Subscriptions",
         link: "/user/subscription",
       },
       {

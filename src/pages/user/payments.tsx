@@ -12,7 +12,7 @@ const Payments: NextPage = () => {
       <Box sx={{ mb: 2 }}>
         <ManagePaymentInstruments />
       </Box>
-      {/* <Box sx={{ pb: 2 }}>
+      {/* <Box>
         <CreatePaymentInstrument />
       </Box> */}
     </SideMenu>

@@ -14,12 +14,13 @@ import { SessionProvider } from "next-auth/react";
 import { WalletProvider } from "@lib/contexts/WalletContext";
 import { useRouter } from "next/router";
 import { ScrollLockProvider } from "@contexts/ScrollLockContext";
+import RefreshAccessLevel from "@components/user/RefreshAccessLevel";
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
   const [alert, setAlert] = useState<IAlertMessages[]>([]);
-  const router = useRouter()
-  const isNoLayoutPage = router.pathname === '/ergopad-chart'
+  const router = useRouter();
+  const isNoLayoutPage = router.pathname === "/ergopad-chart";
 
   return (
     <>
@@ -53,6 +54,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
                 );
               }}
             />
+            <RefreshAccessLevel />
           </ThemeProvider>
         </LocalizationProvider>
       </SessionProvider>

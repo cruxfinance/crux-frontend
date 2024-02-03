@@ -39,10 +39,7 @@ import { useSession } from "next-auth/react";
 import Link from "@components/Link";
 import { getErgoWalletContext } from "@contexts/WalletContext";
 
-type ArrayElement<ArrayType extends readonly unknown[]> =
-  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
-
-type PaymentInstrument = ArrayElement<
+export type PaymentInstrument = ArrayElement<
   Awaited<ReturnType<typeof findPaymentInstruments>>
 >;
 
@@ -128,7 +125,7 @@ const ManagePaymentInstruments = () => {
       await query.refetch();
       handleClose();
     } catch (e: any) {
-      handleOpenPopoverError(e.toString().substring(0, 100));
+      handleOpenPopoverError(e.toString());
     }
     setDialogLoading(false);
   };
@@ -165,7 +162,7 @@ const ManagePaymentInstruments = () => {
     <Fragment>
       <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          View and Manage Payment Instruments
+          View and Manage existing Payment Instruments
         </Typography>
         <Box>
           {loading && (
@@ -406,6 +403,7 @@ const ManagePaymentInstruments = () => {
           horizontal: "right",
         }}
         sx={{
+          maxWidth: "500px",
           mt: "10px",
           "& .MuiPopover-paper": {
             overflow: "hidden",

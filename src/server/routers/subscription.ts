@@ -52,6 +52,14 @@ export const subscriptionRouter = createTRPCRouter({
       return updatedPaymentInstruments;
     }
   ),
+  findActiveSubscripion: protectedProcedure.query(async ({ ctx }) => {
+    const subscriptions = await findSubscriptions(ctx.session.user.id);
+    const activeSubscription =
+      subscriptions.toSorted(
+        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+      )[0] ?? null;
+    return activeSubscription;
+  }),
   // Payment Instruments
   getPaymentInstrument: protectedProcedure
     .input(

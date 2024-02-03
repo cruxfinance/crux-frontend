@@ -6,6 +6,8 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { generateNonceForLogin } from "../utils/nonce";
+import { findSubscriptions } from "@server/services/subscription/subscription";
+import { SubscriptionStatus, UserPrivilegeLevel } from "@prisma/client";
 
 export const userRouter = createTRPCRouter({
   getNonce: publicProcedure
@@ -25,19 +27,18 @@ export const userRouter = createTRPCRouter({
       }
       return { nonce };
     }),
-  getNonceProtected: protectedProcedure
-    .query(async ({ ctx }) => {
-      const { session } = ctx;
-      const nonce = nanoid();
-      const updatedUser = await prisma.user.update({
-        where: { id: session.user.id },
-        data: { nonce },
-      });
-      if (!updatedUser) {
-        throw new Error("Unable to generate nonce");
-      }
-      return { nonce };
-    }),
+  getNonceProtected: protectedProcedure.query(async ({ ctx }) => {
+    const { session } = ctx;
+    const nonce = nanoid();
+    const updatedUser = await prisma.user.update({
+      where: { id: session.user.id },
+      data: { nonce },
+    });
+    if (!updatedUser) {
+      throw new Error("Unable to generate nonce");
+    }
+    return { nonce };
+  }),
   checkAddressAvailable: publicProcedure
     .input(
       z.object({
@@ -458,5 +459,28 @@ export const userRouter = createTRPCRouter({
       throw new Error("Error deleting user");
     }
     return { success: true }; // Return a success response or any other relevant data
+  }),
+  refreshAccessLevel: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const subscriptions = await findSubscriptions(userId);
+    const activeSubscription =
+      subscriptions.toSorted(
+        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+      )[0] ?? null;
+    if (
+      activeSubscription === null ||
+      activeSubscription.status === SubscriptionStatus.EXPIRED
+    ) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { privilegeLevel: UserPrivilegeLevel.DEFAULT },
+      });
+      return;
+    }
+    await prisma.user.update({
+      where: { id: userId },
+      data: { privilegeLevel: activeSubscription.allowedAccess },
+    });
+    return;
   }),
 });
