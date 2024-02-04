@@ -95,6 +95,9 @@ const CreateSubscription = () => {
       setPaymentInstruments(data);
     },
   });
+  const queries = trpc.useQueries((t) => [
+    t.subscription.findActiveSubscripion(),
+  ]);
   const createSubscription = trpc.subscription.createSubscription.useMutation();
 
   const signUp = async () => {
@@ -112,6 +115,7 @@ const CreateSubscription = () => {
         paymentInstrumentId: paymentInstrument.id,
         subscriptionConfigId: subscriptionConfig.id,
       });
+      await Promise.all(queries.map((query) => query.refetch()));
       setSelectedPlan(null);
     } catch (e) {
       console.error(e);
@@ -134,6 +138,7 @@ const CreateSubscription = () => {
         >
           {SUBSCRIPTION_CONFIG.map((config) => (
             <SubscriptionConfigCard
+              key={config.id}
               config={config}
               setSelectedPlan={setSelectedPlan}
             />

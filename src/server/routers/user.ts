@@ -6,7 +6,10 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { generateNonceForLogin } from "../utils/nonce";
-import { findSubscriptions } from "@server/services/subscription/subscription";
+import {
+  findSubscriptions,
+  renewSubscription,
+} from "@server/services/subscription/subscription";
 import { SubscriptionStatus, UserPrivilegeLevel } from "@prisma/client";
 
 export const userRouter = createTRPCRouter({
@@ -467,6 +470,17 @@ export const userRouter = createTRPCRouter({
       subscriptions.toSorted(
         (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
       )[0] ?? null;
+    if (
+      activeSubscription !== null &&
+      activeSubscription.status !== SubscriptionStatus.ACTIVE
+    ) {
+      try {
+        await renewSubscription(activeSubscription.id);
+        activeSubscription.status = SubscriptionStatus.ACTIVE;
+      } catch (e) {
+        console.warn(e);
+      }
+    }
     if (
       activeSubscription === null ||
       activeSubscription.status === SubscriptionStatus.EXPIRED

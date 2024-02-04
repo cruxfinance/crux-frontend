@@ -10,18 +10,16 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { Subscription } from "@pages/user/subscription";
 import { SubscriptionStatus } from "@prisma/client";
-import { findSubscriptions } from "@server/services/subscription/subscription";
-import { Fragment, useState } from "react";
+import { FC, Fragment, useState } from "react";
 
-export type Subscription = ArrayElement<
-  Awaited<ReturnType<typeof findSubscriptions>>
->;
+interface ManageSubscriptionProps {
+  subscription: Subscription | null;
+}
 
-const ManageSubscription = () => {
+const ManageSubscription: FC<ManageSubscriptionProps> = ({ subscription }) => {
   const theme = useTheme();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
   const [buttonLoading, setButtonLoading] = useState(false);
   const [openPopover, setOpenPopover] = useState(false);
   const [popoverProps, setPopoverProps] = useState({
@@ -30,12 +28,9 @@ const ManageSubscription = () => {
   });
 
   const subscriptionRenew = trpc.subscription.renewSubscription.useMutation();
-  const query = trpc.subscription.findActiveSubscripion.useQuery(undefined, {
-    onSuccess: (data) => {
-      setSubscription(data);
-      setLoading(false);
-    },
-  });
+  const queries = trpc.useQueries((t) => [
+    t.subscription.findActiveSubscripion(),
+  ]);
 
   const handleOpenPopover = (message: string) => {
     setPopoverProps({ message: message, error: "" });
@@ -58,7 +53,7 @@ const ManageSubscription = () => {
       await subscriptionRenew.mutateAsync({
         subscriptionId: subscription?.id ?? "",
       });
-      await query.refetch();
+      await Promise.all(queries.map((query) => query.refetch()));
       handleOpenPopover("Woohoo!!!");
     } catch (e: any) {
       handleOpenPopoverError(e.toString());
@@ -73,13 +68,7 @@ const ManageSubscription = () => {
           Existing Subscriptions
         </Typography>
         <Paper sx={{ p: 3, width: "100%", position: "relative" }}>
-          {loading && (
-            <Box display="flex" justifyContent="center" sx={{ p: 2 }}>
-              <CircularProgress />
-            </Box>
-          )}
-          {!loading &&
-            subscription === null &&
+          {subscription === null &&
             "There is no active Subscription assosiated with your account."}
           {subscription && (
             <>
@@ -98,18 +87,22 @@ const ManageSubscription = () => {
                   {Number(subscription.requiredAmountUSD) / 100}$
                 </Typography>
                 <Typography>
+                  SubscriptionPeriod:{" "}
+                  {Math.floor(subscription.periodSeconds / (60 * 60 * 24))} days
+                </Typography>
+                <Typography>
                   ActivatedAt:{" "}
                   {subscription.activationTimestamp
                     ? new Date(subscription.activationTimestamp).toUTCString()
                     : "-"}
                 </Typography>
-                <Typography>Status: {subscription.status}</Typography>
                 <Typography>
                   CreatedAt: {subscription.createdAt.toUTCString()}
                 </Typography>
                 <Typography>
                   UpdatedAt: {subscription.updatedAt.toUTCString()}
                 </Typography>
+                <Typography>Status: {subscription.status}</Typography>
                 <LoadingButton
                   sx={{ mt: 2 }}
                   variant="outlined"
