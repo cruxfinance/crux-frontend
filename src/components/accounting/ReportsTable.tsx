@@ -147,7 +147,7 @@ const ReportsTable: FC<IReportsTable> = ({ currency }) => {
                     <TableCell>
                       {row.transactionElements.map((transaction, i) => (
                         <Typography key={i}>{
-                          transaction.fromAddress?.includes('9ebmurBJQWeWQghA85AdXzAqdHLCfMoc6nEr7P2tvnJ4afAy67x')
+                          sessionData?.user.address && transaction.fromAddress?.includes(sessionData?.user.address)
                             ? 'Debit'
                             : 'Credit'
                         }</Typography>
