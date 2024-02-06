@@ -16,7 +16,7 @@ const Payments: NextPage = () => {
   // const upSm = useMediaQuery(theme.breakpoints.up('sm'))
   return (
     <SideMenu title="Accounting" navItems={accountingNavItems}>
-      <Paper sx={{ p: 3, width: "100%", position: "relative", mb: 4 }}>
+      <Paper sx={{ p: 3, mb: 4 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Manage Payments</Typography>
       </Paper>
     </SideMenu>

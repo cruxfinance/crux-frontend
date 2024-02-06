@@ -11,8 +11,9 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import AlertWrapper, { IAlertMessages } from "@components/AlertWrapper";
 import { trpc } from "@lib/trpc";
 import { SessionProvider } from "next-auth/react";
-import { WalletProvider } from "@contexts/WalletContext";
+import { WalletProvider } from "@lib/contexts/WalletContext";
 import { useRouter } from "next/router";
+import { ScrollLockProvider } from "@contexts/ScrollLockContext";
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
@@ -34,13 +35,15 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
           <ThemeProvider theme={theme}>
             <CssBaseline enableColorScheme />
             <WalletProvider>
-              {isNoLayoutPage ? (
-                <Component {...pageProps} />
-              ) : (
-                <Layout>
+              <ScrollLockProvider>
+                {isNoLayoutPage ? (
                   <Component {...pageProps} />
-                </Layout>
-              )}
+                ) : (
+                  <Layout>
+                    <Component {...pageProps} />
+                  </Layout>
+                )}
+              </ScrollLockProvider>
             </WalletProvider>
             <AlertWrapper
               alerts={alert}

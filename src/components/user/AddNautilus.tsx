@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { trpc } from "@lib/trpc";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useWallet } from "@contexts/WalletContext";
+import { useWallet } from "@lib/contexts/WalletContext";
 import { AddWalletExpanded } from "./AddWalletModal";
 
 interface IAddNautilus {
