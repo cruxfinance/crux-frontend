@@ -467,7 +467,7 @@ export const userRouter = createTRPCRouter({
     const userId = ctx.session.user.id;
     const subscriptions = await findSubscriptions(userId);
     const activeSubscription =
-      subscriptions.toSorted(
+      [...subscriptions].sort(
         (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
       )[0] ?? null;
     if (

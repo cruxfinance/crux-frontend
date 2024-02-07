@@ -55,7 +55,7 @@ export const subscriptionRouter = createTRPCRouter({
   findActiveSubscripion: protectedProcedure.query(async ({ ctx }) => {
     const subscriptions = await findSubscriptions(ctx.session.user.id);
     const activeSubscription =
-      subscriptions.toSorted(
+      [...subscriptions].sort(
         (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
       )[0] ?? null;
     return activeSubscription;
