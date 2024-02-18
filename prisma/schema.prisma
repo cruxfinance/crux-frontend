@@ -53,6 +53,7 @@ model User {
   defaultAddress     String?             @unique @map("default_address")
   nonce              String?
   image              String?
+  email              String?
   privilegeLevel     UserPrivilegeLevel  @default(DEFAULT) @map("privilege_level")
   accounts           Account[]
   sessions           Session[]
@@ -185,18 +186,18 @@ enum SubscriptionStatus {
 }
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @map("user_id")
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentInstrumentId  String             @map("payment_instrument_id")
-  paymentInstrument    PaymentInstrument  @relation(fields: [paymentInstrumentId], references: [id], onDelete: Cascade)
-  requiredAmountUSD    BigInt             @map("required_amount_usd") // 2 decimals
-  allowedAccess        UserPrivilegeLevel @default(BASIC) @map("allowed_access")
-  periodSeconds        Int                @map("period_seconds")
-  activationTimestamp  DateTime?          @map("activation_timestamp")
-  status               SubscriptionStatus @default(PAYMENT_PENDING)
-  createdAt            DateTime           @default(now()) @map("created_at")
-  updatedAt            DateTime           @updatedAt @map("updated_at")
+  id                  String             @id @default(cuid())
+  userId              String             @map("user_id")
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentInstrumentId String             @map("payment_instrument_id")
+  paymentInstrument   PaymentInstrument  @relation(fields: [paymentInstrumentId], references: [id], onDelete: Cascade)
+  requiredAmountUSD   BigInt             @map("required_amount_usd") // 2 decimals
+  allowedAccess       UserPrivilegeLevel @default(BASIC) @map("allowed_access")
+  periodSeconds       Int                @map("period_seconds")
+  activationTimestamp DateTime?          @map("activation_timestamp")
+  status              SubscriptionStatus @default(PAYMENT_PENDING)
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
 
   @@map("subscriptions")
 }

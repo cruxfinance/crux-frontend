@@ -11,6 +11,7 @@ import {
   renewSubscription,
 } from "@server/services/subscription/subscription";
 import { SubscriptionStatus, UserPrivilegeLevel } from "@prisma/client";
+import { uploadFile } from "@server/utils/s3";
 
 export const userRouter = createTRPCRouter({
   getNonce: publicProcedure
@@ -373,41 +374,29 @@ export const userRouter = createTRPCRouter({
           "Cannot delete: wallet is currently the default address for this user"
         );
     }),
-  getUserDetails: protectedProcedure
-    .input(
-      z.object({
-        name: z.boolean().optional(),
-        wallets: z.boolean().optional(),
-        image: z.boolean().optional(),
-      })
-    )
-    .query(async ({ input, ctx }) => {
-      const userId = ctx.session.user.id;
-      const { name, wallets, image } = input;
-      const user = await prisma.user.findFirst({
-        where: { id: userId },
-        select: {
-          name: !!name,
-          image: !!image,
-          wallets: !!wallets,
-        },
-      });
+  getUserDetails: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const user = await prisma.user.findFirst({
+      where: { id: userId },
+    });
 
-      if (!user) {
-        throw new Error("Unable to find user in database");
-      }
+    if (!user) {
+      throw new Error("Unable to find user in database");
+    }
 
-      return { user };
-    }),
+    return user;
+  }),
   changeUserDetails: protectedProcedure
     .input(
       z.object({
         name: z.string().optional(),
+        image: z.string().optional(),
+        email: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
-      const { name } = input;
+      const { name, image, email } = input;
 
       // Prepare the data object for the update
       const updateData: any = {};
@@ -415,6 +404,12 @@ export const userRouter = createTRPCRouter({
       // Conditionally add fields to the updateData object
       if (name) {
         updateData.name = name;
+      }
+      if (email) {
+        updateData.email = email;
+      }
+      if (image) {
+        updateData.image = image;
       }
 
       const updatedUser = await prisma.user.update({
@@ -489,12 +484,24 @@ export const userRouter = createTRPCRouter({
         where: { id: userId },
         data: { privilegeLevel: UserPrivilegeLevel.DEFAULT },
       });
-      return;
+      return { success: true };
     }
     await prisma.user.update({
       where: { id: userId },
       data: { privilegeLevel: activeSubscription.allowedAccess },
     });
-    return;
+    return { success: true };
   }),
+  uploadFile: protectedProcedure
+    .input(
+      z.object({
+        fileName: z.string(),
+        encodedFile: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const type = input.fileName.split(".").pop() ?? "";
+      const updatedFileName = nanoid() + "." + type;
+      return await uploadFile(updatedFileName, input.encodedFile);
+    }),
 });
