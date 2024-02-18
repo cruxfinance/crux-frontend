@@ -1,11 +1,14 @@
 import {
   Box,
+  Button,
   CircularProgress,
   Divider,
   IconButton,
   Paper,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { User } from "@prisma/client";
 import { FC, HTMLInputTypeAttribute, useState } from "react";
@@ -13,6 +16,8 @@ import ModeEditIcon from "@mui/icons-material/ModeEdit";
 import CheckIcon from "@mui/icons-material/Check";
 import ClearIcon from "@mui/icons-material/Clear";
 import { trpc } from "@lib/trpc";
+import { getShortAddress } from "@lib/utils/general";
+import { LoadingButton } from "@mui/lab";
 
 interface EditableTextFieldProps {
   name: string;
@@ -31,6 +36,8 @@ const EditableTextField: FC<EditableTextFieldProps> = ({
   hidden,
   helperText,
 }) => {
+  const theme = useTheme();
+  const desktop = useMediaQuery(theme.breakpoints.up("sm"));
   const [loading, setLoading] = useState<boolean>(false);
   const [edit, setEdit] = useState<boolean>(false);
   const [_value, setValue] = useState<string | null>(value);
@@ -39,22 +46,22 @@ const EditableTextField: FC<EditableTextFieldProps> = ({
     <>
       {edit ? (
         <Box
-          display="flex"
+          display={desktop ? "flex" : "block"}
           width="100%"
           justifyContent="space-between"
-          sx={{ my: 1, mb: helperText ? 0 : 2 }}
+          sx={{ my: 1, mb: !desktop || helperText ? 0 : 2 }}
         >
           <TextField
             type={type}
             label={name}
             variant="outlined"
             value={_value}
-            sx={{ width: "80%" }}
+            sx={{ width: desktop ? "80%" : "100%" }}
             onChange={(e) => setValue(e.target.value)}
             helperText={helperText}
           />
-          {loading && <CircularProgress sx={{ mt: 1 }} />}
-          {!loading && (
+          {desktop && loading && <CircularProgress sx={{ mt: 1 }} />}
+          {desktop && !loading ? (
             <Box>
               <IconButton
                 size="small"
@@ -77,6 +84,31 @@ const EditableTextField: FC<EditableTextFieldProps> = ({
                 <ClearIcon fontSize="inherit" />
               </IconButton>
             </Box>
+          ) : (
+            !desktop && (
+              <Box sx={{ mt: 1 }}>
+                <LoadingButton
+                  sx={{ mr: 1 }}
+                  loading={loading}
+                  onClick={async () => {
+                    setLoading(true);
+                    onUpdate && (await onUpdate(_value));
+                    setEdit(false);
+                    setLoading(false);
+                  }}
+                >
+                  Update
+                </LoadingButton>
+                <Button
+                  onClick={() => {
+                    setValue(value);
+                    setEdit(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Box>
+            )
           )}
         </Box>
       ) : (
@@ -85,10 +117,12 @@ const EditableTextField: FC<EditableTextFieldProps> = ({
             {name}:{" "}
             {value
               ? hidden
-                ? value.substring(0, 4) +
+                ? value.substring(0, 2) +
                   "***" +
-                  value.substring(value.length - 6, value.length)
-                : value
+                  value.substring(value.length - 4, value.length)
+                : desktop
+                ? value
+                : getShortAddress(value)
               : "not available"}
           </Typography>
           <IconButton size="small" onClick={() => setEdit(true)}>

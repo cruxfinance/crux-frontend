@@ -6,6 +6,8 @@ import {
   Paper,
   Typography,
   Button,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { NextPage } from "next";
 import userNavItems from "@lib/navigation/userNav";
@@ -14,8 +16,11 @@ import { User, UserPrivilegeLevel } from "@prisma/client";
 import { trpc } from "@lib/trpc";
 import UserDetails from "@components/user/manage/UserDetails";
 import UploadFileDialog from "@components/UploadFileDialog";
+import { getShortAddress } from "@lib/utils/general";
 
 const UserProfile: NextPage = () => {
+  const theme = useTheme();
+  const desktop = useMediaQuery(theme.breakpoints.up("sm"));
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
@@ -58,7 +63,9 @@ const UserProfile: NextPage = () => {
               />
               <Box sx={{ pt: 1 }}>
                 <Typography variant="body2" sx={{ mb: 2 }}>
-                  {user.name ?? user.defaultAddress}
+                  {desktop
+                    ? user.name ?? user.defaultAddress
+                    : getShortAddress(user.name ?? user.defaultAddress ?? "")}
                 </Typography>
                 <Button variant="outlined" onClick={() => setOpenDialog(true)}>
                   Update Image
