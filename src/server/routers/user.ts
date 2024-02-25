@@ -6,11 +6,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { generateNonceForLogin } from "../utils/nonce";
-import {
-  findSubscriptions,
-  renewSubscription,
-} from "@server/services/subscription/subscription";
-import { SubscriptionStatus, UserPrivilegeLevel } from "@prisma/client";
+import { getCurrentUpdatedSubcription } from "@server/services/subscription/subscription";
 import { uploadFile } from "@server/utils/s3";
 
 export const userRouter = createTRPCRouter({
@@ -460,36 +456,7 @@ export const userRouter = createTRPCRouter({
   }),
   refreshAccessLevel: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = ctx.session.user.id;
-    const subscriptions = await findSubscriptions(userId);
-    const activeSubscription =
-      [...subscriptions].sort(
-        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
-      )[0] ?? null;
-    if (
-      activeSubscription !== null &&
-      activeSubscription.status !== SubscriptionStatus.ACTIVE
-    ) {
-      try {
-        await renewSubscription(activeSubscription.id);
-        activeSubscription.status = SubscriptionStatus.ACTIVE;
-      } catch (e) {
-        console.warn(e);
-      }
-    }
-    if (
-      activeSubscription === null ||
-      activeSubscription.status === SubscriptionStatus.EXPIRED
-    ) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { privilegeLevel: UserPrivilegeLevel.DEFAULT },
-      });
-      return { success: true };
-    }
-    await prisma.user.update({
-      where: { id: userId },
-      data: { privilegeLevel: activeSubscription.allowedAccess },
-    });
+    await getCurrentUpdatedSubcription(userId);
     return { success: true };
   }),
   uploadFile: protectedProcedure
