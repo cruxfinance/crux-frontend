@@ -12,7 +12,7 @@ interface ErgoAuthRequest {
   replyTo: string;
 }
 
-export default async function ergoauthLoginMobile(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {

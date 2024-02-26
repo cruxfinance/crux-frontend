@@ -53,6 +53,7 @@ model User {
   defaultAddress     String?             @unique @map("default_address")
   nonce              String?
   image              String?
+  email              String?
   privilegeLevel     UserPrivilegeLevel  @default(DEFAULT) @map("privilege_level")
   accounts           Account[]
   sessions           Session[]
@@ -61,7 +62,11 @@ model User {
   chartData          ChartData[]
   paymentInstruments PaymentInstrument[]
   subscriptions      Subscription[]
+<<<<<<< HEAD
   reports            Report[]
+=======
+  notifications      Notification[]
+>>>>>>> origin/dev-noob77777
 
   @@map("users")
 }
@@ -202,6 +207,7 @@ model Subscription {
   @@map("subscriptions")
 }
 
+<<<<<<< HEAD
 enum ReportStatus {
   PAID
   EXPIRED
@@ -214,4 +220,16 @@ model Report {
   availability   ReportStatus
   userId         String       @map("user_id")
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+=======
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
+>>>>>>> origin/dev-noob77777
 }
