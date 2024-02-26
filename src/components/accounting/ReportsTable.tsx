@@ -172,6 +172,13 @@ const ReportsTable: FC<IReportsTable> = ({ currency }) => {
           </Table>
         }
       </Box>
+      <Box sx={{ width: '100%', display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', background: theme.palette.background.paper, p: 1 }}>
+        {data && (
+          <Typography>
+            {data.length} items
+          </Typography>
+        )}
+      </Box>
     </Paper>
   );
 };
