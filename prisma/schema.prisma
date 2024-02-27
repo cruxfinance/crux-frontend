@@ -62,6 +62,7 @@ model User {
   chartData          ChartData[]
   paymentInstruments PaymentInstrument[]
   subscriptions      Subscription[]
+  notifications      Notification[]
 
   @@map("users")
 }
@@ -200,4 +201,16 @@ model Subscription {
   updatedAt           DateTime           @updatedAt @map("updated_at")
 
   @@map("subscriptions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
 }
