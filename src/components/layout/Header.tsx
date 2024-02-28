@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 import AppBar from "@mui/material/AppBar";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -106,6 +106,11 @@ const Header: FC<IHeaderProps> = ({ }) => {
     }
   };
 
+  const handleNavbarDialogClose = () => {
+    unlockScroll();
+    setNavbarOpen(false);
+  }
+
   // const toggleTheme = () => {
   //   setTheme((prevTheme: Theme) => (prevTheme === LightTheme ? DarkTheme : LightTheme));
   //   let temp = theme === LightTheme ? "dark" : "light";
@@ -150,7 +155,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
               {page.name}
             </Typography>
           ) : (
-            <Box onClick={() => setNavbarOpen(false)}>
+            <Box onClick={handleNavbarToggle}>
               <Link
                 href={page.link}
                 sx={{
@@ -181,10 +186,10 @@ const Header: FC<IHeaderProps> = ({ }) => {
     );
   };
 
-  const trigger = useScrollTrigger({
-    disableHysteresis: router.pathname === "/" ? true : false,
-    threshold: 0,
-  });
+  // const trigger = useScrollTrigger({
+  //   disableHysteresis: router.pathname === "/" ? true : false,
+  //   threshold: 0,
+  // });
 
   return (
     <>
@@ -308,7 +313,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 <Grid item sx={{ display: { xs: "flex", md: "none" } }}>
                   <IconButton
                     sx={{ p: 0 }}
-                    onClick={() => handleNavbarToggle()}
+                    onClick={handleNavbarToggle}
                   >
                     {!navbarOpen ? (
                       <MenuIcon color="primary" />
@@ -324,7 +329,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
       </AppBar>
       <Dialog
         open={navbarOpen}
-        onClose={() => setNavbarOpen(false)}
+        onClose={handleNavbarDialogClose}
         fullScreen
       >
         <DialogContent>
@@ -336,7 +341,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                 ? `${scrollBarCompensation + 8}px`
                 : '8px',
             }}
-            onClick={() => handleNavbarToggle()}
+            onClick={handleNavbarToggle}
           >
             <ClearIcon color="primary" />
           </IconButton>
