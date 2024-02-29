@@ -155,7 +155,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
               {page.name}
             </Typography>
           ) : (
-            <Box onClick={handleNavbarToggle}>
+            <Box onClick={() => { if (!upMd) handleNavbarToggle() }}>
               <Link
                 href={page.link}
                 sx={{
