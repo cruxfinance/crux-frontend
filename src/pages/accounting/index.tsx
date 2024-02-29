@@ -15,7 +15,7 @@ const Accounting: NextPage = () => {
   // const theme = useTheme()
   // const upSm = useMediaQuery(theme.breakpoints.up('sm'))
   return (
-    <SideMenu title="Accounting" navItems={accountingNavItems}>
+    <SideMenu title="Accounting" navItems={accountingNavItems} noMaxWidth>
       <Paper sx={{ p: 3, mb: 4 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
           Your reports
