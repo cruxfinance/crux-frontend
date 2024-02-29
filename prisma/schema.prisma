@@ -213,6 +213,8 @@ enum ReportStatus {
 model Report {
   id             String       @id @default(cuid())
   reportFilename String       @map("report_filename")
+  dateFrom       DateTime     @map("date_from")
+  dateTo         DateTime     @map("date_to")
   formats        String[]
   availability   ReportStatus
   userId         String       @map("user_id")
