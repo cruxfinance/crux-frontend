@@ -160,7 +160,12 @@ export const getCurrentUpdatedSubcription = async (userId: string) => {
       console.warn(e);
     }
   }
-  if (activeSubscription.status === SubscriptionStatus.EXPIRED) {
+  // if expired or the subscription has never been activated
+  if (
+    activeSubscription.status === SubscriptionStatus.EXPIRED ||
+    (activeSubscription.activationTimestamp === null &&
+      activeSubscription.status === SubscriptionStatus.PAYMENT_PENDING)
+  ) {
     await prisma.user.update({
       where: { id: userId },
       data: { privilegeLevel: UserPrivilegeLevel.DEFAULT },
