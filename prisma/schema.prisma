@@ -206,17 +206,17 @@ model Subscription {
 }
 
 enum ReportStatus {
-  PAID
-  EXPIRED
+  PREPAID
+  AVAILABLE
 }
 
 model Report {
   id             String       @id @default(cuid())
-  reportFilename String       @map("report_filename")
-  dateFrom       DateTime     @map("date_from")
-  dateTo         DateTime     @map("date_to")
-  formats        String[]
-  availability   ReportStatus
+  reportFilename String?      @map("report_filename")
+  dateFrom       DateTime?    @map("date_from")
+  dateTo         DateTime?    @map("date_to")
+  taxYear        Int?         @map("tax_year")
+  status         ReportStatus
   userId         String       @map("user_id")
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

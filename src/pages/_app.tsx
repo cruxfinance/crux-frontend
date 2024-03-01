@@ -45,6 +45,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
                   </Layout>
                 )}
               </ScrollLockProvider>
+              <RefreshAccessLevel />
             </WalletProvider>
             <AlertWrapper
               alerts={alert}
@@ -54,7 +55,6 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
                 );
               }}
             />
-            <RefreshAccessLevel />
           </ThemeProvider>
         </LocalizationProvider>
       </SessionProvider>

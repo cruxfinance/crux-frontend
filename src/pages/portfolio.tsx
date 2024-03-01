@@ -25,6 +25,7 @@ import LiquidityPositions from "@components/portfolio/positions/LiquidityPositio
 import { useSession } from "next-auth/react";
 import Positions from "@components/portfolio/positions/Positions";
 import { WalletProvider, useWallet } from "@lib/contexts/WalletContext";
+import { useScrollLock } from "@contexts/ScrollLockContext";
 
 export interface IExtendedToken extends IPieToken {
   tokenId: string;
@@ -346,7 +347,11 @@ const Portfolio = () => {
     );
   };
 
-  const isLoading = Object.values(loading).some((value) => value === true);
+  const [isLoading, setIsLoading] = useState(true)
+  useEffect(() => {
+    const loadingNow = Object.values(loading).some((value) => value === true)
+    setIsLoading(loadingNow)
+  }, [loading])
 
   const handleChangeAddressList = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -357,7 +362,7 @@ const Portfolio = () => {
 
   return (
     <>
-      <Box sx={{ mx: 2 }}>
+      <Box sx={{ mx: 2, position: 'relative' }}>
         <Grid container sx={{ mb: 2 }} spacing={2} alignItems="center">
           <Grid xs>
             <TextField
@@ -375,31 +380,6 @@ const Portfolio = () => {
             </Button>
           </Grid>
         </Grid>
-        <Box
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            opacity: isLoading ? "1" : "0",
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(24,28,33,1)",
-            zIndex: 999,
-            color: "#fff",
-            transition: "opacity 500ms",
-            pointerEvents: isLoading ? "auto" : "none",
-          }}
-        >
-          <CircularProgress
-            color="inherit"
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        </Box>
         <Grid
           container
           alignItems="stretch"

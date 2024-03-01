@@ -15,3 +15,15 @@ export const timeFromNow = (time: Date) => {
   if (days === 1) return days + " day"
   if (days > 0) return days + " days"
 }
+
+export const getYearTimestamps = (year: number): [number, number] => {
+  // Start of the year: January 1st of the given year at 00:00:00
+  const startOfYear = new Date(Date.UTC(year, 0, 1, 0, 0, 0));
+  const startOfYearTimestamp = Math.floor(startOfYear.getTime() / 1000);
+
+  // End of the year: December 31st of the given year at 23:59:59
+  const endOfYear = new Date(Date.UTC(year, 11, 31, 23, 59, 59));
+  const endOfYearTimestamp = Math.floor(endOfYear.getTime() / 1000);
+
+  return [startOfYearTimestamp, endOfYearTimestamp];
+}

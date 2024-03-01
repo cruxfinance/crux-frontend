@@ -31,12 +31,70 @@ declare global {
 }
 
 export const accountingApi = {
-  async postTxHistory(addresses: string[]): Promise<TTransactions> {
+  async postTxHistory(
+    addresses: string[],
+    queries?: {
+      dateFrom?: number,
+      dateTo?: number,
+      offset?: number,
+      limit?: number,
+    }
+  ): Promise<TTransactions> {
     try {
-      const response = await cruxApi.post("/crux/tx_history", {
+      const params = new URLSearchParams();
+
+      if (queries) {
+        if (queries.dateFrom) params.append('from', queries.dateFrom.toString());
+        if (queries.dateTo) params.append('to', queries.dateTo.toString());
+        if (queries.offset) params.append('offset', queries.offset.toString());
+        if (queries.limit) params.append('limit', queries.limit.toString());
+      }
+
+      const queryString = params.toString();
+
+      const response = await cruxApi.post(`/crux/tx_history?${queryString}`, {
         addresses: addresses,
       });
+
       return toCamelCase(response.data) as TTransactions;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw mapAxiosErrorToTRPCError(error);
+      } else {
+        console.error(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An unknown error occurred",
+        });
+      }
+    }
+  },
+  async downloadCsv(
+    addresses: string[],
+    queries?: {
+      dateFrom?: number,
+      dateTo?: number,
+      offset?: number,
+      limit?: number,
+    }
+  ): Promise<TTransactions> {
+    try {
+      const params = new URLSearchParams();
+
+      if (queries) {
+        if (queries.dateFrom) params.append('from', queries.dateFrom.toString());
+        if (queries.dateTo) params.append('to', queries.dateTo.toString());
+        if (queries.offset) params.append('offset', queries.offset.toString());
+        if (queries.limit) params.append('limit', queries.limit.toString());
+      }
+
+      const queryString = params.toString();
+
+      const response = await cruxApi.post(`/crux/tx_history/csv?${queryString}`, {
+        addresses: addresses,
+      });
+
+      return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw mapAxiosErrorToTRPCError(error);
