@@ -97,7 +97,7 @@ const Accounting: NextPage = () => {
                   </Box>
                 </Box>
                 : <Box sx={{ py: 4, textAlign: 'center' }}>
-                  <Typography variant="h6">You don't have a paid report for {year}.</Typography>
+                  <Typography variant="h6">You don&apos;t have a paid report for {year}.</Typography>
                   <Button variant="contained" color="primary" onClick={handlePayForReport} sx={{ mt: 2 }}>
                     Pay for Report
                   </Button>
