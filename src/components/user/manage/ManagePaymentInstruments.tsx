@@ -117,7 +117,7 @@ const ManagePaymentInstruments = () => {
         paymentInstrumentId: paymentInstrument.id,
         amount: Number(addBalanceAmount) * Math.pow(10, tokenDetails.decimals),
       });
-      const unsignedTransaction = addBalanceResponse.unsignedTransaction;
+      const unsignedTransaction = addBalanceResponse.unsignedTransaction.unsignedTransaction;
       const wallet = await getErgoWalletContext();
       const signedTransaction = await wallet.sign_tx(unsignedTransaction);
       const tx = await wallet.submit_tx(signedTransaction);
