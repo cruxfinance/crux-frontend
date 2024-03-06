@@ -9,7 +9,7 @@ const Wallets: NextPage = () => {
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
         Connected Wallets
       </Typography>
-      <Paper sx={{ p: 3 }}>
+      <Paper variant="outlined" sx={{ p: 3 }}>
         <Typography>Coming soon.</Typography>
         <Link href="/">
           <Typography>Go Back Home</Typography>

@@ -125,7 +125,7 @@ const CreateSubscription = () => {
 
   return (
     <Fragment>
-      <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
+      <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
           Create a new Subscription
         </Typography>

@@ -222,14 +222,14 @@ const TokenInfo: FC = () => {
 
           {!upMd && (
             <Box sx={{ display: 'flex', flex: '0 0 300px', mb: 2 }}>
-              <Paper sx={{ p: 2, width: '100%' }}>
+              <Paper variant="outlined" sx={{ p: 2, width: '100%' }}>
                 <TokenStats currency={currency} tokenInfo={tokenInfo} />
               </Paper>
             </Box>
           )}
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
             <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column' }} id="chart">
-              <Paper sx={{
+              <Paper variant="outlined" sx={{
                 p: 2,
                 width: '100%',
                 maxWidth: upMd ? 'calc(100vw - 354px)' : upSm ? 'calc(100vw - 56px)' : 'calc(100vw - 40px)',
@@ -243,7 +243,7 @@ const TokenInfo: FC = () => {
 
               </Paper>
               {upLg && (
-                <Paper sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
+                <Paper variant="outlined" sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
                   <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
                 </Paper>
               )}
@@ -251,7 +251,7 @@ const TokenInfo: FC = () => {
             {upMd && (
               <Box sx={{ display: 'flex', flex: '0 0 300px', mb: 2 }}>
                 <Box sx={{ width: '100%', }}>
-                  <Paper sx={{ p: 2, width: '100%', position: 'sticky', top: '16px', height: { md: '100%', lg: 'calc(100vh - 32px)' }, maxHeight: '100%', mb: { md: 0, lg: -2 } }}>
+                  <Paper variant="outlined" sx={{ p: 2, width: '100%', position: 'sticky', top: '16px', height: { md: '100%', lg: 'calc(100vh - 32px)' }, maxHeight: '100%', mb: { md: 0, lg: -2 } }}>
                     <TokenStats currency={currency} tokenInfo={tokenInfo} />
                   </Paper>
                 </Box>
@@ -266,7 +266,7 @@ const TokenInfo: FC = () => {
         </>
       )}
       {!upSm && (
-        <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 11500 }} elevation={3}>
+        <Paper variant="outlined" sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 11500 }} elevation={3}>
           <BottomNavigation
             showLabels
             value={navigation}

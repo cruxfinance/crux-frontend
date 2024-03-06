@@ -28,7 +28,7 @@ const Subscriptions: NextPage = () => {
         Manage Subscriptions
       </Typography>
       {loading && (
-        <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
+        <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
           <Box display="flex" justifyContent="center" sx={{ p: 2 }}>
             <CircularProgress />
           </Box>

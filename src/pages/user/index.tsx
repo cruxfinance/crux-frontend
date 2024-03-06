@@ -47,7 +47,7 @@ const UserProfile: NextPage = () => {
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
         User Profile
       </Typography>
-      <Paper sx={{ p: 3 }}>
+      <Paper variant="outlined" sx={{ p: 3 }}>
         {loading && (
           <Box display="flex" justifyContent="center" sx={{ p: 2 }}>
             <CircularProgress />

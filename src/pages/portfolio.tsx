@@ -387,7 +387,7 @@ const Portfolio = () => {
           sx={{ position: "relative", mb: 2 }}
         >
           <Grid xs={12} lg={9}>
-            <Paper sx={{ p: 3, width: "100%", position: "relative" }}>
+            <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative" }}>
               <Grid container spacing={4} direction={{ xs: "column", md: "row" }}>
                 <Grid xs={12} md={4}>
                   <Balance
@@ -425,7 +425,7 @@ const Portfolio = () => {
             </Paper>
           </Grid>
           <Grid xs={12} sm={6} lg={3}>
-            <Paper
+            <Paper variant="outlined"
               sx={{ p: 3, width: "100%", height: "100%", position: "relative" }}
             >
               <NftList
@@ -436,7 +436,7 @@ const Portfolio = () => {
             </Paper>
           </Grid>
           <Grid xs={12} sm={6} lg={3} sx={{ position: "relative", zIndex: 10 }}>
-            <Paper sx={{ p: 3, width: "100%", height: "100%" }}>
+            <Paper variant="outlined" sx={{ p: 3, width: "100%", height: "100%" }}>
               <ValueLocked
                 currency={currency}
                 exchangeRate={exchangeRate}
@@ -446,7 +446,7 @@ const Portfolio = () => {
             </Paper>
           </Grid>
           <Grid xs={12} lg={9}>
-            <Paper
+            <Paper variant="outlined"
               sx={{
                 py: 3,
                 px: upSm ? 3 : 0,

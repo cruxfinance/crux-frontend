@@ -131,7 +131,6 @@ export const accountingRouter = createTRPCRouter({
       const report = await prisma.report.update({
         where: {
           id: reportId,
-          // Ensure the report belongs to the user and is in PREPAID status
           AND: [
             { userId: ctx.session.user.id },
             { status: 'PREPAID' },
@@ -148,19 +147,19 @@ export const accountingRouter = createTRPCRouter({
   processPaymentAndCreateReport: protectedProcedure
     .input(z.object({
       taxYear: z.number(),
-      // Include other payment details as necessary
+      status: z.enum(['AVAILABLE', 'PREPAID'])
     }))
     .mutation(async ({ input, ctx }) => {
-      const { taxYear } = input;
+      const { taxYear, status } = input;
 
-      // Here, integrate with payment processing logic
+      // integrate with payment processing logic
       // Assuming the payment is successful, proceed to create the report
 
       const newReport = await ctx.prisma.report.create({
         data: {
           userId: ctx.session.user.id,
           taxYear,
-          status: 'AVAILABLE',
+          status,
         },
       });
 

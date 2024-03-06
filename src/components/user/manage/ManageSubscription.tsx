@@ -63,11 +63,11 @@ const ManageSubscription: FC<ManageSubscriptionProps> = ({ subscription }) => {
 
   return (
     <Fragment>
-      <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
+      <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
           Existing Subscriptions
         </Typography>
-        <Paper sx={{ p: 3, width: "100%", position: "relative" }}>
+        <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative" }}>
           {subscription === null &&
             "There is no active Subscription assosiated with your account."}
           {subscription && (
