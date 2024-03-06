@@ -45,16 +45,16 @@ enum UserPrivilegeLevel {
 }
 
 model User {
-  id                 String              @id @default(cuid())
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
+  id                 String               @id @default(cuid())
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
   name               String?
   status             String?
-  defaultAddress     String?             @unique @map("default_address")
+  defaultAddress     String?              @unique @map("default_address")
   nonce              String?
   image              String?
   email              String?
-  privilegeLevel     UserPrivilegeLevel  @default(DEFAULT) @map("privilege_level")
+  privilegeLevel     UserPrivilegeLevel   @default(DEFAULT) @map("privilege_level")
   accounts           Account[]
   sessions           Session[]
   wallets            Wallet[]
@@ -64,6 +64,7 @@ model User {
   subscriptions      Subscription[]
   reports            Report[]
   notifications      Notification[]
+  mobileVerification MobileVerification[]
 
   @@map("users")
 }
@@ -80,7 +81,7 @@ model VerificationToken {
 model Wallet {
   id              String   @id @default(cuid())
   type            String?
-  changeAddress   String   @unique @map("change_address")
+  changeAddress   String   @map("change_address")
   unusedAddresses String[] @map("unused_addresses")
   usedAddresses   String[] @map("used_addresses")
   userId          String   @map("user_id")
@@ -215,6 +216,7 @@ model Report {
   reportFilename String?      @map("report_filename")
   dateFrom       DateTime?    @map("date_from")
   dateTo         DateTime?    @map("date_to")
+  addresses      String[]
   taxYear        Int?         @map("tax_year")
   status         ReportStatus
   userId         String       @map("user_id")
@@ -231,4 +233,14 @@ model Notification {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("notifications")
+}
+
+model MobileVerification {
+  verificationId String   @id @default(cuid())
+  createdAt      DateTime @default(now()) @map("created_at")
+  address        String?
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mobile_verification")
 }

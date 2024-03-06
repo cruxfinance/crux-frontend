@@ -1,13 +1,21 @@
 import { verifySignature } from "@server/auth";
 import { prisma } from "@server/prisma";
+import { getCurrentUpdatedSubcription } from "@server/services/subscription/subscription";
 import { checkAddressAvailability } from "@server/utils/checkAddress";
 import { deleteEmptyUser } from "@server/utils/deleteEmptyUser";
+import { uploadFile } from "@server/utils/s3";
+import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { generateNonceForLogin } from "../utils/nonce";
-import { getCurrentUpdatedSubcription } from "@server/services/subscription/subscription";
-import { uploadFile } from "@server/utils/s3";
+
+interface WalletResponse {
+  success: boolean;
+  message: string;
+  severity: Severity;
+  data: any;
+}
 
 export const userRouter = createTRPCRouter({
   getNonce: publicProcedure
@@ -205,126 +213,282 @@ export const userRouter = createTRPCRouter({
       where: {
         id: userId,
       },
-      include: {
+      select: {
         wallets: true,
+        defaultAddress: true,
       },
     });
-    return user;
-  }),
-  changeDefaultAddress: protectedProcedure
-    .input(
-      z.object({
-        newDefault: z.string(),
-        walletId: z.string(),
+    if (!user) {
+      throw new TRPCError({
+        message: "User not found in database",
+        code: "NOT_FOUND"
       })
-    )
-    .mutation(async ({ input, ctx }) => {
-      const userId = ctx.session.user.id;
-      const { newDefault, walletId } = input;
-
-      // Fetch the wallet's associated addresses
-      const wallet = await prisma.wallet.findUnique({
-        where: {
-          id: walletId,
-          userId: userId,
-        },
-        select: {
-          changeAddress: true,
-          unusedAddresses: true,
-          usedAddresses: true,
-        },
-      });
-
-      if (!wallet) {
-        throw new Error("Wallet does not match user");
-      }
-
-      // Combine all the addresses associated with the wallet
-      const allWalletAddresses = [
-        wallet.changeAddress,
-        ...wallet.unusedAddresses,
-        ...wallet.usedAddresses,
-      ];
-
-      // Fetch the user's current default address
-      const user = await prisma.user.findUnique({
-        where: {
-          id: userId,
-        },
-        select: {
-          defaultAddress: true,
-        },
-      });
-
-      // If the user's default address is in the list of all wallet addresses, update it to the new address
-      if (
-        user!.defaultAddress &&
-        allWalletAddresses.includes(user!.defaultAddress)
-      ) {
-        await prisma.user.update({
-          where: {
-            id: userId,
-          },
-          data: {
-            defaultAddress: newDefault,
-          },
-        });
-      }
-
-      // Update the wallet's change address
-      await prisma.wallet.update({
-        where: {
-          id: walletId,
-          userId: userId,
-        },
-        data: {
-          changeAddress: newDefault,
-        },
-      });
-
-      return { success: true };
-    }),
-  // Change the default user address. This is used for things like airdrops.
-  // Note: the user can login with any wallet, so change Login address is not the best name
-  changeLoginAddress: protectedProcedure
+    }
+    return {
+      success: true,
+      walletList: user.wallets,
+      defaultAddress: user.defaultAddress
+    };
+  }),
+  addWallet: protectedProcedure
     .input(
       z.object({
         changeAddress: z.string(),
+        unusedAddresses: z.array(z.string()),
+        usedAddresses: z.array(z.string()),
+        type: z.string()
+      })
+    )
+    .mutation(async ({ input, ctx }): Promise<WalletResponse> => {
+      const { changeAddress, unusedAddresses, usedAddresses, type } = input;
+      const userId = ctx.session.user.id;
+
+      // Combine all provided addresses for the search.
+      const allAddresses = [changeAddress, ...unusedAddresses, ...usedAddresses];
+
+      // Find existing wallet with any matching address.
+      const existingWallet = await prisma.wallet.findFirst({
+        where: {
+          userId,
+          OR: allAddresses.map(address => ({
+            OR: [
+              { changeAddress: address },
+              { unusedAddresses: { has: address } },
+              { usedAddresses: { has: address } }
+            ]
+          }))
+        }
+      });
+
+      if (existingWallet) {
+        const uniqueUnusedAddresses = [...new Set([...existingWallet.unusedAddresses, ...unusedAddresses])];
+        const uniqueUsedAddresses = [...new Set([...existingWallet.usedAddresses, ...usedAddresses, changeAddress])];
+        const newWallet = await prisma.wallet.update({
+          where: { id: existingWallet.id },
+          data: {
+            userId,
+            type,
+            changeAddress,
+            unusedAddresses: uniqueUnusedAddresses,
+            usedAddresses: uniqueUsedAddresses,
+          }
+        });
+        return {
+          success: true,
+          message: existingWallet.type === type
+            ? "Wallet already exists. Updated with any new derived addresses"
+            : `Wallet already existed via ${existingWallet.type}. New derived addresses added and wallet type updated. `,
+          severity: "warning",
+          data: newWallet
+        }
+      } else {
+        const newWallet = await prisma.wallet.create({
+          data: {
+            userId,
+            type,
+            changeAddress,
+            unusedAddresses,
+            usedAddresses,
+          }
+        });
+        return {
+          success: true,
+          message: `Wallet ${changeAddress} successfully added to your user account.`,
+          severity: "success",
+          data: newWallet
+        }
+      }
+    }),
+  deleteWallet: protectedProcedure
+    .input(
+      z.object({
+        walletId: z.string()
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const userId = ctx.session.user.id;
-      const { changeAddress } = input;
+      try {
+        const { walletId } = input;
+        const userId = ctx.session.user.id
 
-      // Verify that the provided changeAddress belongs to a wallet of the current user
-      const wallet = await prisma.wallet.findFirst({
-        where: {
-          changeAddress: changeAddress,
-          userId: userId,
-        },
-        select: {
-          id: true, // just selecting id for brevity; we just want to know if a record exists
-        },
-      });
+        // Fetch the user to check if defaultAddress to check if it matches the wallet
+        const userWithWallet = await prisma.user.findUnique({
+          where: {
+            id: userId,
+          },
+          select: {
+            defaultAddress: true,
+            wallets: {
+              where: {
+                id: walletId
+              },
+              select: {
+                changeAddress: true,
+                unusedAddresses: true,
+                usedAddresses: true,
+              }
+            }
+          }
+        });
 
-      if (!wallet) {
-        throw new Error(
-          "The provided address does not belong to any of the user's wallets"
-        );
+        if (!userWithWallet || userWithWallet.wallets.length === 0) {
+          throw new TRPCError({
+            message: 'Wallet not found in database',
+            code: 'NOT_FOUND',
+          });
+        }
+
+        if (!userWithWallet.defaultAddress) {
+          throw new TRPCError({
+            message: 'User account missing defaultAddress',
+            code: 'NOT_FOUND',
+          });
+        }
+
+        const { changeAddress, unusedAddresses, usedAddresses } = userWithWallet.wallets[0];
+
+        // Check if the defaultAddress is any of the wallet addresses
+        if (userWithWallet.defaultAddress === changeAddress ||
+          unusedAddresses.includes(userWithWallet.defaultAddress) ||
+          usedAddresses.includes(userWithWallet.defaultAddress)) {
+          return {
+            success: false,
+            message: "Cannot delete the account sign-in wallet"
+          }
+        }
+
+        // Proceed with wallet deletion if the above check passes
+        await prisma.wallet.delete({
+          where: {
+            id: walletId,
+            userId: userId
+          },
+        });
+        return { success: true, message: 'Wallet removed successfully' };
+      } catch (error) {
+        console.error('Error deleting item:', error);
+        throw new TRPCError({
+          message: `Failed to delete item`,
+          code: 'INTERNAL_SERVER_ERROR',
+        });
       }
-
-      // Update the user's defaultAddress with the provided changeAddress
-      await prisma.user.update({
-        where: {
-          id: userId,
-        },
-        data: {
-          defaultAddress: changeAddress,
-        },
-      });
-
-      return { success: true };
     }),
+  // DO NOT USE WITHOUT FINISHING VERIFICATION OF WALLET. 
+  // WALLETS IN THE DATABASE HAVE NOT NECESSARILY BEEN VERIFIED
+  // changeDefaultAddress: protectedProcedure
+  //   .input(
+  //     z.object({
+  //       newDefault: z.string(),
+  //       walletId: z.string(),
+  //     })
+  //   )
+  //   .mutation(async ({ input, ctx }) => {
+  //     const userId = ctx.session.user.id;
+  //     const { newDefault, walletId } = input;
+
+  //     // Fetch the wallet's associated addresses
+  //     const wallet = await prisma.wallet.findUnique({
+  //       where: {
+  //         id: walletId,
+  //         userId: userId,
+  //       },
+  //       select: {
+  //         changeAddress: true,
+  //         unusedAddresses: true,
+  //         usedAddresses: true,
+  //       },
+  //     });
+
+  //     if (!wallet) {
+  //       throw new Error("Wallet does not match user");
+  //     }
+
+  //     // Combine all the addresses associated with the wallet
+  //     const allWalletAddresses = [
+  //       wallet.changeAddress,
+  //       ...wallet.unusedAddresses,
+  //       ...wallet.usedAddresses,
+  //     ];
+
+  //     // Fetch the user's current default address
+  //     const user = await prisma.user.findUnique({
+  //       where: {
+  //         id: userId,
+  //       },
+  //       select: {
+  //         defaultAddress: true,
+  //       },
+  //     });
+
+  //     // If the user's default address is in the list of all wallet addresses, update it to the new address
+  //     if (
+  //       user!.defaultAddress &&
+  //       allWalletAddresses.includes(user!.defaultAddress)
+  //     ) {
+  //       await prisma.user.update({
+  //         where: {
+  //           id: userId,
+  //         },
+  //         data: {
+  //           defaultAddress: newDefault,
+  //         },
+  //       });
+  //     }
+
+  //     // Update the wallet's change address
+  //     await prisma.wallet.update({
+  //       where: {
+  //         id: walletId,
+  //         userId: userId,
+  //       },
+  //       data: {
+  //         changeAddress: newDefault,
+  //       },
+  //     });
+
+  //     return { success: true };
+  //   }),
+  // DO NOT USE WITHOUT FINISHING THIS ENDPOINT
+  // changeLoginAddress: protectedProcedure
+  //   .input(
+  //     z.object({
+  //       changeAddress: z.string(),
+  //     })
+  //   )
+  //   .mutation(async ({ input, ctx }) => {
+  //     const userId = ctx.session.user.id;
+  //     const { changeAddress } = input;
+
+  //     // TODO: This needs to get the user to sign with the wallet
+
+  //     // Verify that the provided changeAddress belongs to a wallet of the current user
+  //     const wallet = await prisma.wallet.findFirst({
+  //       where: {
+  //         changeAddress: changeAddress,
+  //         userId: userId,
+  //       },
+  //       select: {
+  //         id: true, // just selecting id for brevity; we just want to know if a record exists
+  //       },
+  //     });
+
+  //     if (!wallet) {
+  //       throw new Error(
+  //         "The provided address does not belong to any of the user's wallets"
+  //       );
+  //     }
+
+  //     // Update the user's defaultAddress with the provided changeAddress
+  //     await prisma.user.update({
+  //       where: {
+  //         id: userId,
+  //       },
+  //       data: {
+  //         defaultAddress: changeAddress,
+  //       },
+  //     });
+
+  //     return { success: true };
+  //   }),
   removeWallet: protectedProcedure
     .input(
       z.object({
@@ -364,7 +528,7 @@ export const userRouter = createTRPCRouter({
         if (!deleteResponse) {
           throw new Error("Error removing this wallet");
         }
-        return { success: true }; // Return a success response or any other relevant data
+        return { success: true };
       } else
         throw new Error(
           "Cannot delete: wallet is currently the default address for this user"
@@ -452,7 +616,7 @@ export const userRouter = createTRPCRouter({
     if (!deleteUser) {
       throw new Error("Error deleting user");
     }
-    return { success: true }; // Return a success response or any other relevant data
+    return { success: true };
   }),
   refreshAccessLevel: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = ctx.session.user.id;

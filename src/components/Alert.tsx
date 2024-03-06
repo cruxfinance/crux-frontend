@@ -5,10 +5,8 @@ import { Box } from '@mui/system';
 import { useAlert } from '@contexts/AlertContext';
 import { Collapse } from '@mui/material';
 
-const duration = 300;
-
 const defaultStyle = {
-  transition: `opacity ${duration}ms ease-in-out, transform ${duration}ms`,
+  transition: `opacity 200ms ease-in-out, transform 300ms`,
 } as React.CSSProperties;
 
 const transitionStyles: Record<TransitionStatus, React.CSSProperties> = {
@@ -41,15 +39,8 @@ const AlertComponent = () => {
     removeAlert(id);
   };
 
-  const alertColors = {
-    success: '#4caf50', // Green
-    error: '#f44336', // Red
-    warning: '#ff9800', // Orange
-    info: '#2196f3', // Blue
-  };
-
   return (
-    <Box sx={{ position: 'fixed', top: 0, right: 0, margin: 2, zIndex: 9999 }}>
+    <Box sx={{ position: 'fixed', bottom: 0, right: 0, margin: 2, zIndex: 9999 }}>
       <TransitionGroup>
         {alerts.map((alert) => (
           <Transition
@@ -62,7 +53,6 @@ const AlertComponent = () => {
               <Alert
                 variant="filled"
                 sx={{
-
                   ...defaultStyle,
                   ...transitionStyles[state]
                 }}

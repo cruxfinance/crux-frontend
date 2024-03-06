@@ -5,14 +5,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  CircularProgress,
   useTheme,
   useMediaQuery,
   Avatar,
   Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Box,
   Collapse,
   IconButton,
@@ -34,17 +30,17 @@ const wallets: {
   icon: string;
   description: string;
 }[] = [
-  {
-    name: "Nautilus",
-    icon: "/icons/wallets/nautilus-128.png",
-    description: "Connect automatically signing with your wallet",
-  },
-  {
-    name: "Mobile",
-    icon: "/icons/wallets/mobile.webp",
-    description: "Enter your wallet address then sign with the mobile app",
-  },
-];
+    {
+      name: "Nautilus",
+      icon: "/icons/wallets/nautilus-128.png",
+      description: "Connect automatically signing with your wallet",
+    },
+    {
+      name: "Mobile",
+      icon: "/icons/wallets/mobile.webp",
+      description: "Enter your wallet address then sign with the mobile app",
+    },
+  ];
 
 export type Expanded = "Nautilus" | "Mobile" | "GitHub" | undefined;
 

@@ -118,3 +118,5 @@ interface SideNavItem {
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+
+type Severity = "info" | "error" | "success" | "warning";
