@@ -14,7 +14,7 @@ export default async function handler(
     await deleteStaleTransactions();
     return res.status(200).json(response);
   } catch (e: any) {
-    return res.status(200).json(e.message);
+    return res.status(400).json(e.message);
   }
 }
 
