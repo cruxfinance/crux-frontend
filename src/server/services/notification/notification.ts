@@ -56,6 +56,7 @@ export const markNotifcationAsRead = async (notificationId: string) => {
     data: {
       ...notification,
       read: true,
+      updatedAt: new Date(),
     },
   });
   return update;
@@ -68,6 +69,7 @@ export const markAllAsRead = async (userId: string) => {
     },
     data: {
       read: true,
+      updatedAt: new Date(),
     },
   });
   return update;

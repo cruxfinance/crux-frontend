@@ -1,3 +1,4 @@
+import { prisma } from "@server/prisma";
 import { explorerApi, nodeApi } from "@server/services/axiosInstance";
 import {
   Address,
@@ -8,6 +9,7 @@ import {
   ErgoStateContext,
   ErgoBoxes,
 } from "ergo-lib-wasm-nodejs";
+import { nanoid } from "nanoid";
 
 const ERG = "erg";
 const FEE = "1100000";
@@ -140,6 +142,7 @@ export const getUnsignedTransaction = async (
     ErgoBoxes.from_boxes_json(inputs),
     ErgoBoxes.from_boxes_json([])
   );
+  const signingUrl = await getErgoPaySigningUrl(reduced);
   const txId = tx.id().to_str();
   return {
     id: txId,
@@ -147,7 +150,7 @@ export const getUnsignedTransaction = async (
       id: txId,
       ...unsignedTransaction,
     },
-    reducedTransaction: reduced,
+    reducedTransaction: signingUrl,
   };
 };
 
@@ -257,15 +260,26 @@ const getTxReduced = async (
   );
 };
 
-export async function getTxReducedB64Safe(
+const getTxReducedB64Safe = async (
   unsignedTx: UnsignedTransaction,
   inputs: ErgoBoxes,
   dataInputs: ErgoBoxes
-) {
+) => {
   const reduced = await getTxReduced(unsignedTx, inputs, dataInputs);
   const txReducedBase64 = btoa(
     String.fromCharCode(...reduced.sigma_serialize_bytes())
   );
   const ergoPayTx = txReducedBase64.replace(/\//g, "_").replace(/\+/g, "-");
   return ergoPayTx;
-}
+};
+
+const getErgoPaySigningUrl = async (reducedTx: string) => {
+  const id = nanoid();
+  await prisma.keyValuePair.create({
+    data: {
+      key: id,
+      value: reducedTx,
+    },
+  });
+  return `${process.env.ERGOPAY_DOMAIN}/api/ergopay/${id}`;
+};
