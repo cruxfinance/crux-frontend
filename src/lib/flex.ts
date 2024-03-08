@@ -9,3 +9,9 @@ export const flexColumn = {
   flexDirection: 'row',
   gap: 2
 }
+
+export const ellipsis = {
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap'
+}

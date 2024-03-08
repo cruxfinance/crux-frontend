@@ -9,7 +9,6 @@ import QRCode from 'react-qr-code';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { trpc } from '@lib/trpc';
 import { useAlert } from '@contexts/AlertContext';
-import { nanoid } from 'nanoid';
 
 interface IErgopayProps {
   setOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -65,7 +64,7 @@ const Ergopay: FC<IErgopayProps> = ({ setOpen }) => {
     return () => clearInterval(intervalId);
   }, [stopPolling, initialized]);
 
-  const addWallet = trpc.user.addWallet.useMutation()
+  const addWallet = trpc.user.addAddedWallet.useMutation()
   const trpcContext = trpc.useUtils();
   const addWalletFunction = async (address: string) => {
     const addWalletEvent = await addWallet.mutateAsync({

@@ -24,6 +24,8 @@ import { useWallet } from '@contexts/WalletContext';
 import { trpc } from '@lib/trpc';
 import { TransitionGroup } from 'react-transition-group';
 import { flexRow } from '@lib/flex';
+import SelectWallets from './SelectWallets';
+import AddWallet from '@components/user/wallet/AddWallet';
 
 interface IPayReportDialogProps {
   open: boolean;
@@ -38,10 +40,33 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
 }) => {
   const theme = useTheme();
   const { addAlert } = useAlert()
-  const { sessionStatus } = useWallet()
+  const { sessionStatus, sessionData } = useWallet()
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [prepaidToggle, setprepaidToggle] = useState(false)
-  const [showComponent, setShowComponent] = useState(true); // New state to manage visibility
+  const [showComponent, setShowComponent] = useState(true);
+  const [selectedWallets, setSelectedWallets] = useState<string[]>([]);
+  const walletList = trpc.user.getWallets.useQuery()
+  const [addressList, setAddressList] = useState<string[]>([])
+
+  useEffect(() => {
+    if (walletList.data && walletList.data.success) {
+      // Filter based on the selected ones
+      const selectedLoginWallets = walletList.data.walletList.filter(wallet => selectedWallets.includes(`wallet-${wallet.id}`));
+      const selectedAddedWallets = walletList.data.addedWalletList.filter(wallet => selectedWallets.includes(`added-${wallet.id}`));
+
+      // Extract addresses
+      const addresses = [
+        ...selectedLoginWallets.flatMap(wallet => [wallet.changeAddress, ...wallet.unusedAddresses, ...wallet.usedAddresses]),
+        ...selectedAddedWallets.flatMap(wallet => [wallet.changeAddress, ...wallet.unusedAddresses, ...wallet.usedAddresses]),
+      ];
+
+      // Deduplicate addresses
+      const uniqueAddresses = Array.from(new Set(addresses));
+
+      setAddressList(uniqueAddresses);
+    }
+  }, [walletList.data, selectedWallets]);
+
 
   const handleToggle = () => { // toggle between prepaid buttons and pay with mobile/nautilus buttons
     // Start by hiding the current component
@@ -74,8 +99,13 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
   const usePrepaidReport = trpc.accounting.usePrepaidReport.useMutation()
   const handleSubmitPrepaid = async () => {
     if (checkPrepaidReports.data?.prepaidReports[0].id) {
+      console.log(addressList)
       try {
-        const pay = await usePrepaidReport.mutateAsync({ reportId: checkPrepaidReports.data?.prepaidReports[0].id, taxYear })
+        const pay = await usePrepaidReport.mutateAsync({
+          reportId: checkPrepaidReports.data?.prepaidReports[0].id,
+          taxYear,
+          addresses: addressList
+        })
         if (pay) {
           addAlert('success', `Report paid! You may now download your ${taxYear} report.`)
           setOpen(false);
@@ -106,6 +136,23 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
       slug: 'prepaid'
     }
   ]
+
+  const price = () => {
+    const baseCost = sessionData && (sessionData.user.privilegeLevel === 'PRO' || sessionData.user.privilegeLevel === 'BASIC')
+      ? 40 : 60;
+    if (buttonChoice === 'prepaid') {
+      return <>
+        <Typography component="s">${baseCost}</Typography> <Typography component="span">$0</Typography>
+      </>
+    }
+    else if (buttonChoice === 'crux') {
+      return <>
+        <Typography component="s">${baseCost}</Typography> <Typography component="span">${baseCost * 0.7}</Typography>
+      </>
+    } else {
+      return <>${baseCost}</>
+    }
+  }
 
   return (
     <Dialog
@@ -157,7 +204,7 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
               || value.slug !== 'prepaid'
             ).map((choice, index) => {
               const { slug, name } = choice
-              return <Box>
+              return <Box key={slug}>
                 <Button
                   key={slug}
                   variant="text"
@@ -186,12 +233,22 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
             })}
           </Box></Paper>
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography>
+          <Typography sx={{ mb: 2 }}>
             Select included wallets:
           </Typography>
-
+          <SelectWallets
+            checked={selectedWallets}
+            setChecked={setSelectedWallets}
+          />
+          <AddWallet />
         </Paper>
-        <Box sx={{ mb: 2 }}>
+
+      </DialogContent>
+      <DialogActions sx={{ justifyContent: 'space-between', alignItems: 'flex-end', p: 1 }}>
+        <Box>
+          Total: {price()}
+        </Box>
+        <Box>
           <Grow in={!prepaidToggle && showComponent} timeout={{ exit: 50, enter: 200 }} onExited={handleExited} mountOnEnter unmountOnExit>
             <Box sx={{ ...flexRow, justifyContent: 'center' }}>
               <Button variant="contained" onClick={handleSubmit}>
@@ -210,8 +267,7 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
             </Box>
           </Grow>
         </Box>
-      </DialogContent>
-
+      </DialogActions>
     </Dialog>
   );
 };

@@ -7,84 +7,31 @@ import {
   Box,
   useTheme,
   Avatar,
-  Button,
-  LinearProgress
+  Button
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Ergopay from './AddMobileAddress';
-
-declare global {
-  interface Window {
-    ergoConnector: any;
-  }
-}
-
-type WalletButtonProps = {
-  name: string;
-  walletType: string;
-  icon: string;
-  iconDark: string;
-  messageSigning: boolean;
-}
-
-const wallets: WalletButtonProps[] = [
-  {
-    name: 'Nautilus',
-    walletType: 'nautilus',
-    icon: '/wallet-logos/nautilus-128.png',
-    iconDark: '/wallet-logos/nautilus-128.png',
-    messageSigning: true
-  },
-  {
-    name: 'Terminus/Mobile',
-    walletType: 'mobile',
-    icon: '/wallet-logos/mobile.webp',
-    iconDark: '/wallet-logos/mobile.webp',
-    messageSigning: true
-  },
-  {
-    name: 'Ledger',
-    walletType: 'ledger',
-    icon: '/wallet-logos/ledger.svg',
-    iconDark: '/wallet-logos/ledger-dark.svg',
-    messageSigning: false
-  }
-]
+import CreateIcon from '@mui/icons-material/Create';
+import AddAddressManually from './AddAddressManually';
+import { wallets } from '@lib/wallets';
 
 const AddWallet: FC = () => {
   const { addAlert } = useAlert()
   const theme = useTheme();
   const [openAddWallet, setOpenAddWallet] = useState(false)
-  const [openManageWallets, setOpenManageWallets] = useState(false)
   const [ergopayOpen, setErgopayOpen] = useState(false)
-  const [ergopayInfo, setErgopayInfo] = useState<{ walletType: 'mobile', messageSigning: boolean }>({
-    walletType: 'mobile',
-    messageSigning: true
-  })
-  const [transactionVerifyOpen, setTransactionVerifyOpen] = useState(false)
-  const [ergoauthOpen, setErgoauthOpen] = useState(false)
-  const [defaultAddress, setDefaultAddress] = useState<string | undefined>(undefined);
-  const [verificationId, setVerificationId] = useState<string | undefined>(undefined);
-  const [usedAddresses, setUsedAddresses] = useState<string[]>([])
-  const [unusedAddresses, setUnusedAddresses] = useState<string[]>([])
+  const [manualOpen, setManualOpen] = useState(false)
 
   const reset = () => {
-    setErgoauthOpen(false)
-    setDefaultAddress(undefined)
-    setVerificationId(undefined)
-    setUsedAddresses([])
-    setUnusedAddresses([])
-    setTransactionVerifyOpen(false)
+    setManualOpen(false)
     setErgopayOpen(false)
     setOpenAddWallet(true)
-    setOpenManageWallets(false)
   }
 
   const handleOpenAddWallet = () => {
     if (!openAddWallet) {
       setErgopayOpen(false)
-      setErgoauthOpen(false)
-      setOpenManageWallets(false)
+      setManualOpen(false)
     }
     setOpenAddWallet(!openAddWallet)
   }
@@ -133,8 +80,6 @@ const AddWallet: FC = () => {
             connectDapp(walletType, messageSigning)
           } else if (walletType === 'mobile') {
             setOpenAddWallet(false)
-            setOpenManageWallets(false)
-            setErgopayInfo({ walletType, messageSigning })
             setErgopayOpen(true)
           }
         }}
@@ -142,7 +87,41 @@ const AddWallet: FC = () => {
     )
   }
 
-  const addWallet = trpc.user.addWallet.useMutation()
+  const ManualWalletButton: FC = () => {
+    return (
+      <Button
+        startIcon={<Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <CreateIcon />
+          <Box>
+            <Typography sx={{ fontSize: '1rem !important', color: theme.palette.text.primary }}>
+              Enter address manually
+            </Typography>
+          </Box>
+        </Box>}
+        sx={{
+          background: theme.palette.background.paper,
+          border: `1px solid ${theme.palette.divider}`,
+          borderRadius: '6px',
+          mb: 1,
+          px: 2,
+          py: 1,
+          justifyContent: "space-between",
+          textTransform: 'none',
+          '& .MuiListItemSecondaryAction-root': {
+            height: '24px'
+          },
+          color: theme.palette.text.secondary
+        }}
+        fullWidth
+        onClick={() => {
+          setOpenAddWallet(false)
+          setManualOpen(true)
+        }}
+      />
+    )
+  }
+
+  const addWallet = trpc.user.addAddedWallet.useMutation()
   const trpcContext = trpc.useUtils();
   const addWalletFunction = async (address: string, unusedAddresses: string[], usedAddresses: string[], type: string) => {
     const addWalletEvent = await addWallet.mutateAsync({
@@ -207,9 +186,6 @@ const AddWallet: FC = () => {
       const fetchUsedAddresses = await ergo.get_used_addresses();
       // @ts-ignore
       const fetchUnusedAddresses = await ergo.get_unused_addresses();
-      setDefaultAddress(changeAddress)
-      setUsedAddresses(fetchUsedAddresses);
-      setUnusedAddresses(fetchUnusedAddresses);
       return { defaultAddress: changeAddress, usedAddresses: fetchUsedAddresses, unusedAddresses: fetchUnusedAddresses };
     } catch (error) {
       console.error('Error fetching wallet address:', error);
@@ -229,7 +205,7 @@ const AddWallet: FC = () => {
           startIcon={
             <Box>
               <Typography sx={{ fontSize: '1rem !important', color: theme.palette.text.primary }}>
-                {openAddWallet ? 'Close wallet list' : `Add a wallet`}
+                {openAddWallet ? 'Close Add Wallet list' : `Add a wallet`}
               </Typography>
             </Box>
           }
@@ -253,12 +229,23 @@ const AddWallet: FC = () => {
           {wallets.map((item, i) => (
             <WalletButtonComponent {...item} key={`${item.name}-${i}`} />
           ))}
+          <ManualWalletButton />
         </Collapse>
         <Collapse in={ergopayOpen} mountOnEnter unmountOnExit>
-          <Typography sx={{ fontSize: '1.1rem !important', fontWeight: 700, my: 1, lineHeight: 1 }}>
-            Provide your address by selecting it with Ergopay
-          </Typography>
-          <Ergopay setOpen={setErgopayOpen} />
+          <Box sx={{ px: 4 }}>
+            <Typography sx={{ fontSize: '1.1rem !important', fontWeight: 700, my: 1, lineHeight: 1 }}>
+              Provide your address by selecting it with Ergopay
+            </Typography>
+            <Ergopay setOpen={setErgopayOpen} />
+          </Box>
+        </Collapse>
+        <Collapse in={manualOpen} mountOnEnter unmountOnExit>
+          <Box sx={{ px: 4 }}>
+            <Typography sx={{ mb: 1 }}>
+              Enter Ergo addresses, separated by commas.
+            </Typography>
+            <AddAddressManually setOpen={setManualOpen} />
+          </Box>
         </Collapse>
       </Box>
     </Box>

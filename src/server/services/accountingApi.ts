@@ -56,6 +56,8 @@ export const accountingApi = {
         addresses: addresses,
       });
 
+      console.log(queryString)
+
       return toCamelCase(response.data) as TTransactions;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -77,7 +79,7 @@ export const accountingApi = {
       offset?: number,
       limit?: number,
     }
-  ): Promise<TTransactions> {
+  ) {
     try {
       const params = new URLSearchParams();
 
@@ -93,6 +95,59 @@ export const accountingApi = {
       const response = await cruxApi.post(`/crux/tx_history/csv?${queryString}`, {
         addresses: addresses,
       });
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw mapAxiosErrorToTRPCError(error);
+      } else {
+        console.error(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An unknown error occurred",
+        });
+      }
+    }
+  },
+  async downloadKoinly(
+    addresses: string[],
+    userId: string,
+    // queries?: {
+    //   dateFrom?: number,
+    //   dateTo?: number,
+    //   offset?: number,
+    //   limit?: number,
+    // },
+  ) {
+    try {
+      // const params = new URLSearchParams();
+
+      // if (queries) {
+      //   if (queries.dateFrom) params.append('from', queries.dateFrom.toString());
+      //   if (queries.dateTo) params.append('to', queries.dateTo.toString());
+      //   if (queries.offset) params.append('offset', queries.offset.toString());
+      //   if (queries.limit) params.append('limit', queries.limit.toString());
+      // }
+
+      // const queryString = params.toString();
+
+      const response = await cruxApi.post(
+        `/crux/coinly_csv_extract`,
+        {
+          user: userId,
+          wallets: [
+            {
+              addresses: addresses,
+              name: ""
+            }
+          ]
+        },
+        {
+          headers: {
+            'API-KEY': process.env.API_KEY,
+          }
+        }
+      );
 
       return response.data;
     } catch (error) {

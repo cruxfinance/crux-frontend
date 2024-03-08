@@ -215,6 +215,7 @@ export const userRouter = createTRPCRouter({
       },
       select: {
         wallets: true,
+        addedWallets: true,
         defaultAddress: true,
       },
     });
@@ -227,10 +228,11 @@ export const userRouter = createTRPCRouter({
     return {
       success: true,
       walletList: user.wallets,
+      addedWalletList: user.addedWallets,
       defaultAddress: user.defaultAddress
     };
   }),
-  addWallet: protectedProcedure
+  addAddedWallet: protectedProcedure
     .input(
       z.object({
         changeAddress: z.string(),
@@ -246,43 +248,99 @@ export const userRouter = createTRPCRouter({
       // Combine all provided addresses for the search.
       const allAddresses = [changeAddress, ...unusedAddresses, ...usedAddresses];
 
-      // Find existing wallet with any matching address.
-      const existingWallet = await prisma.wallet.findFirst({
-        where: {
-          userId,
-          OR: allAddresses.map(address => ({
-            OR: [
-              { changeAddress: address },
-              { unusedAddresses: { has: address } },
-              { usedAddresses: { has: address } }
-            ]
-          }))
-        }
-      });
-
-      if (existingWallet) {
-        const uniqueUnusedAddresses = [...new Set([...existingWallet.unusedAddresses, ...unusedAddresses])];
-        const uniqueUsedAddresses = [...new Set([...existingWallet.usedAddresses, ...usedAddresses, changeAddress])];
-        const newWallet = await prisma.wallet.update({
-          where: { id: existingWallet.id },
-          data: {
+      // Function to find an existing wallet in both Wallet and AddedWallet models.
+      async function findExistingWallet() {
+        // First, check in the Wallet model.
+        const loginWallet = await prisma.wallet.findFirst({
+          where: {
             userId,
-            type,
-            changeAddress,
-            unusedAddresses: uniqueUnusedAddresses,
-            usedAddresses: uniqueUsedAddresses,
+            OR: allAddresses.map(address => ({
+              OR: [
+                { changeAddress: address },
+                { unusedAddresses: { has: address } },
+                { usedAddresses: { has: address } }
+              ]
+            }))
+          }
+        });
+
+        if (loginWallet) return {
+          wallet: loginWallet,
+          source: 'wallets'
+        };
+
+        // If not found in Wallet, check in the AddedWallet model.
+        const wallet = await prisma.addedWallet.findFirst({
+          where: {
+            userId,
+            OR: allAddresses.map(address => ({
+              OR: [
+                { changeAddress: address },
+                { unusedAddresses: { has: address } },
+                { usedAddresses: { has: address } }
+              ]
+            }))
           }
         });
         return {
-          success: true,
-          message: existingWallet.type === type
-            ? "Wallet already exists. Updated with any new derived addresses"
-            : `Wallet already existed via ${existingWallet.type}. New derived addresses added and wallet type updated. `,
-          severity: "warning",
-          data: newWallet
+          wallet,
+          source: 'addedWallets'
+        }
+      }
+
+      // Find existing wallet with any matching address in both Wallet and AddedWallet models.
+      const existingWallet = await findExistingWallet();
+
+      if (existingWallet.wallet) {
+        // Determine if the found wallet is from Wallet or AddedWallet model based on its table.
+        const { wallet, source } = existingWallet
+
+        const uniqueUnusedAddresses = [...new Set([...wallet.unusedAddresses, ...unusedAddresses])];
+        const uniqueUsedAddresses = [...new Set([...wallet.usedAddresses, ...usedAddresses, changeAddress])];
+
+        // Update logic for Wallet model or AddedWallet model based on where the existing wallet was found.
+        if (source === 'wallets') {
+          console.log(wallet.id, '\x1b[32m')
+          const updatedWallet = await prisma.wallet.update({
+            where: { id: wallet.id },
+            data: {
+              type: type !== 'manual' ? type : wallet.type,
+              changeAddress,
+              unusedAddresses: uniqueUnusedAddresses,
+              usedAddresses: uniqueUsedAddresses,
+            }
+          });
+          return {
+            success: true,
+            message: wallet.type === type
+              ? "Wallet already exists. Updated with any new derived addresses."
+              : `Wallet already existed as ${wallet.type}. New derived addresses added and wallet type updated.`,
+            severity: "warning",
+            data: updatedWallet
+          };
+        }
+        else {
+          const updatedWallet = await prisma.addedWallet.update({
+            where: { id: wallet.id },
+            data: {
+              type: type !== 'manual' ? type : wallet.type,
+              changeAddress,
+              unusedAddresses: uniqueUnusedAddresses,
+              usedAddresses: uniqueUsedAddresses,
+            }
+          });
+          return {
+            success: true,
+            message: wallet.type === type
+              ? "Wallet already exists. Updated with any new derived addresses."
+              : `Wallet already existed as ${wallet.type}. New derived addresses added and wallet type updated.`,
+            severity: "warning",
+            data: updatedWallet
+          };
         }
       } else {
-        const newWallet = await prisma.wallet.create({
+        // No existing wallet found, proceed to create a new entry in AddedWallet.
+        const newWallet = await prisma.addedWallet.create({
           data: {
             userId,
             type,
@@ -296,10 +354,10 @@ export const userRouter = createTRPCRouter({
           message: `Wallet ${changeAddress} successfully added to your user account.`,
           severity: "success",
           data: newWallet
-        }
+        };
       }
     }),
-  deleteWallet: protectedProcedure
+  deleteAddedWallet: protectedProcedure
     .input(
       z.object({
         walletId: z.string()
@@ -310,54 +368,7 @@ export const userRouter = createTRPCRouter({
         const { walletId } = input;
         const userId = ctx.session.user.id
 
-        // Fetch the user to check if defaultAddress to check if it matches the wallet
-        const userWithWallet = await prisma.user.findUnique({
-          where: {
-            id: userId,
-          },
-          select: {
-            defaultAddress: true,
-            wallets: {
-              where: {
-                id: walletId
-              },
-              select: {
-                changeAddress: true,
-                unusedAddresses: true,
-                usedAddresses: true,
-              }
-            }
-          }
-        });
-
-        if (!userWithWallet || userWithWallet.wallets.length === 0) {
-          throw new TRPCError({
-            message: 'Wallet not found in database',
-            code: 'NOT_FOUND',
-          });
-        }
-
-        if (!userWithWallet.defaultAddress) {
-          throw new TRPCError({
-            message: 'User account missing defaultAddress',
-            code: 'NOT_FOUND',
-          });
-        }
-
-        const { changeAddress, unusedAddresses, usedAddresses } = userWithWallet.wallets[0];
-
-        // Check if the defaultAddress is any of the wallet addresses
-        if (userWithWallet.defaultAddress === changeAddress ||
-          unusedAddresses.includes(userWithWallet.defaultAddress) ||
-          usedAddresses.includes(userWithWallet.defaultAddress)) {
-          return {
-            success: false,
-            message: "Cannot delete the account sign-in wallet"
-          }
-        }
-
-        // Proceed with wallet deletion if the above check passes
-        await prisma.wallet.delete({
+        await prisma.addedWallet.delete({
           where: {
             id: walletId,
             userId: userId
@@ -372,8 +383,6 @@ export const userRouter = createTRPCRouter({
         });
       }
     }),
-  // DO NOT USE WITHOUT FINISHING VERIFICATION OF WALLET. 
-  // WALLETS IN THE DATABASE HAVE NOT NECESSARILY BEEN VERIFIED
   // changeDefaultAddress: protectedProcedure
   //   .input(
   //     z.object({
@@ -447,7 +456,6 @@ export const userRouter = createTRPCRouter({
 
   //     return { success: true };
   //   }),
-  // DO NOT USE WITHOUT FINISHING THIS ENDPOINT
   // changeLoginAddress: protectedProcedure
   //   .input(
   //     z.object({
@@ -489,51 +497,51 @@ export const userRouter = createTRPCRouter({
 
   //     return { success: true };
   //   }),
-  removeWallet: protectedProcedure
-    .input(
-      z.object({
-        walletId: z.string(),
-      })
-    )
-    .mutation(async ({ input, ctx }) => {
-      const userId = ctx.session.user.id;
-      const userAddress = ctx.session.user.address;
-      const walletId = input.walletId;
+  // removeWallet: protectedProcedure
+  //   .input(
+  //     z.object({
+  //       walletId: z.string(),
+  //     })
+  //   )
+  //   .mutation(async ({ input, ctx }) => {
+  //     const userId = ctx.session.user.id;
+  //     const userAddress = ctx.session.user.address;
+  //     const walletId = input.walletId;
 
-      // check if wallet belongs to this user
-      const wallet = await prisma.wallet.findUnique({
-        where: {
-          id: walletId,
-          userId: userId,
-        },
-      });
+  //     // check if wallet belongs to this user
+  //     const wallet = await prisma.wallet.findUnique({
+  //       where: {
+  //         id: walletId,
+  //         userId: userId,
+  //       },
+  //     });
 
-      if (!wallet) {
-        throw new Error("Wallet not found or doesn't belong to this user");
-      }
+  //     if (!wallet) {
+  //       throw new Error("Wallet not found or doesn't belong to this user");
+  //     }
 
-      // Check if userAddress exists in any of the address fields of the fetched wallet
-      if (
-        userAddress &&
-        wallet.changeAddress !== userAddress &&
-        !wallet.unusedAddresses.includes(userAddress) &&
-        !wallet.usedAddresses.includes(userAddress)
-      ) {
-        // Attempt to delete the wallet
-        const deleteResponse = await prisma.wallet.delete({
-          where: {
-            id: walletId,
-          },
-        });
-        if (!deleteResponse) {
-          throw new Error("Error removing this wallet");
-        }
-        return { success: true };
-      } else
-        throw new Error(
-          "Cannot delete: wallet is currently the default address for this user"
-        );
-    }),
+  //     // Check if userAddress exists in any of the address fields of the fetched wallet
+  //     if (
+  //       userAddress &&
+  //       wallet.changeAddress !== userAddress &&
+  //       !wallet.unusedAddresses.includes(userAddress) &&
+  //       !wallet.usedAddresses.includes(userAddress)
+  //     ) {
+  //       // Attempt to delete the wallet
+  //       const deleteResponse = await prisma.wallet.delete({
+  //         where: {
+  //           id: walletId,
+  //         },
+  //       });
+  //       if (!deleteResponse) {
+  //         throw new Error("Error removing this wallet");
+  //       }
+  //       return { success: true };
+  //     } else
+  //       throw new Error(
+  //         "Cannot delete: wallet is currently the default address for this user"
+  //       );
+  //   }),
   getUserDetails: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
     const user = await prisma.user.findFirst({

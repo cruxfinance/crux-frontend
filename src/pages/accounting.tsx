@@ -3,31 +3,39 @@ import {
   Typography,
   Paper,
   Box,
-  ToggleButton,
-  ToggleButtonGroup,
   Button,
   Container,
-  Card,
-  CardContent,
-  CardActions
+  IconButton,
+  FilledInput,
+  FormControl,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  useTheme,
+  Collapse
 } from '@mui/material';
 import { NextPage } from 'next';
 import ChooseYear from '@components/accounting/ChooseYear';
-import ReportsTable from '@components/accounting/ReportsTable';
-import { Currencies } from '@lib/utils/currencies';
 import { trpc } from '@lib/trpc';
 import { useWallet } from '@contexts/WalletContext';
-import Grid from '@mui/system/Unstable_Grid/Grid';
 import PayReportDialog from '@components/accounting/PayReportDialog';
 import { useAlert } from '@lib/contexts/AlertContext';
+import ViewReport from '@components/accounting/ViewReport';
+import ChooseReport from '@components/accounting/ChooseReport';
+import { flexRow } from '@lib/flex';
+import ModeEditIcon from "@mui/icons-material/ModeEdit";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from '@mui/icons-material/Close';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const yearsAvailableTRPCQuery = [
-  2023, 2024
+  2021, 2022, 2023
 ]
 
 const Accounting: NextPage = () => {
   const { addAlert } = useAlert()
-
+  const [openAddressesList, setOpenAddressesList] = useState(false)
+  const theme = useTheme()
   const [year, setYear] = useState<number>(0)
   const [years, setYears] = useState<number[]>([])
   const [payOpen, setPayOpen] = useState(false)
@@ -35,16 +43,11 @@ const Accounting: NextPage = () => {
     setYears(yearsAvailableTRPCQuery)
   }, [yearsAvailableTRPCQuery]) // replace with TRPC query when its available
 
+  const [selectedReport, setSelectedReport] = useState<TReport | undefined>(undefined)
+
   const { sessionStatus } = useWallet()
 
-  const [currency, setCurrency] = useState<Currencies>('USD')
-  const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
-    if (value !== null) {
-      setCurrency(value);
-    }
-  };
-
-  const checkAvailableReport = trpc.accounting.checkAvailableReport.useQuery(
+  const checkAvailableReports = trpc.accounting.checkAvailableReportsByYear.useQuery(
     {
       taxYear: year
     },
@@ -65,36 +68,64 @@ const Accounting: NextPage = () => {
   };
 
   const payReport = trpc.accounting.processPaymentAndCreateReport.useMutation()
-  const createReportDev = () => {
-    payReport.mutateAsync({ taxYear: year, status: 'AVAILABLE' })
-    checkAvailableReport.refetch()
+  const createReportDev = async () => {
+    await payReport.mutateAsync({ taxYear: year, status: 'AVAILABLE' })
+    checkAvailableReports.refetch()
     checkPrepaidReports.refetch()
   }
-  const createPrepaidReportDev = () => {
-    payReport.mutateAsync({ taxYear: year, status: 'PREPAID' })
-    checkAvailableReport.refetch()
+  const createPrepaidReportDev = async () => {
+    await payReport.mutateAsync({ taxYear: year, status: 'PREPAID' })
+    checkAvailableReports.refetch()
     checkPrepaidReports.refetch()
-  }
-
-  const handleDownload = (choice: string) => {
-    console.log(choice)
   }
 
   useEffect(() => {
     checkPrepaidReports.refetch()
-    checkAvailableReport.refetch()
+    checkAvailableReports.refetch()
   }, [payOpen])
+
+  useEffect(() => {
+    setSelectedReport(undefined)
+  }, [year])
+
+  const editReportCustomName = trpc.accounting.editReportCustomName.useMutation()
+  const [openNameEdit, setOpenNameEdit] = useState(false)
+  const [newName, setNewName] = useState('')
+  const handleOpenNameEdit = () => {
+    setNewName(selectedReport?.customName || selectedReport?.id || '')
+    setOpenNameEdit(true)
+  }
+  const handleEditReportName = async (e: any) => {
+    e.preventDefault()
+    if (selectedReport) {
+      const editName = await editReportCustomName.mutateAsync({
+        reportId: selectedReport?.id,
+        customName: newName
+      })
+      if (editName) {
+        setOpenNameEdit(false)
+        setNewName('')
+        addAlert('success', `Report renamed to ${newName}`)
+        checkAvailableReports.refetch()
+        setSelectedReport({ ...selectedReport, customName: newName })
+      }
+    }
+  }
+  const handleCancelEdit = () => {
+    setNewName(selectedReport?.customName || selectedReport?.id || '')
+    setOpenNameEdit(false)
+  }
+
+  const handleKeyDown = (event: any) => {
+    if (event.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
 
   return (
     <Container maxWidth="xl">
-
       <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto' }}>
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          mb: 3
-          // justifyContent: 'space-between',
-        }}>
+        <Box sx={{ ...flexRow, mb: 2 }}>
           <Typography variant="h5" sx={{ pr: 2 }}>
             Choose tax year:
           </Typography>
@@ -104,88 +135,120 @@ const Accounting: NextPage = () => {
             years={years}
           />
         </Box>
-        {sessionStatus !== "authenticated"
-          ? <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography variant="h6">Sign in to view your reports.</Typography>
+        {checkAvailableReports.data?.available &&
+          <Box sx={{ ...flexRow, mb: 2 }}>
+            <Typography variant="h5" sx={{ pr: 2 }}>
+              Choose {year} report:
+            </Typography>
+            <ChooseReport
+              selectedReport={selectedReport}
+              setSelectedReport={setSelectedReport}
+              reports={checkAvailableReports.data.reports}
+              handlePayForReport={handlePayForReport}
+            />
           </Box>
-          : year === 0
-            ? <Box sx={{ py: 4, textAlign: 'center' }}>
-              <Typography variant="h6">Please choose a tax year. </Typography>
+        }
+        {selectedReport &&
+          <Box>
+            <Box>
+              Report name: {openNameEdit ? (
+                <FormControl component="form" onSubmit={handleEditReportName} onKeyDown={handleKeyDown}>
+                  <FilledInput
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    autoFocus
+                    endAdornment={
+                      <>
+                        <IconButton type="submit">
+                          <CheckIcon />
+                        </IconButton>
+                        <IconButton onClick={handleCancelEdit}>
+                          <CloseIcon />
+                        </IconButton>
+                      </>
+                    }
+                  />
+                </FormControl >
+              ) : (
+                selectedReport.customName ?? selectedReport.id
+              )}
+              {!openNameEdit && <IconButton onClick={handleOpenNameEdit}>
+                <ModeEditIcon />
+              </IconButton>}
             </Box>
-            : checkAvailableReport.isLoading
-              ? <Box sx={{ py: 4, textAlign: 'center' }}>
-                <Typography variant="h6">Verifying...</Typography>
+            Addresses:
+            <Box
+              sx={{
+                p: '3px 12px',
+                fontSize: '1rem',
+                minWidth: '64px',
+                width: '100%',
+                background: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: '6px',
+                mb: 1,
+                maxWidth: '600px',
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 2,
+                '&:hover': {
+                  background: 'rgba(130,130,170,0.15)',
+                  cursor: 'pointer'
+                }
+              }}
+              onClick={() => setOpenAddressesList(!openAddressesList)}
+            >
+              <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Show Addresses
               </Box>
-              : checkAvailableReport.data?.available
-                ? <Grid container spacing={2} alignItems="stretch" direction="row" justifyContent="space-evenly">
-                  {[{
-                    title: 'CSV',
-                    description: 'Get your transaction data in CSV format for easy import into spreadsheets or other tools.',
-                    link: ''
-                  }, {
-                    title: 'Koinly',
-                    description: 'Export your transaction data in a format compatible with Koinly, a popular cryptocurrency tax software.',
-                    link: ''
-                  }].map((item, i) => (
-                    <Grid xs={12} sm={6} key={`${item.title}-${i}`} sx={{ maxWidth: 345 }}>
-                      <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <CardContent sx={{ flexGrow: 1 }}>
-                          <Typography variant="h5" component="div" gutterBottom>
-                            {item.title} format
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {item.description}
-                          </Typography>
-                        </CardContent>
-                        <CardActions sx={{ p: 2 }}>
-                          <Button size="small" variant="contained" color="primary" onClick={() => handleDownload(item.title)}>
-                            Download {item.title}
-                          </Button>
-                        </CardActions>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-                : <Box sx={{ py: 4, textAlign: 'center' }}>
-                  <Typography variant="h6">You don&apos;t have a paid report for {year}.</Typography>
-                  {checkPrepaidReports.data && checkPrepaidReports.data.hasPrepaidReports && <Typography>
-                    You have {checkPrepaidReports.data.prepaidReports.length} prepaid report{checkPrepaidReports.data.prepaidReports.length > 1 && 's'} to use.
-                  </Typography>}
-                  <Button variant="contained" color="primary" onClick={handlePayForReport} sx={{ mt: 2 }}>
-                    Pay for Report
-                  </Button>
-                </Box>
+              <ExpandMoreIcon sx={{
+                transform: openAddressesList
+                  ? 'rotate(180deg)'
+                  : 'none',
+                transition: 'transform 100ms ease-in-out'
+              }} />
+            </Box>
+            <Collapse in={openAddressesList}>
+              {selectedReport.addresses.map((address, index) => (
+                <Typography key={index}>{address}</Typography>
+              ))}
+            </Collapse>
+          </Box>
         }
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto' }}>
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2
-        }}>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Transaction overview</Typography>
-          </Box>
-          <Box>
-            <ToggleButtonGroup
-              value={currency}
-              exclusive
-              color="primary"
-              onChange={handleCurrencyChange}
-              sx={{ mb: 1 }}
-              size="small"
-            >
-              <ToggleButton value="USD">USD</ToggleButton>
-              <ToggleButton value="ERG">Erg</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
+      {sessionStatus !== "authenticated"
+        ? <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography variant="h6">Sign in to view your reports.</Typography>
         </Box>
-        <ReportsTable currency={currency} year={year} />
-      </Paper>
-      <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto' }}>
+        : year === 0
+          ? <Box sx={{ py: 4, textAlign: 'center' }}>
+            <Typography variant="h6">Please choose a tax year. </Typography>
+          </Box>
+          : checkAvailableReports.isLoading
+            ? <Box sx={{ py: 4, textAlign: 'center' }}>
+              <Typography variant="h6">Verifying...</Typography>
+            </Box>
+            : !checkAvailableReports.data?.available
+              ? <Box sx={{ py: 4, textAlign: 'center' }}>
+                <Typography variant="h6">You don&apos;t have a paid report for {year}.</Typography>
+                {checkPrepaidReports.data && checkPrepaidReports.data.hasPrepaidReports && <Typography>
+                  You have {checkPrepaidReports.data.prepaidReports.length} prepaid report{checkPrepaidReports.data.prepaidReports.length > 1 && 's'} to use.
+                </Typography>}
+                <Button variant="contained" color="primary" onClick={handlePayForReport} sx={{ mt: 2 }}>
+                  Pay for Report
+                </Button>
+              </Box>
+              : selectedReport
+                ? <ViewReport report={selectedReport} />
+                : <Box sx={{ py: 4, textAlign: 'center' }}>
+                  <Typography variant="h6">Please select a report. </Typography>
+                </Box>
+      }
+
+      <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto', mt: 24 }}>
         <Typography variant="h5">Dev panel</Typography>
         <Box sx={{ display: 'flex', flexDirection: 'row' }}>
           <Button onClick={createPrepaidReportDev}>

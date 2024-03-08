@@ -7,8 +7,12 @@ import {
   useTheme,
   Avatar,
   IconButton,
+  Collapse,
 } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
+import { ellipsis } from '@lib/flex';
+import CreateIcon from '@mui/icons-material/Create';
+import { wallets } from '@lib/wallets';
 
 declare global {
   interface Window {
@@ -16,44 +20,12 @@ declare global {
   }
 }
 
-type WalletButtonProps = {
-  name: string;
-  walletType: string;
-  icon: string;
-  iconDark: string;
-  messageSigning: boolean;
-}
-
-const wallets: WalletButtonProps[] = [
-  {
-    name: 'Nautilus',
-    walletType: 'nautilus',
-    icon: '/wallet-logos/nautilus-128.png',
-    iconDark: '/wallet-logos/nautilus-128.png',
-    messageSigning: true
-  },
-  {
-    name: 'Terminus/Mobile',
-    walletType: 'mobile',
-    icon: '/wallet-logos/mobile.webp',
-    iconDark: '/wallet-logos/mobile.webp',
-    messageSigning: true
-  },
-  {
-    name: 'Ledger',
-    walletType: 'ledger',
-    icon: '/wallet-logos/ledger.svg',
-    iconDark: '/wallet-logos/ledger-dark.svg',
-    messageSigning: false
-  }
-]
-
-const AddWallet: FC = () => {
+const ManageWallets: FC = () => {
   const { addAlert } = useAlert()
   const theme = useTheme();
   const walletList = trpc.user.getWallets.useQuery()
 
-  const deleteItem = trpc.user.deleteWallet.useMutation()
+  const deleteItem = trpc.user.deleteAddedWallet.useMutation()
   const removeItem = async (walletId: string) => {
     const deleted = await deleteItem.mutateAsync({ walletId })
     if (deleted.success) addAlert('success', 'Wallet successfully removed')
@@ -61,51 +33,80 @@ const AddWallet: FC = () => {
     walletList.refetch()
   }
 
+  const [openItemId, setOpenItemId] = useState('')
+
+  const handleOpenItem = (id: string) => {
+    if (openItemId !== id) {
+      setOpenItemId(id)
+    }
+    else setOpenItemId('')
+  }
+
   return (
     <Box sx={{ mb: 2, }}>
       <Typography variant="h4" sx={{ mb: 2 }}>Connected Wallets</Typography>
       <Box sx={{ maxWidth: 'sm', mx: 'auto' }}>
         {walletList.data && walletList.data.success && walletList.data.walletList &&
-          walletList.data.walletList.map((item) => {
+          [...walletList.data.walletList, ...walletList.data.addedWalletList].map((item) => {
             const wallet = wallets.find(wallet => item.type === wallet.walletType)
             return (
-              <Box
-                key={item.id}
-                sx={{
-                  p: '3px 12px',
-                  fontSize: '1rem',
-                  minWidth: '64px',
-                  width: '100%',
-                  background: theme.palette.background.paper,
-                  border: `1px solid ${theme.palette.divider}`,
-                  borderRadius: '6px',
-                  mb: 1,
-                  display: 'flex',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 2,
-                }}
-              >
-                <Box>
-                  <Avatar
-                    src={theme.palette.mode === 'dark' ? wallet?.iconDark : wallet?.icon}
-                    sx={{ height: '24px', width: '24px' }}
-                    variant={wallet?.walletType === 'mobile' ? "circular" : "square"}
-                  />
-                </Box>
-                <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {item.changeAddress}
-                </Box>
-                <Box>
-                  <IconButton onClick={() => {
-                    removeItem(item.id)
+              <Box key={item.id}>
+                <Box
+                  sx={{
+                    p: '3px 12px',
+                    fontSize: '1rem',
+                    minWidth: '64px',
+                    width: '100%',
+                    background: theme.palette.background.paper,
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: '6px',
+                    mb: 1,
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 2,
+                    '&:hover': {
+                      background: 'rgba(130,130,170,0.15)',
+                      cursor: 'pointer'
+                    }
                   }}
-                    disabled={item.changeAddress === walletList.data.defaultAddress}
-                  >
-                    <ClearIcon sx={{ height: '18px', width: '18px' }} />
-                  </IconButton>
+                  onClick={() => handleOpenItem(item.id)}
+                >
+                  {item.type !== 'manual'
+                    ? <Box><Avatar
+                      src={theme.palette.mode === 'dark' ? wallet?.iconDark : wallet?.icon}
+                      sx={{ height: '24px', width: '24px' }}
+                      variant={wallet?.walletType === 'mobile' ? "circular" : "square"}
+                    /></Box>
+                    : <CreateIcon sx={{ height: '24px', width: '24px' }} />
+                  }
+
+                  <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.changeAddress}
+                  </Box>
+                  <Box>
+                    <IconButton onClick={(e) => {
+                      e.stopPropagation()
+                      removeItem(item.id)
+                    }}
+                      disabled={item.changeAddress === walletList.data.defaultAddress}
+                    >
+                      <ClearIcon sx={{ height: '18px', width: '18px' }} />
+                    </IconButton>
+                  </Box>
                 </Box>
+                <Collapse in={openItemId === item.id}>
+                  <Box sx={{ mb: 2, pl: 3 }}>
+                    {item.usedAddresses.length < 1 && <Typography sx={ellipsis}>{item.changeAddress}</Typography>}
+                    {item.usedAddresses.map((address, i) => (
+                      <Typography sx={ellipsis}>{address}</Typography>
+                    ))}
+                    {item.unusedAddresses.map((address, i) => (
+                      <Typography sx={ellipsis}>{address}</Typography>
+                    ))}
+                  </Box>
+                </Collapse>
               </Box>
             )
           })}
@@ -114,4 +115,4 @@ const AddWallet: FC = () => {
   );
 };
 
-export default AddWallet;
+export default ManageWallets;

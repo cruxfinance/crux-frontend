@@ -58,6 +58,7 @@ model User {
   accounts           Account[]
   sessions           Session[]
   wallets            Wallet[]
+  addedWallets       AddedWallet[]
   loginRequests      LoginRequest[]
   chartData          ChartData[]
   paymentInstruments PaymentInstrument[]
@@ -81,13 +82,25 @@ model VerificationToken {
 model Wallet {
   id              String   @id @default(cuid())
   type            String?
-  changeAddress   String   @map("change_address")
+  changeAddress   String   @unique @map("change_address")
   unusedAddresses String[] @map("unused_addresses")
   usedAddresses   String[] @map("used_addresses")
   userId          String   @map("user_id")
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
+}
+
+model AddedWallet {
+  id              String   @id @default(cuid())
+  type            String?
+  changeAddress   String   @map("change_address")
+  unusedAddresses String[] @map("unused_addresses")
+  usedAddresses   String[] @map("used_addresses")
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("added_wallets")
 }
 
 enum LoginRequestStatus {
@@ -214,6 +227,7 @@ enum ReportStatus {
 model Report {
   id             String       @id @default(cuid())
   reportFilename String?      @map("report_filename")
+  customName     String?      @map("custom_name")
   dateFrom       DateTime?    @map("date_from")
   dateTo         DateTime?    @map("date_to")
   addresses      String[]
