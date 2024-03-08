@@ -100,10 +100,10 @@ const ManageWallets: FC = () => {
                   <Box sx={{ mb: 2, pl: 3 }}>
                     {item.usedAddresses.length < 1 && <Typography sx={ellipsis}>{item.changeAddress}</Typography>}
                     {item.usedAddresses.map((address, i) => (
-                      <Typography sx={ellipsis}>{address}</Typography>
+                      <Typography key={`${address}-${i}`} sx={ellipsis}>{address}</Typography>
                     ))}
                     {item.unusedAddresses.map((address, i) => (
-                      <Typography sx={ellipsis}>{address}</Typography>
+                      <Typography key={`${address}-${i}`} sx={ellipsis}>{address}</Typography>
                     ))}
                   </Box>
                 </Collapse>
