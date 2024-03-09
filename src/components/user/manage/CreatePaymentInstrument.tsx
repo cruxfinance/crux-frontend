@@ -38,6 +38,12 @@ export const allowedTokens: AllowedToken[] = [
     icon: null,
     decimals: 4,
   },
+  {
+    id: "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04",
+    name: "SigUSD",
+    icon: null,
+    decimals: 2,
+  },
 ];
 
 export const getIcon = async (id: string) => {
@@ -95,7 +101,10 @@ const CreatePaymentInstrument = () => {
   };
 
   return (
-    <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
+    <Paper
+      variant="outlined"
+      sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}
+    >
       <Typography variant="h6">Create a new Payment Instrument</Typography>
       <Box sx={{ width: "50%" }}>
         <FormControl fullWidth sx={{ mt: 2, mb: 3 }}>
