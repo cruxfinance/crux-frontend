@@ -23,7 +23,7 @@ import EventRepeatOutlinedIcon from "@mui/icons-material/EventRepeatOutlined";
 import { useRouter } from "next/router";
 import { useScrollLock } from "@contexts/ScrollLockContext";
 
-interface IUserMenuProps {}
+interface IUserMenuProps { }
 
 const UserMenu: FC<IUserMenuProps> = () => {
   const theme = useTheme();
@@ -136,7 +136,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
           variant="contained"
           disabled={providerLoading}
           sx={{ my: "5px" }}
-          // disabled
+        // disabled
         >
           {providerLoading ? "Loading..." : "Sign In"}
         </Button>
@@ -155,8 +155,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
               {providerLoading
                 ? "Loading..."
                 : wallet
-                ? getShortAddress(wallet)
-                : "No wallet"}
+                  ? getShortAddress(wallet)
+                  : "No wallet"}
             </Typography>
           </Button>
           <Menu
@@ -258,8 +258,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
         open={modalOpen}
         setOpen={setModalOpen}
         setLoading={setProviderLoading}
-        // setDappConnected={setDappConnected}
-        // connectDapp={dappConnection}
+      // setDappConnected={setDappConnected}
+      // connectDapp={dappConnection}
       />
     </>
   );

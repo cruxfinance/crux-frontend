@@ -89,6 +89,7 @@ const UploadFileDialog: FC<UploadFileDialogProps> = ({
       </DialogContent>
       <DialogContent>
         <Paper
+          variant="outlined"
           sx={{
             mt: -2,
             height: "120px",

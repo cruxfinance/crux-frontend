@@ -53,6 +53,7 @@ const Feature: FC<IFeatureProps> = (props) => {
         >
           <Grid item xs={12} md={6}>
             <Paper
+              variant="outlined"
               sx={{
                 height: props.aspect !== undefined ? undefined : upSm ? "400px" : "200px",
                 aspectRatio: props.aspect,

@@ -158,6 +158,7 @@ const SideMenu: FC<SideMenuProps> = ({ children, title, navItems, noMaxWidth }) 
       {desktop &&
         <Box sx={{
           mx: noMaxWidth ? 2 : 'auto',
+          px: noMaxWidth ? '' : 2,
           maxWidth: noMaxWidth ? 'none' : '1100px'
         }}>
           <Typography variant="h3" sx={{ fontWeight: 700, mb: 4 }}>

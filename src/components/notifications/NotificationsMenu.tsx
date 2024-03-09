@@ -23,6 +23,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import { useScrollLock } from "@contexts/ScrollLockContext";
 import { Notification } from "@prisma/client";
 import { trpc } from "@lib/trpc";
+import { useWallet } from "@contexts/WalletContext";
 
 interface IMenuItemProps extends Notification {
   icon: React.ReactElement;
@@ -45,6 +46,7 @@ const NotificationsMenu: FC<INotificationsProps> = ({
   const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } =
     useScrollLock();
   const theme = useTheme();
+  const { sessionStatus } = useWallet()
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
     null
@@ -67,6 +69,7 @@ const NotificationsMenu: FC<INotificationsProps> = ({
     onSuccess: (data) => {
       setCurrentMenuItems(data);
     },
+    enabled: sessionStatus === "authenticated",
   });
   const markAsRead = trpc.notification.markAsRead.useMutation();
   const markAllAsRead = trpc.notification.markAllAsRead.useMutation();
@@ -239,8 +242,8 @@ const NotificationsMenu: FC<INotificationsProps> = ({
               ? handleOpen(e)
               : handleClose()
             : dialogOpen
-            ? handleDialogClose()
-            : handleDialogOpen()
+              ? handleDialogClose()
+              : handleDialogOpen()
         }
         sx={{
           "&:hover, &.Mui-focusVisible": {

@@ -118,3 +118,25 @@ interface SideNavItem {
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+
+type Severity = "info" | "error" | "success" | "warning";
+
+type WalletButtonProps = {
+  name: string;
+  walletType: string;
+  icon: string;
+  iconDark: string;
+  messageSigning: boolean;
+}
+
+type TReport = {
+  id: string;
+  reportFilename: string | null;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+  addresses: string[];
+  taxYear: number | null;
+  status: $Enums.ReportStatus;
+  userId: string;
+  customName: string | null;
+}

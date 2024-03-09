@@ -95,7 +95,7 @@ const CreatePaymentInstrument = () => {
   };
 
   return (
-    <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
+    <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
       <Typography variant="h6">Create a new Payment Instrument</Typography>
       <Box sx={{ width: "50%" }}>
         <FormControl fullWidth sx={{ mt: 2, mb: 3 }}>

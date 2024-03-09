@@ -160,7 +160,7 @@ const ManagePaymentInstruments = () => {
 
   return (
     <Fragment>
-      <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
+      <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
           View and Manage existing Payment Instruments
         </Typography>
@@ -174,7 +174,7 @@ const ManagePaymentInstruments = () => {
             paymentInstruments.length === 0 &&
             "There are no PaymentInstruments assosiated with your account."}
           {paymentInstruments.map((paymentInstrument) => (
-            <Accordion key={paymentInstrument.id}>
+            <Accordion variant="outlined" key={paymentInstrument.id}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Grid container sx={{ py: 1 }}>
                   <Grid item xs={8}>
@@ -207,6 +207,7 @@ const ManagePaymentInstruments = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <Paper
+                  variant="outlined"
                   sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}
                 >
                   <Typography variant="h6">Details</Typography>
