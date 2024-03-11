@@ -6,6 +6,7 @@ const nextConfig = {
     CRUX_API: process.env.CRUX_API,
     EXPLORER_API: process.env.EXPLORER_API,
     ERGONODE_API: process.env.ERGONODE_API,
+    ERGOPAY_DOMAIN: process.env.ERGOPAY_DOMAIN,
     AUTH_DOMAIN: process.env.AUTH_DOMAIN,
     ADMIN_ADDRESS: process.env.ADMIN_ADDRESS,
     AWS_ACCESS_KEY: process.env.AWS_ACCESS_KEY,

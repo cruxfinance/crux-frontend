@@ -81,7 +81,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
 
   useEffect(() => {
-    console.log('hello')
+    // console.log('hello')
   }, [isLocked, scrollBarCompensation])
 
   const router = useRouter();

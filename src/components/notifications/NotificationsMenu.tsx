@@ -195,6 +195,7 @@ const NotificationsMenu: FC<INotificationsProps> = ({
                       <CustomMenuItem
                         id={item.id}
                         userId={item.userId}
+                        updatedAt={item.updatedAt}
                         createdAt={item.createdAt}
                         body={item.body}
                         href={item.href}

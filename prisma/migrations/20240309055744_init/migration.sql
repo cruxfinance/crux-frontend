@@ -81,6 +81,18 @@ CREATE TABLE "wallets" (
 );
 
 -- CreateTable
+CREATE TABLE "added_wallets" (
+    "id" TEXT NOT NULL,
+    "type" TEXT,
+    "change_address" TEXT NOT NULL,
+    "unused_addresses" TEXT[],
+    "used_addresses" TEXT[],
+    "user_id" TEXT NOT NULL,
+
+    CONSTRAINT "added_wallets_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "login_requests" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
@@ -172,8 +184,10 @@ CREATE TABLE "subscriptions" (
 CREATE TABLE "Report" (
     "id" TEXT NOT NULL,
     "report_filename" TEXT,
+    "custom_name" TEXT,
     "date_from" TIMESTAMP(3),
     "date_to" TIMESTAMP(3),
+    "addresses" TEXT[],
     "tax_year" INTEGER,
     "status" "ReportStatus" NOT NULL,
     "user_id" TEXT NOT NULL,
@@ -189,8 +203,29 @@ CREATE TABLE "notifications" (
     "href" TEXT,
     "read" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "kv" (
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "kv_pkey" PRIMARY KEY ("key")
+);
+
+-- CreateTable
+CREATE TABLE "mobile_verification" (
+    "verificationId" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "address" TEXT,
+    "user_id" TEXT NOT NULL,
+
+    CONSTRAINT "mobile_verification_pkey" PRIMARY KEY ("verificationId")
 );
 
 -- CreateIndex
@@ -230,6 +265,9 @@ ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user
 ALTER TABLE "wallets" ADD CONSTRAINT "wallets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "added_wallets" ADD CONSTRAINT "added_wallets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "login_requests" ADD CONSTRAINT "login_requests_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -255,3 +293,6 @@ ALTER TABLE "Report" ADD CONSTRAINT "Report_user_id_fkey" FOREIGN KEY ("user_id"
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "mobile_verification" ADD CONSTRAINT "mobile_verification_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

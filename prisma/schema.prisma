@@ -245,8 +245,18 @@ model Notification {
   href      String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("notifications")
+}
+
+model KeyValuePair {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("kv")
 }
 
 model MobileVerification {

@@ -233,7 +233,7 @@ const AddWallet: FC = () => {
         </Collapse>
         <Collapse in={ergopayOpen} mountOnEnter unmountOnExit>
           <Box sx={{ px: 4 }}>
-            <Typography sx={{ fontSize: '1.1rem !important', fontWeight: 700, my: 1, lineHeight: 1 }}>
+            <Typography sx={{ fontSize: '1.1rem !important', fontWeight: 700, my: 1, lineHeight: 1, textAlign: "center" }}>
               Provide your address by selecting it with Ergopay
             </Typography>
             <Ergopay setOpen={setErgopayOpen} />
