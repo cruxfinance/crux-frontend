@@ -106,7 +106,7 @@ const getUnspentBoxes = async (address: string) => {
 export const getUnsignedTransaction = async (
   senderAddress: string,
   recipientAddress: string,
-  transferAmount: TransferAmount
+  transferAmount: TransferAmount | TransferAmount[]
 ) => {
   const currentHeight = await getCurrentChainHeight();
   const inputs = (await getUnspentBoxes(senderAddress)).map((box) => {
@@ -156,26 +156,31 @@ export const getUnsignedTransaction = async (
 
 const outputBox = (
   address: string,
-  amount: TransferAmount,
+  amount: TransferAmount | TransferAmount[],
   creationHeight: number
 ) => {
+  if (!Array.isArray(amount)) {
+    amount = [amount];
+  }
+  const value =
+    amount.filter((_amount) => _amount.tokenId === null)[0]?.amount ??
+    MIN_SAFE_ERG;
+  const assets = amount
+    .filter((_amount) => _amount.tokenId !== null)
+    .map((_amount) => {
+      return {
+        tokenId: _amount.tokenId ?? "",
+        amount: _amount.amount.toString(),
+      };
+    });
   const ergoTree = Address.from_mainnet_str(address)
     .to_ergo_tree()
     .to_base16_bytes();
-  const value = amount.tokenId === null ? amount.amount : MIN_SAFE_ERG;
   return {
     value: value.toString(),
     ergoTree: ergoTree,
     creationHeight: creationHeight,
-    assets:
-      amount.tokenId === null
-        ? []
-        : [
-            {
-              tokenId: amount.tokenId,
-              amount: amount.amount.toString(),
-            },
-          ],
+    assets: [...assets],
     additionalRegisters: {},
   };
 };
