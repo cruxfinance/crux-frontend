@@ -1,4 +1,4 @@
-import { PaymentInstrumentStatus, TransactionStatus } from "@prisma/client";
+import { TransactionStatus } from "@prisma/client";
 import { prisma } from "@server/prisma";
 import { checkTransactionStatus } from "@server/utils/checkTransactionStatus";
 import { getUnsignedTransaction } from "@server/utils/ergoClient";
@@ -92,21 +92,6 @@ export const getPaymentInstrument = async (paymentInstrumentId: string) => {
       (transaction) => transaction.status === TransactionStatus.PENDING
     );
     if (pendingTransactions.length === 0) {
-      if (paymentInstrument.status === PaymentInstrumentStatus.IN_USE) {
-        const updatedPaymentInstrument = await prisma.paymentInstrument.update({
-          where: { id: paymentInstrumentId },
-          data: {
-            ...paymentInstrument,
-            status: PaymentInstrumentStatus.ACTIVE,
-            updatedAt: new Date(),
-          },
-        });
-        return {
-          ...updatedPaymentInstrument,
-          transactions: transactions,
-          charges: charges,
-        };
-      }
       return {
         ...paymentInstrument,
         transactions: transactions,
@@ -116,29 +101,20 @@ export const getPaymentInstrument = async (paymentInstrumentId: string) => {
     const updatedTransactions = await Promise.all(
       transactions.map((transaction) => getTransaction(transaction.id))
     );
-    const updatedPendingTransactions = updatedTransactions.filter(
-      (transaction) => transaction?.status === TransactionStatus.PENDING
+    const confirmedTransactions = updatedTransactions.filter(
+      (transaction) => transaction?.status === TransactionStatus.CONFIRMED
     );
-    const newConfirmedTransactions = updatedTransactions
-      .filter(
-        (transaction) => transaction?.status === TransactionStatus.CONFIRMED
-      )
-      .filter((transaction) =>
-        pendingTransactions.map((tx) => tx.id).includes(transaction.id)
-      );
-    const balanceUpdate = newConfirmedTransactions
-      .map((transaction) => transaction?.amount ?? 0)
-      .map((amount) => Number(amount))
-      .reduce((a, c) => a + c, 0);
+    const balance =
+      confirmedTransactions
+        .map((transaction) => transaction?.amount ?? 0)
+        .map((amount) => Number(amount))
+        .reduce((a, c) => a + c, 0) -
+      charges.map((charge) => Number(charge.amount)).reduce((a, c) => a + c, 0);
     const updatedPaymentInstrument = await prisma.paymentInstrument.update({
       where: { id: paymentInstrument.id },
       data: {
         ...paymentInstrument,
-        balance: Number(paymentInstrument.balance) + balanceUpdate,
-        status:
-          updatedPendingTransactions.length === 0
-            ? PaymentInstrumentStatus.ACTIVE
-            : PaymentInstrumentStatus.IN_USE,
+        balance: balance,
         updatedAt: new Date(),
       },
     });
@@ -177,11 +153,6 @@ export const chargePaymentInstrument = async (
     const paymentInstrument = await getPaymentInstrument(
       input.paymentInstrumentId
     );
-    // if (paymentInstrument.status === PaymentInstrumentStatus.IN_USE) {
-    //   throw new Error(
-    //     `PaymentInstrument ${input.paymentInstrumentId} is currently in use. Please try again later.`
-    //   );
-    // }
     if (paymentInstrument.tokenId !== input.tokenId) {
       throw new Error(
         `TokenId: ${input.tokenId} not supported for PaymentInstrument ${paymentInstrument.id}.`
@@ -231,6 +202,28 @@ interface AddPaymentInstrumentBalance {
   amount: number;
 }
 
+const createOrUpdateTransaction = async (
+  id: string,
+  paymentInstrumentId: string,
+  amount: number
+) => {
+  const transaction = await prisma.transaction.findFirst({
+    where: {
+      id: id,
+    },
+  });
+  if (transaction === null) {
+    return await prisma.transaction.create({
+      data: {
+        id: id,
+        paymentInstrumentId: paymentInstrumentId,
+        amount: amount,
+      },
+    });
+  }
+  return transaction;
+};
+
 export const addPaymentInstrumentBalance = async (
   input: AddPaymentInstrumentBalance
 ) => {
@@ -244,11 +237,6 @@ export const addPaymentInstrumentBalance = async (
     const paymentInstrument = await getPaymentInstrument(
       input.paymentInstrumentId
     );
-    // if (paymentInstrument.status === PaymentInstrumentStatus.IN_USE) {
-    //   throw new Error(
-    //     `PaymentInstrument ${input.paymentInstrumentId} is currently in use. Please try again later.`
-    //   );
-    // }
     const tx = await getUnsignedTransaction(input.address, RECIPIENT, {
       tokenId: paymentInstrument.tokenId ?? '',
       amount: input.amount,
@@ -259,17 +247,14 @@ export const addPaymentInstrumentBalance = async (
         ...paymentInstrument,
         transactions: undefined,
         charges: undefined,
-        status: PaymentInstrumentStatus.IN_USE,
         updatedAt: new Date(),
       },
     });
-    const transaction = await prisma.transaction.create({
-      data: {
-        id: tx.id,
-        paymentInstrumentId: paymentInstrument.id,
-        amount: input.amount,
-      },
-    });
+    const transaction = await createOrUpdateTransaction(
+      tx.id,
+      input.paymentInstrumentId,
+      input.amount
+    );
     return {
       unsignedTransaction: tx,
       transactionStatus: transaction,
