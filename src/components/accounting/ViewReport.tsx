@@ -1,8 +1,8 @@
 
 
 
-import React, { FC, useState, useEffect } from 'react';
-import { Box, Button, Card, CardActions, CardContent, Paper, ToggleButton, ToggleButtonGroup, Typography, useTheme } from '@mui/material';
+import React, { FC, useState } from 'react';
+import { Box, Card, CardActions, CardContent, Paper, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import ReportsTable from './ReportsTable';
 import { Currencies } from '@lib/utils/currencies';
@@ -12,7 +12,6 @@ import { addressListFlatMap } from '@lib/utils/addresses';
 import { slugify } from '@lib/utils/general';
 import { LoadingButton } from '@mui/lab';
 import { generateDownloadLink } from '@server/utils/s3';
-import { GetServerSideProps } from 'next';
 
 const getBaseUrl = (): string => {
   if (typeof window === 'undefined') {
@@ -80,7 +79,6 @@ const ViewReport: FC<IViewReportProps> = ({
   const handleGenerateKoinly = async () => {
     setKoinlyGenerating(true);
     try {
-      console.log(baseUrl)
       // Initiate the Koinly report generation
       const koinly = await downloadKoinly.mutateAsync({
         wallets: report.wallets as unknown as WalletListItem[],
