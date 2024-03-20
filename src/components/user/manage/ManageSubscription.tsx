@@ -3,7 +3,6 @@ import { LoadingButton } from "@mui/lab";
 import {
   Box,
   Button,
-  CircularProgress,
   Divider,
   Paper,
   Popover,
@@ -12,6 +11,7 @@ import {
 } from "@mui/material";
 import { Subscription } from "@pages/user/subscription";
 import { SubscriptionStatus } from "@prisma/client";
+import { useRouter } from "next/router";
 import { FC, Fragment, useState } from "react";
 
 interface ManageSubscriptionProps {
@@ -26,6 +26,7 @@ const ManageSubscription: FC<ManageSubscriptionProps> = ({ subscription }) => {
     message: "",
     error: "",
   });
+  const router = useRouter();
 
   const subscriptionRenew = trpc.subscription.renewSubscription.useMutation();
   const queries = trpc.useQueries((t) => [
@@ -108,15 +109,24 @@ const ManageSubscription: FC<ManageSubscriptionProps> = ({ subscription }) => {
                   UpdatedAt: {subscription.updatedAt.toUTCString()}
                 </Typography>
                 <Typography>Status: {subscription.status}</Typography>
-                <LoadingButton
-                  sx={{ mt: 2 }}
-                  variant="outlined"
-                  disabled={subscription.status === SubscriptionStatus.ACTIVE}
-                  loading={buttonLoading}
-                  onClick={renew}
-                >
-                  Activate or Renew
-                </LoadingButton>
+                <Box sx={{ display: "flex" }}>
+                  <LoadingButton
+                    sx={{ mt: 2, mr: 1 }}
+                    variant="outlined"
+                    disabled={subscription.status === SubscriptionStatus.ACTIVE}
+                    loading={buttonLoading}
+                    onClick={renew}
+                  >
+                    Activate or Renew
+                  </LoadingButton>
+                  <Button
+                    sx={{ mt: 2 }}
+                    variant="outlined"
+                    onClick={() => router.push("/user/subscription/revise")}
+                  >
+                    Revise Subscription
+                  </Button>
+                </Box>
               </Box>
             </>
           )}

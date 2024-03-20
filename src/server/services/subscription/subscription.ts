@@ -99,12 +99,12 @@ export const renewSubscription = async (subcriptionId: string) => {
     (Number(subcription.requiredAmountUSD) / tokenPriceInfo.tokenPrice) *
       Math.pow(10, tokenPriceInfo.tokenDecimals - 2) // USD decimal adjustment
   );
-  const now = Math.floor(new Date().getTime() / (60 * 60 * 1000));
+  const now = Math.floor(new Date().getTime() / (10 * 60 * 1000));
   const charge = await chargePaymentInstrument({
     paymentInstrumentId: paymentInstrument.id,
     tokenId: paymentInstrument.tokenId,
     amount: amountToCharge,
-    idempotencyKey: `${subcriptionId}.${now}`,
+    idempotencyKey: `${subcriptionId}.renew.${now}`,
   });
   const updatedSubscription = await prisma.subscription.update({
     where: { id: subcriptionId },
@@ -179,4 +179,107 @@ export const getCurrentUpdatedSubcription = async (userId: string) => {
   });
   // need the latest data
   return await getSubscription(activeSubscription.id);
+};
+
+interface UpdateSubscription {
+  activeSubscriptionId: string;
+  paymentInstrumentId: string;
+  updateSubscriptionConfigId: string;
+}
+
+export const getSubscriptionUpdateParams = async (
+  input: UpdateSubscription
+) => {
+  // we need to calculate the amount of charge required for the update
+  // if the current subscription amount is 1.99 and the updated subscription amount is 3.49
+  // we need to charge the remainder amount before updating the subscription
+  const updateConfig = SUBSCRIPTION_CONFIG.filter(
+    (config) => config.id === input.updateSubscriptionConfigId
+  )[0];
+  if (!updateConfig) {
+    throw new Error(
+      `Invalid SubcriptionConfig id ${input.updateSubscriptionConfigId}.`
+    );
+  }
+  const activeSubscription = await getSubscription(input.activeSubscriptionId);
+  // amount charged when subscription was activated
+  const totalChargedAmountUSD =
+    activeSubscription.status === SubscriptionStatus.ACTIVE
+      ? Number(activeSubscription.requiredAmountUSD)
+      : 0;
+  const secondsElaspedAfterActivation = activeSubscription.activationTimestamp
+    ? (new Date().getTime() -
+        activeSubscription.activationTimestamp.getTime()) /
+      1000
+    : Math.max();
+  // amount of total charge that has been consumed
+  const consumedAmountUSD = Math.min(
+    totalChargedAmountUSD,
+    Math.floor(
+      totalChargedAmountUSD *
+        (secondsElaspedAfterActivation / activeSubscription.periodSeconds)
+    )
+  );
+  // amount left to consume
+  const refundAmountUSD = Math.max(
+    0,
+    totalChargedAmountUSD - consumedAmountUSD
+  );
+  // amount required for new plan
+  const requiredAmountUSD = updateConfig.discountedAmountUSD * 100;
+  // difference amount to charge now
+  const diff = Math.max(0, requiredAmountUSD - refundAmountUSD);
+  return {
+    updateConfig: updateConfig,
+    activeSubscription: activeSubscription,
+    amountUSD: diff,
+  };
+};
+
+export const updateSubscription = async (input: UpdateSubscription) => {
+  const updateChargeParams = await getSubscriptionUpdateParams(input);
+  const activeSubscription = updateChargeParams.activeSubscription;
+  const updateConfig = updateChargeParams.updateConfig;
+  const paymentInstrument = await getPaymentInstrument(
+    input.paymentInstrumentId
+  );
+  const allowedTokenConfig = updateConfig.allowedTokenIds.find(
+    (config) => config.tokenId === paymentInstrument.tokenId
+  );
+  if (!allowedTokenConfig) {
+    throw new Error(
+      `PaymentInstrument ${input.paymentInstrumentId} cannot be used for subcription ${updateConfig.id}: Unsupported token.`
+    );
+  }
+  const tokenPriceInfo = await getTokenPriceInfo(paymentInstrument.tokenId);
+  const amountToCharge = Math.floor(
+    (Number(updateChargeParams.amountUSD) / tokenPriceInfo.tokenPrice) *
+      Math.pow(10, tokenPriceInfo.tokenDecimals - 2) // USD decimal adjustment
+  );
+  const now = Math.floor(new Date().getTime() / (10 * 60 * 1000));
+  const charge = await chargePaymentInstrument({
+    paymentInstrumentId: paymentInstrument.id,
+    amount: amountToCharge,
+    tokenId: paymentInstrument.tokenId,
+    idempotencyKey: `${activeSubscription.id}.update.${now}`,
+  });
+  const updatedSubscription = await prisma.subscription.update({
+    where: {
+      id: activeSubscription.id,
+    },
+    data: {
+      ...activeSubscription,
+      paymentInstrumentId: paymentInstrument.id,
+      requiredAmountUSD: updateConfig.discountedAmountUSD * 100,
+      allowedAccess: updateConfig.allowedPriviledgeLevel,
+      periodSeconds: updateConfig.subscriptionPeriodMonths * 30 * 24 * 60 * 60,
+      status: SubscriptionStatus.ACTIVE,
+      activationTimestamp: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+  return {
+    subscription: updatedSubscription,
+    charge: charge,
+  };
 };

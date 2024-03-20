@@ -69,7 +69,7 @@ const SubscriptionConfigCard: FC<SubscriptionConfigCardProps> = ({
           </Typography>
         </Box>
       </CardContent>
-      <CardActions sx={{ mt: "auto" }}>
+      <CardActions sx={{ mt: "auto", pl: 2, pb: 2 }}>
         <Button
           variant="outlined"
           size="small"

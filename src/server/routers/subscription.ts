@@ -8,7 +8,9 @@ import {
   createSubscription,
   findSubscriptions,
   getSubscription,
+  getSubscriptionUpdateParams,
   renewSubscription,
+  updateSubscription,
 } from "@server/services/subscription/subscription";
 import { createTRPCRouter, protectedProcedure } from "@server/trpc";
 import { z } from "zod";
@@ -162,5 +164,57 @@ export const subscriptionRouter = createTRPCRouter({
       }
       const result = await renewSubscription(subscriptionId);
       return result;
+    }),
+  getUpdateSubscriptionParams: protectedProcedure
+    .input(
+      z.object({
+        activeSubscriptionId: z.string(),
+        updateSubscriptionConfigId: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const subscriptionId = input.activeSubscriptionId;
+      const userId = ctx.session.user.id;
+      const subscription = await getSubscription(subscriptionId);
+      if (subscription.userId !== userId) {
+        throw new Error(
+          `User ${userId} not authorized to access Subscription ${subscriptionId}.`
+        );
+      }
+      return await getSubscriptionUpdateParams({
+        activeSubscriptionId: input.activeSubscriptionId,
+        updateSubscriptionConfigId: input.updateSubscriptionConfigId,
+        paymentInstrumentId: "",
+      });
+    }),
+  updateSubscription: protectedProcedure
+    .input(
+      z.object({
+        activeSubscriptionId: z.string(),
+        updateSubscriptionConfigId: z.string(),
+        paymentInstrumentId: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const subscriptionId = input.activeSubscriptionId;
+      const paymentInstrumentId = input.paymentInstrumentId;
+      const userId = ctx.session.user.id;
+      const subscription = await getSubscription(subscriptionId);
+      if (subscription.userId !== userId) {
+        throw new Error(
+          `User ${userId} not authorized to access Subscription ${subscriptionId}.`
+        );
+      }
+      const paymentInstrument = await getPaymentInstrument(paymentInstrumentId);
+      if (paymentInstrument.userId !== userId) {
+        throw new Error(
+          `User ${userId} not authorized to access PaymentInstrument ${paymentInstrumentId}.`
+        );
+      }
+      return await updateSubscription({
+        activeSubscriptionId: input.activeSubscriptionId,
+        updateSubscriptionConfigId: input.updateSubscriptionConfigId,
+        paymentInstrumentId: input.paymentInstrumentId,
+      });
     }),
 });

@@ -81,7 +81,7 @@ interface BlockHeader {
 
 const getCurrentChainHeight = async () => {
   const info = await nodeApi.get("/info");
-  return info.data.fullHeight as number;
+  return info.data.headersHeight as number;
 };
 
 const getExplorerBlockHeaders = async () => {

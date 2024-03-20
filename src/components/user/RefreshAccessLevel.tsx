@@ -1,7 +1,6 @@
 import { useWallet } from "@contexts/WalletContext";
 import { trpc } from "@lib/trpc";
 import { Subscription } from "@pages/user/subscription";
-import { useSession } from "next-auth/react";
 import { FC, useEffect, useState } from "react";
 
 const RefreshAccessLevel: FC = () => {

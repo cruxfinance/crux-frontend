@@ -143,7 +143,7 @@ interface ChargePaymentInstrument {
 export const chargePaymentInstrument = async (
   input: ChargePaymentInstrument
 ) => {
-  if (input.amount <= 0) {
+  if (input.amount < 0) {
     throw new Error(`Amount should be positive.`);
   }
   const lock = await acquireTransactionalLock(
