@@ -16,7 +16,8 @@ import {
   Slide,
   Grow,
   ButtonGroup,
-  Paper
+  Paper,
+  Skeleton
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAlert } from '@contexts/AlertContext';
@@ -103,15 +104,12 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
 
       // Prepare wallets with addresses and names
       const wallets = [
-        ...selectedLoginWallets.map(wallet => ({
-          addresses: [wallet.changeAddress, ...wallet.unusedAddresses, ...wallet.usedAddresses],
-          name: wallet.changeAddress
-        })),
-        ...selectedAddedWallets.map(wallet => ({
-          addresses: [wallet.changeAddress, ...wallet.unusedAddresses, ...wallet.usedAddresses],
-          name: wallet.changeAddress
-        }))
-      ];
+        ...selectedLoginWallets,
+        ...selectedAddedWallets
+      ].map(wallet => ({
+        addresses: [...new Set([wallet.changeAddress, ...wallet.unusedAddresses, ...wallet.usedAddresses])], // Remove duplicates
+        name: wallet.changeAddress
+      }));
 
       setWalletsList(wallets);
     }
@@ -146,9 +144,11 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
     }
   }
 
+  const [buttonLoading, setButtonLoading] = useState(false)
   const usePrepaidReport = trpc.accounting.usePrepaidReport.useMutation()
   const handleSubmitPrepaid = async () => {
     if (checkPrepaidReports.data?.prepaidReports[0].id) {
+      setButtonLoading(true)
       try {
         const pay = await usePrepaidReport.mutateAsync({
           reportId: checkPrepaidReports.data?.prepaidReports[0].id,
@@ -161,6 +161,8 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
         }
       } catch (e) {
         console.error(e)
+      } finally {
+        setButtonLoading(false)
       }
     }
     else addAlert('error', "You don't have any prepaid reports")
@@ -207,17 +209,24 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
     }
   }
 
+  const [priceLoading, setPriceLoading] = useState(false)
   useEffect(() => {
+    setPriceLoading(true)
     const newTokenDetails = getTokenDetailsFromName(buttonChoice)
     setTokenDetails(newTokenDetails)
   }, [buttonChoice])
 
   useEffect(() => {
-    if (prices.discountedPrice && tokenInfo.data && tokenInfo.data.priceInUsd) {
+    if (buttonChoice === 'prepaid') {
+      setPriceInCurrency('Free')
+      setPriceLoading(false)
+    }
+    else if (prices.discountedPrice && tokenInfo.data && tokenInfo.data.priceInUsd) {
       const amount = (prices.discountedPrice / tokenInfo.data.priceInUsd).toLocaleString(undefined, { maximumFractionDigits: 2 })
       setPriceInCurrency(`${amount} ${buttonChoices.find(item => item.slug === buttonChoice)?.name}`)
+      setPriceLoading(false)
     }
-  }, [JSON.stringify(tokenInfo.data)])
+  }, [JSON.stringify(tokenInfo.data), buttonChoice])
 
   return (
     <Dialog
@@ -311,13 +320,16 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
             </Box>
           </Paper>
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-            <Box sx={{ textAlign: 'center' }}>
+            <Box sx={{ ...flexColumn, alignItems: 'center', gap: 1 }}>
               <Typography>
                 Total: {price()}
               </Typography>
-              <Typography>
-                {priceInCurrency}
-              </Typography>
+              {priceLoading
+                ? <Skeleton variant="text" sx={{ fontSize: '16px', width: '100px', textAlign: 'center' }} />
+                : <Typography>
+                  {priceInCurrency}
+                </Typography>
+              }
             </Box>
           </Paper>
         </DialogContent>
@@ -339,9 +351,9 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
             </Grow>
             <Grow in={prepaidToggle && showComponent} timeout={{ exit: 50, enter: 200 }} onExited={handleExited} mountOnEnter unmountOnExit>
               <Box sx={{ ...flexRow, justifyContent: 'center' }}>
-                <Button variant="contained" onClick={handleSubmitPrepaid}>
+                <LoadingButton loading={buttonLoading} variant="contained" onClick={handleSubmitPrepaid}>
                   Confirm
-                </Button>
+                </LoadingButton>
               </Box>
             </Grow>
           </Box>

@@ -268,7 +268,8 @@ export const accountingRouter = createTRPCRouter({
         data: {
           taxYear,
           status: 'AVAILABLE',
-          wallets
+          wallets,
+          customName: 'New prepaid report'
         },
       });
 
