@@ -35,11 +35,23 @@ const ReportsTable: FC<IReportsTable> = ({ currency, reportId, addresses }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const getTransactions = trpc.accounting.getTransactions.useMutation();
+  // const getReport = trpc.accounting.getReportById.useQuery(
+  //   {
+  //     reportId
+  //   }
+  // )
+
+  // const [addresses, setAddresses] = useState<string[]>([])
+  // useEffect(() => {
+  //   if (getReport.data) {
+  //     const wallets: WalletListItem[] = JSON.parse(getReport.data.wallets as string)
+  //     const allAddresses = wallets.flatMap(wallet => wallet.addresses);
+  //     setAddresses(allAddresses)
+  //   }
+  // }, [getReport.isSuccess])
 
   const loadTransactions = async () => {
     if (sessionStatus !== "authenticated" || !hasMore || isLoading) return;
-
-    console.log('loading')
 
     setIsLoading(true);
     try {
@@ -48,7 +60,7 @@ const ReportsTable: FC<IReportsTable> = ({ currency, reportId, addresses }) => {
       );
 
       setTransactions(prev => [...prev, ...newData]);
-      // setHasMore(newData.length === 25);
+      setHasMore(newData.length === 25);
       setOffset(prevOffset => prevOffset + newData.length);
     } catch (error) {
       console.error("Failed to load transactions:", error);
@@ -56,10 +68,6 @@ const ReportsTable: FC<IReportsTable> = ({ currency, reportId, addresses }) => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadTransactions();
-  }, []);
 
   const observer = useRef<IntersectionObserver>();
   const lastTableRowRef = useCallback(
@@ -75,6 +83,10 @@ const ReportsTable: FC<IReportsTable> = ({ currency, reportId, addresses }) => {
     },
     [isLoading, hasMore, loadTransactions]
   );
+
+  useEffect(() => {
+    loadTransactions();
+  }, []);
 
   return (
     <Paper variant="outlined" sx={{ overflow: 'hidden', colorScheme: 'dark' }}>
@@ -171,7 +183,7 @@ const ReportsTable: FC<IReportsTable> = ({ currency, reportId, addresses }) => {
                   <TableCell>
                     {row.transactionElements.map((transaction, i) => (
                       <Typography key={i}>{
-                        sessionData?.user.address && transaction.fromAddress?.includes(sessionData?.user.address)
+                        addresses.includes(transaction.fromAddress)
                           ? 'Debit'
                           : 'Credit'
                       }</Typography>
@@ -195,7 +207,7 @@ const ReportsTable: FC<IReportsTable> = ({ currency, reportId, addresses }) => {
             {transactions.length > 0 && (
               <TableRow ref={lastTableRowRef}>
                 <TableCell colSpan={headers.length} style={{ textAlign: 'center' }}>
-                  {isLoading ? <CircularProgress /> : 'Load more'}
+                  {isLoading ? <CircularProgress /> : 'End of transactions'}
                 </TableCell>
               </TableRow>
             )}

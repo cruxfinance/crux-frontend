@@ -6,7 +6,7 @@ export const flexRow = {
 
 export const flexColumn = {
   display: 'flex',
-  flexDirection: 'row',
+  flexDirection: 'column',
   gap: 2
 }
 

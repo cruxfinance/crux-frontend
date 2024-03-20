@@ -62,6 +62,7 @@ model User {
   loginRequests      LoginRequest[]
   chartData          ChartData[]
   paymentInstruments PaymentInstrument[]
+  simpleTransactions SimpleTransaction[]
   subscriptions      Subscription[]
   reports            Report[]
   notifications      Notification[]
@@ -155,6 +156,28 @@ model Transaction {
   @@map("transactions")
 }
 
+model SimpleTransaction {
+  id            String            @id @default(cuid())
+  txId          String?           @map("tx_id")
+  changeAddress String?           @map("change_address")
+  amounts       Json
+  status        TransactionStatus @default(PENDING)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  userId        String            @map("user_id")
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentFor    String            @map("payment_for") // what is the payment for? Left as string to keep it open
+  itemId        String            @map("item_id") // what is the ID of the item that was paid for. 
+
+  // example: paymentFor "report" itemId "cltoooyyb0001u0dcfao6rw7f"
+  // if we add something else to pay for later, we can use whatever name needed in paymentFor
+  // rather than using JSON, this allows us to quickly grab specific transactions from db
+  // this also allows us to list all "report" payments, 
+  // or if we want to show outstanding payments generated to pay for a specific report, we can do that too, without parsing JSON
+
+  @@map("simple_transactions")
+}
+
 enum PaymentInstrumentStatus {
   ACTIVE
   IN_USE
@@ -222,19 +245,23 @@ model Subscription {
 enum ReportStatus {
   PREPAID
   AVAILABLE
+  PAYMENT_PENDING
 }
 
 model Report {
-  id             String       @id @default(cuid())
-  reportFilename String?      @map("report_filename")
-  customName     String?      @map("custom_name")
-  dateFrom       DateTime?    @map("date_from")
-  dateTo         DateTime?    @map("date_to")
-  addresses      String[]
-  taxYear        Int?         @map("tax_year")
-  status         ReportStatus
-  userId         String       @map("user_id")
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String       @id @default(cuid())
+  reportFilename   String?      @map("report_filename")
+  koinlyGenerating Boolean      @default(false) @map("koinly_generating")
+  customName       String?      @map("custom_name")
+  dateFrom         DateTime?    @map("date_from")
+  dateTo           DateTime?    @map("date_to")
+  wallets          Json?
+  taxYear          Int?         @map("tax_year")
+  status           ReportStatus
+  userId           String       @map("user_id")
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 }
 
 model Notification {
@@ -251,10 +278,11 @@ model Notification {
 }
 
 model KeyValuePair {
-  key       String   @id
+  key       String    @id
   value     String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  expiresAt DateTime? @map("expires_at")
 
   @@map("kv")
 }

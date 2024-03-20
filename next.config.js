@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   env: {
     ERGOPAD_API: process.env.ERGOPAD_API,
     CRUX_API: process.env.CRUX_API,
@@ -13,6 +13,7 @@ const nextConfig = {
     AWS_SECRET_KEY: process.env.AWS_SECRET_KEY,
     AWS_REGION: process.env.AWS_REGION,
     CRUX_PUBLIC_BUCKET: process.env.CRUX_PUBLIC_BUCKET,
+    CRUX_REPORTS_BUCKET: process.env.CRUX_REPORTS_BUCKET,
   },
   swcMinify: true,
   // webpack: function (config, options) {

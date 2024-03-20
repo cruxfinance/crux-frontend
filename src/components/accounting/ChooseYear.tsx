@@ -26,7 +26,7 @@ const ChooseYear: FC<IChooseYearProps> = ({
 
   return (
     <Box sx={{
-      position: 'relative', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1,
+      position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 1,
     }}>
       {years.map((option, index) => (
         <Button

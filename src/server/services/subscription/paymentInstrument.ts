@@ -177,11 +177,11 @@ export const chargePaymentInstrument = async (
     const paymentInstrument = await getPaymentInstrument(
       input.paymentInstrumentId
     );
-    if (paymentInstrument.status === PaymentInstrumentStatus.IN_USE) {
-      throw new Error(
-        `PaymentInstrument ${input.paymentInstrumentId} is currently in use. Please try again later.`
-      );
-    }
+    // if (paymentInstrument.status === PaymentInstrumentStatus.IN_USE) {
+    //   throw new Error(
+    //     `PaymentInstrument ${input.paymentInstrumentId} is currently in use. Please try again later.`
+    //   );
+    // }
     if (paymentInstrument.tokenId !== input.tokenId) {
       throw new Error(
         `TokenId: ${input.tokenId} not supported for PaymentInstrument ${paymentInstrument.id}.`
@@ -244,11 +244,11 @@ export const addPaymentInstrumentBalance = async (
     const paymentInstrument = await getPaymentInstrument(
       input.paymentInstrumentId
     );
-    if (paymentInstrument.status === PaymentInstrumentStatus.IN_USE) {
-      throw new Error(
-        `PaymentInstrument ${input.paymentInstrumentId} is currently in use. Please try again later.`
-      );
-    }
+    // if (paymentInstrument.status === PaymentInstrumentStatus.IN_USE) {
+    //   throw new Error(
+    //     `PaymentInstrument ${input.paymentInstrumentId} is currently in use. Please try again later.`
+    //   );
+    // }
     const tx = await getUnsignedTransaction(input.address, RECIPIENT, {
       tokenId: paymentInstrument.tokenId,
       amount: input.amount,

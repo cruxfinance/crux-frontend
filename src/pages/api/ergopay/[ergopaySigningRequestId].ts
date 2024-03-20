@@ -27,7 +27,7 @@ const getErgoPaySigningRequest = async (key: string) => {
   }
   return {
     reducedTx: reducedTx.value,
-    message: "Submit to pay cruxfinance.io",
+    message: "Submit payment to cruxfinance.io",
     messageSeverity: "INFORMATION",
   };
 };

@@ -110,38 +110,25 @@ export const accountingApi = {
     }
   },
   async downloadKoinly(
-    addresses: string[],
-    userId: string,
-    // queries?: {
-    //   dateFrom?: number,
-    //   dateTo?: number,
-    //   offset?: number,
-    //   limit?: number,
-    // },
+    wallets: { addresses: string[]; name: string }[],
+    reportId: string,
+    queries: {
+      dateFrom: number,
+      dateTo: number,
+    }
   ) {
     try {
-      // const params = new URLSearchParams();
-
-      // if (queries) {
-      //   if (queries.dateFrom) params.append('from', queries.dateFrom.toString());
-      //   if (queries.dateTo) params.append('to', queries.dateTo.toString());
-      //   if (queries.offset) params.append('offset', queries.offset.toString());
-      //   if (queries.limit) params.append('limit', queries.limit.toString());
-      // }
-
-      // const queryString = params.toString();
+      const payload = {
+        user: reportId, // it's called user but we use the reportId so the webhook updates the correct report in the db
+        wallets,
+        from_time: queries.dateFrom,
+        to_time: queries.dateTo,
+        webhook: `${process.env.BASE_URL}/api/koinly`,
+      };
 
       const response = await cruxApi.post(
-        `/crux/coinly_csv_extract`,
-        {
-          user: userId,
-          wallets: [
-            {
-              addresses: addresses,
-              name: ""
-            }
-          ]
-        },
+        `/crux/koinly_csv_extract`,
+        payload,
         {
           headers: {
             'API-KEY': process.env.API_KEY,

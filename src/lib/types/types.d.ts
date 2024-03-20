@@ -129,14 +129,52 @@ type WalletButtonProps = {
   messageSigning: boolean;
 }
 
+interface WalletListItem {
+  addresses: string[];
+  name: string;
+}
+
 type TReport = {
   id: string;
   reportFilename: string | null;
+  koinlyGenerating: boolean;
+  customName: string | null;
   dateFrom: Date | null;
   dateTo: Date | null;
-  addresses: string[];
+  wallets: Prisma.JsonValue;
   taxYear: number | null;
   status: $Enums.ReportStatus;
   userId: string;
-  customName: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+interface IPaymentAmount {
+  tokenId: string;
+  amount: number;
+  decimals: number;
+}
+
+interface TransferAmount {
+  tokenId: string;
+  amount: number;
+}
+
+type TokenInfoApi = {
+  token_id: string;
+  token_name: string;
+  token_description: string;
+  decimals: number;
+  minted: number;
+  value_in_erg: number;
+  locked_supply: number;
+  liquid_supply: number;
+  burned_supply: number;
+};
+
+interface AllowedToken {
+  id: string;
+  name: string;
+  icon: string | null;
+  decimals: number;
 }

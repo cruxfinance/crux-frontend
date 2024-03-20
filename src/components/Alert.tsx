@@ -1,9 +1,9 @@
 import React from 'react';
 import { Transition, TransitionGroup, TransitionStatus } from 'react-transition-group';
-import Alert, { AlertColor } from '@mui/material/Alert';
+import Alert from '@mui/material/Alert';
 import { Box } from '@mui/system';
 import { useAlert } from '@contexts/AlertContext';
-import { Collapse } from '@mui/material';
+import { Typography, useTheme } from '@mui/material';
 
 const defaultStyle = {
   transition: `opacity 200ms ease-in-out, transform 300ms`,
@@ -28,11 +28,9 @@ const transitionStyles: Record<TransitionStatus, React.CSSProperties> = {
   unmounted: {},
 };
 
-const truncateMessage = (message: string, maxLength: number = 100) => {
-  return message.length > maxLength ? `${message.substring(0, maxLength)}...` : message;
-};
-
 const AlertComponent = () => {
+  const theme = useTheme();
+
   const { alerts, removeAlert } = useAlert();
 
   const handleRemoveAlert = (id: string) => {
@@ -51,21 +49,33 @@ const AlertComponent = () => {
           >
             {(state) => (
               <Alert
-                variant="filled"
+                variant="outlined"
                 sx={{
                   ...defaultStyle,
-                  ...transitionStyles[state]
+                  ...transitionStyles[state],
+                  maxWidth: "500px",
+                  background: theme.palette.background.paper,
+                  // '& .MuiAlert-icon': {
+                  //   alignSelf: 'center'
+                  // }
                 }}
+                // icon={false}
                 severity={alert.type}
                 onClose={() => removeAlert(alert.id)}
               >
-                {alert.message}
+                {/* <Typography sx={{ textTransform: 'uppercase' }}>
+                  {alert.type}
+                </Typography> */}
+                <Typography>
+                  {alert.message}
+                </Typography>
               </Alert>
             )}
+
           </Transition>
         ))}
       </TransitionGroup>
-    </Box>
+    </Box >
   );
 }
 

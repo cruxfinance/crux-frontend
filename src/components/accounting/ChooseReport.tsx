@@ -1,45 +1,58 @@
 import React, { FC, useState, useEffect } from 'react';
 import { Box, Button } from '@mui/material';
+import { trpc } from '@lib/trpc';
+import { useWallet } from '@contexts/WalletContext';
+import { useRouter } from 'next/router';
 
 interface IChooseYearProps {
   selectedReport: TReport | undefined;
   setSelectedReport: React.Dispatch<React.SetStateAction<TReport | undefined>>;
+  setYear: React.Dispatch<React.SetStateAction<number>>;
   reports: TReport[];
-  handlePayForReport: () => void;
 }
 
 const ChooseYear: FC<IChooseYearProps> = ({
   selectedReport,
   setSelectedReport,
+  setYear,
   reports,
-  handlePayForReport
 }) => {
   const [localSelectedReport, setLocalSelectedReport] = useState<TReport | undefined>(selectedReport);
+  const { sessionStatus } = useWallet()
+  const router = useRouter();
 
   useEffect(() => {
     setLocalSelectedReport(selectedReport);
   }, [selectedReport]);
 
-  const handleReportChange = (newReport: TReport) => {
+  const handleReportSelection = (newReport: TReport) => {
     if (localSelectedReport === newReport) {
       setLocalSelectedReport(undefined);
       setSelectedReport(undefined);
+      router.push({
+        pathname: router.pathname
+      }, undefined, { shallow: true });
     }
     else {
+      if (newReport.taxYear) setYear(newReport.taxYear);
       setLocalSelectedReport(newReport);
       setSelectedReport(newReport);
+      router.push({
+        pathname: router.pathname,
+        query: { ...router.query, 'report-id': newReport.id },
+      }, undefined, { shallow: true });
     }
   };
 
   return (
     <Box sx={{
-      position: 'relative', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1,
+      position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 1,
     }}>
       {reports.map((report) => (
         <Button
           key={report.id}
           variant="text"
-          onClick={() => handleReportChange(report)}
+          onClick={() => handleReportSelection(report)}
           sx={{
             border: '1px solid rgba(120, 150, 150, 0.25)',
             background: localSelectedReport?.id === report.id ? 'rgba(254, 107, 139, 0.16)' : 'inherit',
@@ -53,9 +66,6 @@ const ChooseYear: FC<IChooseYearProps> = ({
           {report.customName ?? report.id}
         </Button>
       ))}
-      <Button variant="outlined" color="primary" onClick={handlePayForReport}>
-        Generate new report
-      </Button>
     </Box>
   );
 };

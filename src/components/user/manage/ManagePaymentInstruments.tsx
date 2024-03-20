@@ -29,17 +29,13 @@ import {
 } from "@mui/material";
 import { findPaymentInstruments } from "@server/services/subscription/paymentInstrument";
 import { Fragment, useEffect, useState } from "react";
-import {
-  ERG_TOKEN_ID_MAP,
-  allowedTokens,
-  getIcon,
-} from "./CreatePaymentInstrument";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { LoadingButton } from "@mui/lab";
 import { useSession } from "next-auth/react";
 import Link from "@components/Link";
 import { getErgoWalletContext } from "@contexts/WalletContext";
 import ErgopayQrCode from "../ErgopayQrCode";
+import { allowedTokens, getIcon, ERG_TOKEN_ID_MAP } from "@lib/configs/paymentTokens";
 
 export type PaymentInstrument = ArrayElement<
   Awaited<ReturnType<typeof findPaymentInstruments>>

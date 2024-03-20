@@ -2,12 +2,12 @@ import { prisma } from "@server/prisma";
 import { explorerApi, nodeApi } from "@server/services/axiosInstance";
 import {
   Address,
-  UnsignedTransaction,
-  ReducedTransaction,
   BlockHeaders,
-  PreHeader,
-  ErgoStateContext,
   ErgoBoxes,
+  ErgoStateContext,
+  PreHeader,
+  ReducedTransaction,
+  UnsignedTransaction,
 } from "ergo-lib-wasm-nodejs";
 import { nanoid } from "nanoid";
 
@@ -55,11 +55,6 @@ interface Output {
   value: string;
   assets: { tokenId: string; amount: string | bigint }[];
   additionalRegisters: any;
-}
-
-interface TransferAmount {
-  tokenId: string | null;
-  amount: number;
 }
 
 interface PowSolutions {
@@ -151,6 +146,7 @@ export const getUnsignedTransaction = async (
       ...unsignedTransaction,
     },
     reducedTransaction: signingUrl,
+    rawReducedTx: reduced
   };
 };
 
@@ -163,10 +159,10 @@ const outputBox = (
     amount = [amount];
   }
   const value =
-    amount.filter((_amount) => _amount.tokenId === null)[0]?.amount ??
+    amount.filter((_amount) => _amount.tokenId === null || _amount.tokenId === "0000000000000000000000000000000000000000000000000000000000000000")[0]?.amount ??
     MIN_SAFE_ERG;
   const assets = amount
-    .filter((_amount) => _amount.tokenId !== null)
+    .filter((_amount) => _amount.tokenId !== null && _amount.tokenId !== "0000000000000000000000000000000000000000000000000000000000000000")
     .map((_amount) => {
       return {
         tokenId: _amount.tokenId ?? "",
@@ -226,7 +222,7 @@ const changeBox = (
   Array.from(diff.entries()).forEach((entry) => {
     if (entry[1] < 0) {
       throw new Error(
-        "Input boxes doesn't have enough assets for the transaction"
+        "The selected wallet doesn't have enough funds to cover the transaction"
       );
     }
   });
@@ -280,10 +276,13 @@ const getTxReducedB64Safe = async (
 
 const getErgoPaySigningUrl = async (reducedTx: string) => {
   const id = nanoid();
+  const oneHourFromNow: Date = new Date();
+  oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
   await prisma.keyValuePair.create({
     data: {
       key: id,
       value: reducedTx,
+      expiresAt: oneHourFromNow
     },
   });
   return `${process.env.ERGOPAY_DOMAIN}/api/ergopay/${id}`;

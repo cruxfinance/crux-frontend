@@ -8,8 +8,9 @@ import {
   Avatar,
   Collapse,
   Checkbox,
+  CircularProgress,
 } from '@mui/material';
-import { ellipsis } from '@lib/flex';
+import { ellipsis, flexRow } from '@lib/flex';
 import CreateIcon from '@mui/icons-material/Create';
 import { wallets } from '@lib/wallets';
 
@@ -50,6 +51,11 @@ const SelectWallets: FC<SelectedWalletsProps> = ({ checked, setChecked }) => {
   return (
     <Box>
       <Box sx={{ maxWidth: 'sm', mx: 'auto' }}>
+        {walletList.isLoading &&
+          <Box sx={{ width: '100%', ...flexRow, justifyContent: 'center', mb: 2 }}>
+            <CircularProgress />
+          </Box>
+        }
         {walletList.data && walletList.data.success && walletList.data.walletList &&
           walletList.data.walletList.map((item) => {
             const wallet = wallets.find(wallet => item.type === wallet.walletType)

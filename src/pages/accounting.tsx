@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Typography,
   Paper,
@@ -8,9 +8,6 @@ import {
   IconButton,
   FilledInput,
   FormControl,
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   useTheme,
   Collapse
 } from '@mui/material';
@@ -27,10 +24,16 @@ import ModeEditIcon from "@mui/icons-material/ModeEdit";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import VerifyReportPayment from '@components/accounting/VerifyReportPayment';
+import { useRouter } from 'next/router';
 
 const yearsAvailableTRPCQuery = [
   2021, 2022, 2023
 ]
+
+const overflowEllipsis = {
+  overflow: 'hidden', whitespace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '100%'
+}
 
 const Accounting: NextPage = () => {
   const { addAlert } = useAlert()
@@ -39,13 +42,30 @@ const Accounting: NextPage = () => {
   const [year, setYear] = useState<number>(0)
   const [years, setYears] = useState<number[]>([])
   const [payOpen, setPayOpen] = useState(false)
+  const [selectedReport, setSelectedReport] = useState<TReport | undefined>(undefined)
   useEffect(() => {
     setYears(yearsAvailableTRPCQuery)
   }, [yearsAvailableTRPCQuery]) // replace with TRPC query when its available
-
-  const [selectedReport, setSelectedReport] = useState<TReport | undefined>(undefined)
-
   const { sessionStatus } = useWallet()
+
+  const router = useRouter();
+  const reportId = router.query['report-id'];
+  const { data: allReports } = trpc.accounting.fetchAllUserReports.useQuery({}, {
+    enabled: sessionStatus === "authenticated"
+  });
+
+  useEffect(() => {
+    console.log(reportId)
+    console.log(allReports)
+    if (router.isReady && reportId && typeof reportId === 'string' && allReports) {
+      console.log(reportId)
+      const report = allReports.reports.find(r => r.id === reportId);
+      if (report && report !== selectedReport && report.taxYear) {
+        setSelectedReport(report);
+        setYear(report.taxYear);
+      }
+    }
+  }, [reportId, allReports]);
 
   const checkAvailableReports = trpc.accounting.checkAvailableReportsByYear.useQuery(
     {
@@ -62,19 +82,30 @@ const Accounting: NextPage = () => {
     }
   )
 
+  useEffect(() => {
+    if (checkAvailableReports.data?.reports && checkAvailableReports.data.reports.length > 0) {
+      setSelectedReport(checkAvailableReports.data.reports[0])
+      router.push({
+        pathname: router.pathname,
+        query: { ...router.query, 'report-id': checkAvailableReports.data.reports[0].id },
+      }, undefined, { shallow: true });
+    } else if (checkAvailableReports.isSuccess) {
+      setSelectedReport(undefined)
+      router.push({
+        pathname: router.pathname
+      }, undefined, { shallow: true });
+    }
+  }, [year])
+
   const handlePayForReport = () => {
     console.log("Handle paying for the report here...");
     setPayOpen(true)
   };
 
-  const payReport = trpc.accounting.processPaymentAndCreateReport.useMutation()
-  const createReportDev = async () => {
-    await payReport.mutateAsync({ taxYear: year, status: 'AVAILABLE' })
-    checkAvailableReports.refetch()
-    checkPrepaidReports.refetch()
-  }
+  const payReport = trpc.accounting.createPrepaidReportDev.useMutation()
+
   const createPrepaidReportDev = async () => {
-    await payReport.mutateAsync({ taxYear: year, status: 'PREPAID' })
+    await payReport.mutateAsync({ taxYear: year })
     checkAvailableReports.refetch()
     checkPrepaidReports.refetch()
   }
@@ -84,9 +115,9 @@ const Accounting: NextPage = () => {
     checkAvailableReports.refetch()
   }, [payOpen])
 
-  useEffect(() => {
-    setSelectedReport(undefined)
-  }, [year])
+  const confirmedPaymentCallback = () => {
+    checkAvailableReports.refetch()
+  }
 
   const editReportCustomName = trpc.accounting.editReportCustomName.useMutation()
   const [openNameEdit, setOpenNameEdit] = useState(false)
@@ -125,8 +156,8 @@ const Accounting: NextPage = () => {
   return (
     <Container maxWidth="xl">
       <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto' }}>
-        <Box sx={{ ...flexRow, mb: 2 }}>
-          <Typography variant="h5" sx={{ pr: 2 }}>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h5" sx={{ mb: 1 }}>
             Choose tax year:
           </Typography>
           <ChooseYear
@@ -135,23 +166,31 @@ const Accounting: NextPage = () => {
             years={years}
           />
         </Box>
-        {checkAvailableReports.data?.available &&
-          <Box sx={{ ...flexRow, mb: 2 }}>
-            <Typography variant="h5" sx={{ pr: 2 }}>
+        {checkAvailableReports.data?.reports && checkAvailableReports.data.reports.length > 0 &&
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h5" sx={{ mb: 1 }}>
               Choose {year} report:
             </Typography>
             <ChooseReport
               selectedReport={selectedReport}
               setSelectedReport={setSelectedReport}
+              setYear={setYear}
               reports={checkAvailableReports.data.reports}
-              handlePayForReport={handlePayForReport}
             />
           </Box>
         }
-        {selectedReport &&
+        {year > 0 &&
+          <Button variant="outlined" color="primary" onClick={handlePayForReport}>
+            Generate new {year} report
+          </Button>
+        }
+      </Paper>
+
+      {selectedReport &&
+        <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto' }}>
           <Box>
-            <Box>
-              Report name: {openNameEdit ? (
+            <Box sx={{ ...flexRow, mb: 3 }}>
+              {openNameEdit ? (
                 <FormControl component="form" onSubmit={handleEditReportName} onKeyDown={handleKeyDown}>
                   <FilledInput
                     value={newName}
@@ -170,13 +209,16 @@ const Accounting: NextPage = () => {
                   />
                 </FormControl >
               ) : (
-                selectedReport.customName ?? selectedReport.id
+                <Typography variant="h4">
+                  {selectedReport.customName}</Typography> ?? selectedReport.id
               )}
-              {!openNameEdit && <IconButton onClick={handleOpenNameEdit}>
-                <ModeEditIcon />
-              </IconButton>}
+              {!openNameEdit && <Button startIcon={<ModeEditIcon />} onClick={handleOpenNameEdit}>
+                Rename
+              </Button>}
             </Box>
-            Addresses:
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Addresses:
+            </Typography>
             <Box
               sx={{
                 p: '3px 12px',
@@ -211,13 +253,20 @@ const Accounting: NextPage = () => {
               }} />
             </Box>
             <Collapse in={openAddressesList}>
-              {selectedReport.addresses.map((address, index) => (
-                <Typography key={index}>{address}</Typography>
-              ))}
+              <Box sx={{}}>
+                {selectedReport.wallets.map((wallet: WalletListItem, i: number) => (
+                  <Box key={wallet.name} sx={{ mb: 1, pl: 3, }}>
+                    <Typography sx={overflowEllipsis}>Wallet: {wallet.name}</Typography>
+                    {wallet.addresses.map((address, index) => (
+                      <Typography key={`${address}-${index}`} sx={{ ml: 2, ...overflowEllipsis }}>{address}</Typography>
+                    ))}
+                  </Box>
+                ))}
+              </Box>
             </Collapse>
           </Box>
-        }
-      </Paper>
+        </Paper>
+      }
 
       {sessionStatus !== "authenticated"
         ? <Box sx={{ py: 4, textAlign: 'center' }}>
@@ -231,18 +280,20 @@ const Accounting: NextPage = () => {
             ? <Box sx={{ py: 4, textAlign: 'center' }}>
               <Typography variant="h6">Verifying...</Typography>
             </Box>
-            : !checkAvailableReports.data?.available
+            : !checkAvailableReports.data?.available && !checkAvailableReports.data?.paymentPending
               ? <Box sx={{ py: 4, textAlign: 'center' }}>
-                <Typography variant="h6">You don&apos;t have a paid report for {year}.</Typography>
+                <Typography variant="h6">You don&apos;t have any report for {year}.</Typography>
                 {checkPrepaidReports.data && checkPrepaidReports.data.hasPrepaidReports && <Typography>
                   You have {checkPrepaidReports.data.prepaidReports.length} prepaid report{checkPrepaidReports.data.prepaidReports.length > 1 && 's'} to use.
                 </Typography>}
                 <Button variant="contained" color="primary" onClick={handlePayForReport} sx={{ mt: 2 }}>
-                  Pay for Report
+                  Generate Report for {year}
                 </Button>
               </Box>
               : selectedReport
-                ? <ViewReport report={selectedReport} />
+                ? checkAvailableReports.data.reports.find((report) => selectedReport.id === report.id)?.status === "AVAILABLE"
+                  ? <ViewReport report={selectedReport} />
+                  : <VerifyReportPayment report={selectedReport} confirmedPaymentCallback={confirmedPaymentCallback} />
                 : <Box sx={{ py: 4, textAlign: 'center' }}>
                   <Typography variant="h6">Please select a report. </Typography>
                 </Box>
@@ -254,23 +305,24 @@ const Accounting: NextPage = () => {
           <Button onClick={createPrepaidReportDev}>
             Add a prepaid report
           </Button>
-          <Button onClick={createReportDev}>
-            Add a paid report for {year}
-          </Button>
-          <Button>
-            Remove all reports for this user
-          </Button>
           <Button onClick={() => {
-            addAlert('success', 'Alert added')
+            addAlert('success', 'Alert added but a much longer message so that we can test some extra length and see what this thing does with way more words than before. ')
             console.log('alert')
           }}>Add alert</Button>
+          <Button onClick={() => {
+            addAlert('error', 'Alert added but a much longer message so that we can test some extra length and see what this thing does with way more words than before. ')
+            console.log('alert')
+          }}>Add error</Button>
         </Box>
       </Paper>
-      <PayReportDialog
-        open={payOpen}
-        setOpen={setPayOpen}
-        taxYear={year}
-      />
+      {payOpen &&
+        <PayReportDialog
+          open={payOpen}
+          setOpen={setPayOpen}
+          taxYear={year}
+          setSelectedReport={setSelectedReport}
+        />
+      }
     </Container>
   )
 }

@@ -32,18 +32,6 @@ import TvChart from '@components/tokenInfo/TvChart';
 import { checkLocalIcon } from '@lib/utils/icons';
 import { TVChartContainer } from '@components/charts/AdvancedChart';
 
-type TokenInfoApi = {
-  token_id: string;
-  token_name: string;
-  token_description: string;
-  decimals: number;
-  minted: number;
-  value_in_erg: number;
-  locked_supply: number;
-  liquid_supply: number;
-  burned_supply: number;
-};
-
 export interface TokenDataPlus extends ITokenData {
   totalMinted: number;
   lockedSupply: number;

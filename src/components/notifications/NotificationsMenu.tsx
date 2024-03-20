@@ -5,15 +5,12 @@ import {
   Typography,
   Box,
   Button,
-  Grid,
   Badge,
   Popover,
   MenuList,
   MenuItem,
-  ListItemIcon,
   useMediaQuery,
   Dialog,
-  Link,
   DialogContent,
 } from "@mui/material";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
@@ -21,14 +18,10 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useScrollLock } from "@contexts/ScrollLockContext";
-import { Notification } from "@prisma/client";
 import { trpc } from "@lib/trpc";
 import { useWallet } from "@contexts/WalletContext";
-
-interface IMenuItemProps extends Notification {
-  icon: React.ReactElement;
-  index: number;
-}
+import Notification from "./Notification";
+import { Notification as NotificationType } from "@prisma/client";
 
 interface INotificationsProps {
   dialogOpen: boolean;
@@ -62,58 +55,34 @@ const NotificationsMenu: FC<INotificationsProps> = ({
   const open = Boolean(anchorEl);
   const id = open ? "notification-menu" : undefined;
 
-  const [currentMenuItems, setCurrentMenuItems] = useState<Notification[]>([]);
   const [numberUnread, setNumberUnread] = useState(0);
 
-  const query = trpc.notification.getNotifications.useQuery(undefined, {
-    onSuccess: (data) => {
-      setCurrentMenuItems(data);
-    },
+  const notifications = trpc.notification.getNotifications.useQuery(undefined, {
     enabled: sessionStatus === "authenticated",
   });
   const markAsRead = trpc.notification.markAsRead.useMutation();
   const markAllAsRead = trpc.notification.markAllAsRead.useMutation();
 
   useEffect(() => {
-    const array = currentMenuItems.filter((item) => item.read === false);
-    setNumberUnread(array.length);
-  }, [currentMenuItems]);
+    if (notifications.data) {
+      const array = notifications.data.filter((item) => item.read === false);
+      setNumberUnread(array.length);
+    }
+  }, [notifications.data]);
 
-  const setRead = async (i: number) => {
-    setCurrentMenuItems((prevArray) => {
-      const newArray = prevArray.map((item, index) => {
-        if (index === i) {
-          return {
-            ...item,
-            read: !prevArray[index].read,
-          };
-        }
-        return item;
-      });
-      return newArray;
-    });
-    const notificationId = currentMenuItems[i].id ?? "";
+  const setRead = async (notificationId: string) => {
     try {
       await markAsRead.mutateAsync({ notificationId });
-      await query.refetch();
+      await notifications.refetch();
     } catch (e) {
       console.error(e);
     }
   };
 
   const markAllRead = async () => {
-    setCurrentMenuItems((prevArray) => {
-      const newArray = prevArray.map((item) => {
-        return {
-          ...item,
-          read: true,
-        };
-      });
-      return newArray;
-    });
     try {
       await markAllAsRead.mutateAsync();
-      await query.refetch();
+      await notifications.refetch();
     } catch (e) {
       console.error(e);
     }
@@ -121,56 +90,13 @@ const NotificationsMenu: FC<INotificationsProps> = ({
 
   const isLg = useMediaQuery("(min-width:534px)");
 
-  const CustomMenuItem: FC<IMenuItemProps> = ({
-    icon,
-    body,
-    href,
-    createdAt,
-    read,
-    index,
-  }) => {
-    return (
-      <MenuItem
-        onClick={() => setRead(index)}
-        sx={{
-          background: !read ? "#161a25" : "none",
-          "&:hover": {
-            background: !read ? "#212737" : "#212737",
-          },
-        }}
-      >
-        <ListItemIcon>{icon}</ListItemIcon>
-        <Grid container direction="column" sx={{ whiteSpace: "normal" }}>
-          <Grid item>
-            <Link href={href ?? undefined}>{body}</Link>{" "}
-          </Grid>
-          <Grid
-            item
-            sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}
-          >
-            {createdAt.toUTCString()}
-          </Grid>
-        </Grid>
-        <ListItemIcon>
-          <FiberManualRecordIcon
-            sx={{
-              fontSize: "12px",
-              ml: "18px",
-              color: !read ? theme.palette.text.primary : "rgba(0,0,0,0)",
-            }}
-          />
-        </ListItemIcon>
-      </MenuItem>
-    );
-  };
-
   const Contents: FC = () => {
     return (
       <Box
         sx={{
           // minWidth: "420px",
           height: "100%",
-          maxWidth: isLg ? "420px" : "534px",
+          maxWidth: isLg ? "620px" : "534px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
@@ -180,42 +106,29 @@ const NotificationsMenu: FC<INotificationsProps> = ({
           <Box sx={{ width: "100%", px: "12px", py: "12px", display: "block" }}>
             <Typography variant="h6">Notifications</Typography>
           </Box>
-          <Box
-            sx={{
-              overflowY: "scroll",
-              display: "block",
-            }}
-          >
-            <MenuList sx={{ py: 0 }}>
-              {currentMenuItems.length > 0 ? (
-                currentMenuItems.map((item, i) => {
-                  const icon = <PriorityHighIcon fontSize="small" />;
-                  if (i < 3) {
-                    return (
-                      <CustomMenuItem
-                        id={item.id}
-                        userId={item.userId}
-                        updatedAt={item.updatedAt}
-                        createdAt={item.createdAt}
-                        body={item.body}
-                        href={item.href}
-                        read={item.read}
-                        icon={icon}
-                        key={item.id}
-                        index={i}
-                      />
-                    );
-                  }
-                })
-              ) : (
-                <MenuItem>
-                  <Typography sx={{ py: 1 }}>
-                    Ugh... this looks empty!
-                  </Typography>
-                </MenuItem>
-              )}
-            </MenuList>
-          </Box>
+          <MenuList sx={{ py: 0 }}>
+            {notifications.data && notifications.data.length > 0
+              ? [...notifications.data].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                .slice(0, 5) // Then, limit the notifications to the first 3 after sorting
+                .map((item) => (
+                  <Notification
+                    key={item.id}
+                    id={item.id}
+                    createdAt={item.createdAt}
+                    body={item.body}
+                    href={item.href ?? undefined}
+                    read={item.read}
+                    setRead={setRead}
+                  />
+                ))
+              : <MenuItem>
+                <Typography sx={{ py: 1 }}>
+                  No notifications at this time.
+                </Typography>
+              </MenuItem>
+            }
+          </MenuList>
+
         </Box>
         <Box
           sx={{

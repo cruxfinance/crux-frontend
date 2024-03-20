@@ -8,7 +8,10 @@ import ReportsTable from './ReportsTable';
 import { Currencies } from '@lib/utils/currencies';
 import { trpc } from '@lib/trpc';
 import { useAlert } from '@lib/contexts/AlertContext';
-
+import { addressListFlatMap } from '@lib/utils/addresses';
+import { slugify } from '@lib/utils/general';
+import { LoadingButton } from '@mui/lab';
+import { generateDownloadLink } from '@server/utils/s3';
 
 interface IViewReportProps {
   report: TReport;
@@ -18,6 +21,11 @@ const ViewReport: FC<IViewReportProps> = ({
   report
 }) => {
   const { addAlert } = useAlert()
+  const flatAddressList = addressListFlatMap(report.wallets)
+
+  const thisReportQuery = trpc.accounting.getReportById.useQuery({
+    reportId: report.id
+  })
 
   const [currency, setCurrency] = useState<Currencies>('USD')
   const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
@@ -27,61 +35,80 @@ const ViewReport: FC<IViewReportProps> = ({
   };
 
   const downloadCsv = trpc.accounting.downloadCsv.useMutation();
+  const downloadKoinly = trpc.accounting.downloadKoinly.useMutation();
 
-  const handleDownload = async (type: string) => {
-    if (type === 'CSV') {
-      const download = await downloadCsv.mutateAsync(
-        {
-          addresses: report.addresses,
-          queries: {},
-          reportId: report.id,
-        },
-        {
-          onSuccess: (data) => {
-            const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `report-${report.id}.csv`); // or another filename
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode?.removeChild(link);
-          },
-          onError: (error) => {
-            console.error('Download failed:', error);
-          },
-        }
-      );
-      if (download) {
-        addAlert('success', 'CSV download successfully generated')
-      }
+  const [csvDownloading, setCsvDownloading] = useState(false)
+  const [koinlyDownloading, setKoinlyDownloading] = useState(false)
+  const [koinlyGenerating, setKoinlyGenerating] = useState(false)
+  const handleDownloadCsv = async () => {
+    setCsvDownloading(true);
+
+    try {
+      const data = await downloadCsv.mutateAsync({
+        addresses: flatAddressList,
+        queries: {},
+        reportId: report.id,
+      });
+
+      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `report-${slugify(report.customName ?? report.id)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+
+      addAlert('success', 'CSV download successfully generated.');
+    } catch (error) {
+      console.error('Download failed:', error);
+      addAlert('error', 'Unable to generate CSV, please contact support.');
+    } finally {
+      setCsvDownloading(false);
     }
-    if (type === 'Koinly') {
-      // const download = await downloadCsv.mutateAsync(
-      //   {
-      //     addresses: report.addresses,
-      //     queries: {},
-      //     reportId: report.id,
-      //   },
-      //   {
-      //     onSuccess: (data) => {
-      //       const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
-      //       const url = URL.createObjectURL(blob);
-      //       const link = document.createElement('a');
-      //       link.href = url;
-      //       link.setAttribute('download', `report-${report.id}.csv`); // or another filename
-      //       document.body.appendChild(link);
-      //       link.click();
-      //       link.parentNode?.removeChild(link);
-      //     },
-      //     onError: (error) => {
-      //       console.error('Download failed:', error);
-      //     },
-      //   }
-      // );
-      // if (download) {
-      addAlert('success', 'Koinly download successfully generated')
-      // }
+  };
+
+  const handleGenerateKoinly = async () => {
+    setKoinlyGenerating(true);
+    try {
+      // Initiate the Koinly report generation
+      const koinly = await downloadKoinly.mutateAsync({
+        wallets: report.wallets as unknown as WalletListItem[],
+        reportId: report.id,
+      });
+      console.log(koinly)
+      if (koinly.job_id) {
+        thisReportQuery.refetch()
+        addAlert('success', 'Your Koinly report is being prepared. You will be notified when it is ready to download.');
+      }
+    } catch (error) {
+      console.error('Koinly report generation failed:', error);
+      addAlert('error', 'Unable to initiate Koinly report generation, please contact support.');
+    } finally {
+      setKoinlyGenerating(false); // Reset the loading state
+    }
+  }
+
+  const handleDownloadKoinly = async () => {
+    setKoinlyDownloading(true);
+
+    if (thisReportQuery?.data?.reportFilename) {
+      try {
+        const url = await generateDownloadLink(thisReportQuery?.data?.reportFilename)
+        console.log(url)
+        const link = document.createElement('a');
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        addAlert('success', 'Koinly download starting.');
+      } catch (error) {
+        console.error('Download failed:', error);
+        addAlert('error', 'Unable to download Koinly file, please contact support.');
+      } finally {
+        setKoinlyDownloading(false);
+      }
     }
   };
 
@@ -109,10 +136,42 @@ const ViewReport: FC<IViewReportProps> = ({
                     {item.description}
                   </Typography>
                 </CardContent>
-                <CardActions sx={{ p: 2 }}>
-                  <Button size="small" variant="contained" color="primary" onClick={() => handleDownload(item.title)}>
-                    Download {item.title}
-                  </Button>
+                <CardActions sx={{ p: 2, justifyContent: 'space-between' }}>
+                  {item.title === "CSV" ?
+                    <LoadingButton
+                      size="small"
+                      variant="contained"
+                      color="primary"
+                      onClick={handleDownloadCsv}
+                      loading={csvDownloading}
+                    >
+                      Download CSV
+                    </LoadingButton>
+                    : <>
+                      {thisReportQuery?.data?.reportFilename
+                        ? <LoadingButton
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          onClick={handleDownloadKoinly}
+                          loading={koinlyDownloading}
+                        >
+                          Download File
+                        </LoadingButton>
+                        : <LoadingButton
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          onClick={handleGenerateKoinly}
+                          disabled={thisReportQuery?.data?.koinlyGenerating}
+                          loading={koinlyGenerating}
+                        >
+                          {thisReportQuery?.data?.koinlyGenerating
+                            ? 'Generating download'
+                            : 'Generate File'}
+                        </LoadingButton>}
+                    </>
+                  }
                 </CardActions>
               </Card>
             </Grid>
@@ -144,7 +203,7 @@ const ViewReport: FC<IViewReportProps> = ({
             </ToggleButtonGroup>
           </Box>
         </Box>
-        <ReportsTable currency={currency} reportId={report.id} addresses={report.addresses} />
+        <ReportsTable currency={currency} reportId={report.id} addresses={flatAddressList} />
       </Paper>
     </Box>
   );

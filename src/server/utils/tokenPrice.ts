@@ -3,7 +3,6 @@ import { cruxApi } from "@server/services/axiosInstance";
 const ERG_DECIMALS = 9;
 
 // Token USD Price Info
-// TODO: Migrate to /spectrum/price_stats API
 export const getTokenPriceInfo = async (tokenId: string | null) => {
   try {
     const adjustedTokenId = tokenId ?? "0000000000000000000000000000000000000000000000000000000000000000";

@@ -14,7 +14,7 @@ CREATE TYPE "PaymentInstrumentStatus" AS ENUM ('ACTIVE', 'IN_USE');
 CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'PAYMENT_PENDING', 'EXPIRED');
 
 -- CreateEnum
-CREATE TYPE "ReportStatus" AS ENUM ('PREPAID', 'AVAILABLE');
+CREATE TYPE "ReportStatus" AS ENUM ('PREPAID', 'AVAILABLE', 'PAYMENT_PENDING');
 
 -- CreateTable
 CREATE TABLE "accounts" (
@@ -132,6 +132,22 @@ CREATE TABLE "transactions" (
 );
 
 -- CreateTable
+CREATE TABLE "simple_transactions" (
+    "id" TEXT NOT NULL,
+    "tx_id" TEXT,
+    "change_address" TEXT,
+    "amounts" JSONB NOT NULL,
+    "status" "TransactionStatus" NOT NULL DEFAULT 'PENDING',
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "payment_for" TEXT NOT NULL,
+    "item_id" TEXT NOT NULL,
+
+    CONSTRAINT "simple_transactions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "payment_instruments" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
@@ -187,10 +203,12 @@ CREATE TABLE "Report" (
     "custom_name" TEXT,
     "date_from" TIMESTAMP(3),
     "date_to" TIMESTAMP(3),
-    "addresses" TEXT[],
+    "wallets" JSONB,
     "tax_year" INTEGER,
     "status" "ReportStatus" NOT NULL,
     "user_id" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Report_pkey" PRIMARY KEY ("id")
 );
@@ -275,6 +293,9 @@ ALTER TABLE "ChartData" ADD CONSTRAINT "ChartData_user_id_fkey" FOREIGN KEY ("us
 
 -- AddForeignKey
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_payment_instrument_id_fkey" FOREIGN KEY ("payment_instrument_id") REFERENCES "payment_instruments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "simple_transactions" ADD CONSTRAINT "simple_transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "payment_instruments" ADD CONSTRAINT "payment_instruments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
