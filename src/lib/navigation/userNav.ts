@@ -8,19 +8,19 @@ const userNavItems: SideNavItem[] = [
       },
     ],
   },
-  {
-    header: "Subscriptions",
-    items: [
-      {
-        subtitle: "Manage Subscriptions",
-        link: "/user/subscription",
-      },
-      {
-        subtitle: "Payments",
-        link: "/user/payments",
-      },
-    ],
-  },
+  // {
+  //   header: "Subscriptions",
+  //   items: [
+  //     {
+  //       subtitle: "Manage Subscriptions",
+  //       link: "/user/subscription",
+  //     },
+  //     {
+  //       subtitle: "Payments",
+  //       link: "/user/payments",
+  //     },
+  //   ],
+  // },
   {
     header: "Wallet",
     items: [

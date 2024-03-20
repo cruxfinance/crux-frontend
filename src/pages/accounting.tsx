@@ -41,6 +41,7 @@ const Accounting: NextPage = () => {
   const theme = useTheme()
   const [year, setYear] = useState<number>(0)
   const [years, setYears] = useState<number[]>([])
+  const [yearChangedByUser, setYearChangedByUser] = useState(false);
   const [payOpen, setPayOpen] = useState(false)
   const [selectedReport, setSelectedReport] = useState<TReport | undefined>(undefined)
   useEffect(() => {
@@ -55,8 +56,6 @@ const Accounting: NextPage = () => {
   });
 
   useEffect(() => {
-    console.log(reportId)
-    console.log(allReports)
     if (router.isReady && reportId && typeof reportId === 'string' && allReports) {
       console.log(reportId)
       const report = allReports.reports.find(r => r.id === reportId);
@@ -83,32 +82,29 @@ const Accounting: NextPage = () => {
   )
 
   useEffect(() => {
-    if (checkAvailableReports.data?.reports && checkAvailableReports.data.reports.length > 0) {
-      setSelectedReport(checkAvailableReports.data.reports[0])
-      router.push({
-        pathname: router.pathname,
-        query: { ...router.query, 'report-id': checkAvailableReports.data.reports[0].id },
-      }, undefined, { shallow: true });
-    } else if (checkAvailableReports.isSuccess) {
-      setSelectedReport(undefined)
-      router.push({
-        pathname: router.pathname
-      }, undefined, { shallow: true });
+    if (checkAvailableReports.isSuccess) {
+      // If the year changed by user interaction, select the first report automatically.
+      // Otherwise, select the report with the same ID as before the refetch, if available.
+      if (yearChangedByUser) {
+        const firstReportForYear = checkAvailableReports.data.reports[0];
+        setSelectedReport(firstReportForYear);
+        setYearChangedByUser(false);
+        if (firstReportForYear) {
+          router.push({
+            pathname: router.pathname,
+            query: { 'report-id': firstReportForYear.id },
+          }, undefined, { shallow: true });
+        }
+      } else {
+        const updatedSelectedReport = checkAvailableReports.data.reports.find(report => report.id === selectedReport?.id);
+        setSelectedReport(updatedSelectedReport);
+      }
     }
-  }, [year])
+  }, [checkAvailableReports.data?.reports, yearChangedByUser]);
 
   const handlePayForReport = () => {
-    console.log("Handle paying for the report here...");
     setPayOpen(true)
   };
-
-  const payReport = trpc.accounting.createPrepaidReportDev.useMutation()
-
-  const createPrepaidReportDev = async () => {
-    await payReport.mutateAsync({ taxYear: year })
-    checkAvailableReports.refetch()
-    checkPrepaidReports.refetch()
-  }
 
   useEffect(() => {
     checkPrepaidReports.refetch()
@@ -127,21 +123,27 @@ const Accounting: NextPage = () => {
     setOpenNameEdit(true)
   }
   const handleEditReportName = async (e: any) => {
-    e.preventDefault()
-    if (selectedReport) {
-      const editName = await editReportCustomName.mutateAsync({
-        reportId: selectedReport?.id,
-        customName: newName
-      })
-      if (editName) {
+    e.preventDefault();
+    if (selectedReport && newName) {
+      try {
+        const editName = await editReportCustomName.mutateAsync({
+          reportId: selectedReport.id,
+          customName: newName,
+        });
+        addAlert('success', `Report renamed to ${newName}`);
         setOpenNameEdit(false)
         setNewName('')
-        addAlert('success', `Report renamed to ${newName}`)
-        checkAvailableReports.refetch()
-        setSelectedReport({ ...selectedReport, customName: newName })
+        // Update the local state to reflect the new custom name.
+        setSelectedReport(prev => prev?.id === selectedReport.id ? { ...prev, customName: newName } : prev);
+        // Refetch reports to update the list.
+        checkAvailableReports.refetch();
+      } catch (error) {
+        // Handle error (show error message to the user)
+        console.error(error);
+        addAlert('error', 'Failed to rename the report.');
       }
     }
-  }
+  };
   const handleCancelEdit = () => {
     setNewName(selectedReport?.customName || selectedReport?.id || '')
     setOpenNameEdit(false)
@@ -164,6 +166,7 @@ const Accounting: NextPage = () => {
             year={year}
             setYear={setYear}
             years={years}
+            setYearChangedByUser={setYearChangedByUser}
           />
         </Box>
         {checkAvailableReports.data?.reports && checkAvailableReports.data.reports.length > 0 &&
@@ -210,7 +213,8 @@ const Accounting: NextPage = () => {
                 </FormControl >
               ) : (
                 <Typography variant="h4">
-                  {selectedReport.customName}</Typography> ?? selectedReport.id
+                  {selectedReport.customName}
+                </Typography>
               )}
               {!openNameEdit && <Button startIcon={<ModeEditIcon />} onClick={handleOpenNameEdit}>
                 Rename
@@ -298,23 +302,6 @@ const Accounting: NextPage = () => {
                   <Typography variant="h6">Please select a report. </Typography>
                 </Box>
       }
-
-      <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto', mt: 24 }}>
-        <Typography variant="h5">Dev panel</Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-          <Button onClick={createPrepaidReportDev}>
-            Add a prepaid report
-          </Button>
-          <Button onClick={() => {
-            addAlert('success', 'Alert added but a much longer message so that we can test some extra length and see what this thing does with way more words than before. ')
-            console.log('alert')
-          }}>Add alert</Button>
-          <Button onClick={() => {
-            addAlert('error', 'Alert added but a much longer message so that we can test some extra length and see what this thing does with way more words than before. ')
-            console.log('alert')
-          }}>Add error</Button>
-        </Box>
-      </Paper>
       {payOpen &&
         <PayReportDialog
           open={payOpen}

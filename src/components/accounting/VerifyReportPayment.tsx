@@ -176,6 +176,9 @@ const VerifyReportPayment: FC<IVerifyReportPaymentProps> = ({
             </TableBody>
           </Table>
         </TableContainer>
+        <Typography sx={{ mt: 1, fontSize: '14px' }}>
+          Note: payments require 2 confirmations on chain to be considered completed.
+        </Typography>
       </Paper>
     </Box>
   );

@@ -1,24 +1,21 @@
 import React, { FC, useState, useEffect } from 'react';
 import { Box, Button } from '@mui/material';
-import { trpc } from '@lib/trpc';
-import { useWallet } from '@contexts/WalletContext';
 import { useRouter } from 'next/router';
 
-interface IChooseYearProps {
+interface IChooseReportProps {
   selectedReport: TReport | undefined;
   setSelectedReport: React.Dispatch<React.SetStateAction<TReport | undefined>>;
   setYear: React.Dispatch<React.SetStateAction<number>>;
   reports: TReport[];
 }
 
-const ChooseYear: FC<IChooseYearProps> = ({
+const ChooseReport: FC<IChooseReportProps> = ({
   selectedReport,
   setSelectedReport,
   setYear,
   reports,
 }) => {
   const [localSelectedReport, setLocalSelectedReport] = useState<TReport | undefined>(selectedReport);
-  const { sessionStatus } = useWallet()
   const router = useRouter();
 
   useEffect(() => {
@@ -26,7 +23,7 @@ const ChooseYear: FC<IChooseYearProps> = ({
   }, [selectedReport]);
 
   const handleReportSelection = (newReport: TReport) => {
-    if (localSelectedReport === newReport) {
+    if (localSelectedReport && localSelectedReport.id === newReport.id) {
       setLocalSelectedReport(undefined);
       setSelectedReport(undefined);
       router.push({
@@ -70,4 +67,4 @@ const ChooseYear: FC<IChooseYearProps> = ({
   );
 };
 
-export default ChooseYear;
+export default ChooseReport;

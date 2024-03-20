@@ -214,7 +214,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
               </ListItemIcon>
               User Profile
             </MenuItem>
-            <MenuItem
+            {/* <MenuItem
               onClick={() => router.push("/user/subscription")}
               sx={{ "&:hover": { background: "rgba(150,150,150,0.05)" } }}
             >
@@ -231,7 +231,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
                 <ReceiptOutlinedIcon fontSize="small" />
               </ListItemIcon>
               Payments
-            </MenuItem>
+            </MenuItem> */}
             <MenuItem
               onClick={() => router.push("/user/wallets")}
               sx={{ "&:hover": { background: "rgba(150,150,150,0.05)" } }}
@@ -239,7 +239,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
               <ListItemIcon>
                 <WalletIcon fontSize="small" />
               </ListItemIcon>
-              Wallet
+              Connected Wallets
             </MenuItem>
             <Divider sx={{ mb: "3px" }} />
             <MenuItem

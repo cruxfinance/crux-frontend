@@ -55,7 +55,7 @@ export const markNotifcationAsRead = async (notificationId: string) => {
     },
     data: {
       ...notification,
-      read: !notification.read,
+      read: true,
       updatedAt: new Date(),
     },
   });

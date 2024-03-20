@@ -1,18 +1,19 @@
 import React, { FC, useState, useEffect } from 'react';
-import { Box, Button, useTheme } from '@mui/material';
+import { Box, Button } from '@mui/material';
 
 interface IChooseYearProps {
   year: number;
   setYear: React.Dispatch<React.SetStateAction<number>>;
+  setYearChangedByUser: React.Dispatch<React.SetStateAction<boolean>>;
   years: number[];
 }
 
 const ChooseYear: FC<IChooseYearProps> = ({
   year,
   setYear,
+  setYearChangedByUser,
   years
 }) => {
-  const theme = useTheme()
   const [localYear, setLocalYear] = useState<number>(year);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ const ChooseYear: FC<IChooseYearProps> = ({
   const handleYearChange = (newYear: number) => {
     setLocalYear(newYear);
     setYear(newYear);
+    setYearChangedByUser(true)
   };
 
   return (
