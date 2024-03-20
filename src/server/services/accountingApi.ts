@@ -56,7 +56,7 @@ export const accountingApi = {
         addresses: addresses,
       });
 
-      console.log(queryString)
+      // console.log(queryString)
 
       return toCamelCase(response.data) as TTransactions;
     } catch (error) {
@@ -115,7 +115,8 @@ export const accountingApi = {
     queries: {
       dateFrom: number,
       dateTo: number,
-    }
+    },
+    baseUrl: string
   ) {
     try {
       const payload = {
@@ -123,7 +124,7 @@ export const accountingApi = {
         wallets,
         from_time: queries.dateFrom,
         to_time: queries.dateTo,
-        webhook: `${process.env.BASE_URL}/api/koinly`,
+        webhook: `${baseUrl}/api/koinly`,
       };
 
       const response = await cruxApi.post(

@@ -62,8 +62,6 @@ export const accountingRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { addresses, queries, reportId } = input;
 
-      console.log(`${process.env.BASE_URL}/api/koinly`)
-
       const report = await prisma.report.findFirst({
         where: {
           userId: ctx.session.user.id,
@@ -98,10 +96,11 @@ export const accountingRouter = createTRPCRouter({
           name: z.string()
         })),
         reportId: z.string(),
+        baseUrl: z.string() // dynamic for webhook to match the source url
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const { wallets, reportId } = input;
+      const { wallets, reportId, baseUrl } = input;
 
       const report = await prisma.report.findFirst({
         where: {
@@ -128,7 +127,8 @@ export const accountingRouter = createTRPCRouter({
       const download = await accountingApi.downloadKoinly(
         wallets,
         reportId,
-        modifiedQueries
+        modifiedQueries,
+        baseUrl
       );
 
       if (download) {

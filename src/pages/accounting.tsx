@@ -57,7 +57,7 @@ const Accounting: NextPage = () => {
 
   useEffect(() => {
     if (router.isReady && reportId && typeof reportId === 'string' && allReports) {
-      console.log(reportId)
+      // console.log(reportId)
       const report = allReports.reports.find(r => r.id === reportId);
       if (report && report !== selectedReport && report.taxYear) {
         setSelectedReport(report);
@@ -186,7 +186,7 @@ const Accounting: NextPage = () => {
             />
           </Box>
         }
-        {year > 0 &&
+        {year > 0 && sessionStatus === "authenticated" &&
           <Button variant="outlined" color="primary" onClick={handlePayForReport}>
             Generate new {year} report
           </Button>

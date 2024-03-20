@@ -12,6 +12,14 @@ import { addressListFlatMap } from '@lib/utils/addresses';
 import { slugify } from '@lib/utils/general';
 import { LoadingButton } from '@mui/lab';
 import { generateDownloadLink } from '@server/utils/s3';
+import { GetServerSideProps } from 'next';
+
+const getBaseUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return `${window.location.protocol}//${window.location.host}`;
+}
 
 interface IViewReportProps {
   report: TReport;
@@ -21,6 +29,7 @@ const ViewReport: FC<IViewReportProps> = ({
   report
 }) => {
   const { addAlert } = useAlert()
+  const baseUrl = getBaseUrl();
   const flatAddressList = addressListFlatMap(report.wallets)
 
   const thisReportQuery = trpc.accounting.getReportById.useQuery({
@@ -71,12 +80,14 @@ const ViewReport: FC<IViewReportProps> = ({
   const handleGenerateKoinly = async () => {
     setKoinlyGenerating(true);
     try {
+      console.log(baseUrl)
       // Initiate the Koinly report generation
       const koinly = await downloadKoinly.mutateAsync({
         wallets: report.wallets as unknown as WalletListItem[],
         reportId: report.id,
+        baseUrl
       });
-      console.log(koinly)
+      // console.log(koinly)
       if (koinly.job_id) {
         thisReportQuery.refetch()
         addAlert('success', 'Your Koinly report is being prepared. You will be notified when it is ready to download.');
@@ -95,7 +106,7 @@ const ViewReport: FC<IViewReportProps> = ({
     if (thisReportQuery?.data?.reportFilename) {
       try {
         const url = await generateDownloadLink(thisReportQuery?.data?.reportFilename)
-        console.log(url)
+        // console.log(url)
         const link = document.createElement('a');
         link.href = url;
         document.body.appendChild(link);
