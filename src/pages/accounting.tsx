@@ -115,7 +115,11 @@ const Accounting: NextPage = () => {
     checkAvailableReports.refetch()
   }
 
-  const editReportCustomName = trpc.accounting.editReportCustomName.useMutation()
+  const editReportCustomName = trpc.accounting.editReportCustomName.useMutation({
+    onSuccess: () => {
+      checkAvailableReports.refetch();
+    },
+  })
   const [openNameEdit, setOpenNameEdit] = useState(false)
   const [newName, setNewName] = useState('')
   const handleOpenNameEdit = () => {

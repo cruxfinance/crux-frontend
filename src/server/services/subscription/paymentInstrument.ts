@@ -250,7 +250,7 @@ export const addPaymentInstrumentBalance = async (
     //   );
     // }
     const tx = await getUnsignedTransaction(input.address, RECIPIENT, {
-      tokenId: paymentInstrument.tokenId,
+      tokenId: paymentInstrument.tokenId ?? '',
       amount: input.amount,
     });
     const updatedPaymentInstrument = await prisma.paymentInstrument.update({
