@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, FC, ReactNode } from 'react';
-import { v4 as uuidv4 } from 'uuid'
+import { nanoid } from 'nanoid';
 
 interface Alert {
   id: string;
@@ -20,9 +20,8 @@ export const AlertProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
   const addAlert = (type: Alert['type'], message: Alert['message']) => {
-    const id = uuidv4();
+    const id = nanoid();
     setAlerts((prevAlerts) => [...prevAlerts, { id, type, message }]);
-    setTimeout(() => removeAlert(id), 8000);
   };
 
   const removeAlert = (id: string) => {

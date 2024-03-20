@@ -200,6 +200,7 @@ CREATE TABLE "subscriptions" (
 CREATE TABLE "Report" (
     "id" TEXT NOT NULL,
     "report_filename" TEXT,
+    "koinly_generating" BOOLEAN NOT NULL DEFAULT false,
     "custom_name" TEXT,
     "date_from" TIMESTAMP(3),
     "date_to" TIMESTAMP(3),
@@ -232,6 +233,7 @@ CREATE TABLE "kv" (
     "value" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "expires_at" TIMESTAMP(3),
 
     CONSTRAINT "kv_pkey" PRIMARY KEY ("key")
 );
