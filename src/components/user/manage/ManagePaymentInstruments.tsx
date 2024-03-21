@@ -137,7 +137,7 @@ const ManagePaymentInstruments = () => {
       await query.refetch();
       handleClose();
     } catch (e: any) {
-      handleOpenPopoverError(e.toString());
+      handleOpenPopoverError(e?.info ?? e.toString());
     }
     setDialogLoading(false);
   };
