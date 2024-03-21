@@ -18,7 +18,7 @@ interface ProductCost {
 export const productCosts: ProductCost[] = [
   {
     product: 'report',
-    basePrice: 60,
+    basePrice: 40,
     discounts: [
       { privilegeLevel: 'PRO', percentOff: 10 },
       { privilegeLevel: 'BASIC', percentOff: 10 },

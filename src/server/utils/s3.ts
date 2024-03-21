@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const AMAZON_ACCESS_KEY = process.env.AMAZON_ACCESS_KEY ?? "";
 const AMAZON_SECRET_KEY = process.env.AMAZON_SECRET_KEY ?? "";
-const AMAZON_REGION = process.env.AMAZON_REGION ?? "";
+const AMAZON_REGION = process.env.AMAZON_REGION ?? "eu-central-1";
 const S3_BUCKET = process.env.CRUX_PUBLIC_BUCKET ?? "";
 const REPORTS_BUCKET = process.env.CRUX_REPORTS_BUCKET ?? ""
 
