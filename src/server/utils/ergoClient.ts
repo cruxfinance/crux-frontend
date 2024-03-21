@@ -1,16 +1,21 @@
+import { prisma } from "@server/prisma";
 import { explorerApi, nodeApi } from "@server/services/axiosInstance";
-import { Address, UnsignedTransaction } from "ergo-lib-wasm-nodejs";
+import {
+  Address,
+  BlockHeaders,
+  ErgoBoxes,
+  ErgoStateContext,
+  PreHeader,
+  ReducedTransaction,
+  UnsignedTransaction,
+} from "ergo-lib-wasm-nodejs";
+import { nanoid } from "nanoid";
 
 const ERG = "erg";
 const FEE = "1100000";
 const FEE_ERGO_TREE =
   "1005040004000e36100204a00b08cd0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ea02d192a39a8cc7a701730073011001020402d19683030193a38cc7b2a57300000193c2b2a57301007473027303830108cdeeac93b1a57304";
 const MIN_SAFE_ERG = "1000000";
-
-const getCurrentChainHeight = async () => {
-  const info = await nodeApi.get("/info");
-  return info.data.fullHeight as number;
-};
 
 interface ExplorerAsset {
   tokenId: string;
@@ -52,10 +57,39 @@ interface Output {
   additionalRegisters: any;
 }
 
-interface TransferAmount {
-  tokenId: string | null;
-  amount: number;
+interface PowSolutions {
+  pk: string;
+  w: string;
+  n: string;
+  d: string;
 }
+
+interface BlockHeader {
+  id: string;
+  parentId: string;
+  version: number;
+  timestamp: number;
+  height: number;
+  nBits: number;
+  votes: string;
+  stateRoot: string;
+  adProofsRoot: string;
+  transactionsRoot: string;
+  extensionHash: string;
+  powSolutions: PowSolutions;
+}
+
+const getCurrentChainHeight = async () => {
+  const info = await nodeApi.get("/info");
+  return info.data.fullHeight as number;
+};
+
+const getExplorerBlockHeaders = async () => {
+  const headers = (
+    await explorerApi.get(`/api/v1/blocks/headers`)
+  ).data.items.slice(0, 10);
+  return headers as BlockHeader[];
+};
 
 const getUnspentBoxes = async (address: string) => {
   const boxes = await explorerApi.get(
@@ -67,7 +101,7 @@ const getUnspentBoxes = async (address: string) => {
 export const getUnsignedTransaction = async (
   senderAddress: string,
   recipientAddress: string,
-  transferAmount: TransferAmount
+  transferAmount: TransferAmount | TransferAmount[]
 ) => {
   const currentHeight = await getCurrentChainHeight();
   const inputs = (await getUnspentBoxes(senderAddress)).map((box) => {
@@ -97,39 +131,52 @@ export const getUnsignedTransaction = async (
       changeBox(senderAddress, inputs, outputs, currentHeight),
     ],
   };
-  const txId = UnsignedTransaction.from_json(
-    JSON.stringify(unsignedTransaction)
-  )
-    .id()
-    .to_str();
+  const tx = UnsignedTransaction.from_json(JSON.stringify(unsignedTransaction));
+  const reduced = await getTxReducedB64Safe(
+    tx,
+    ErgoBoxes.from_boxes_json(inputs),
+    ErgoBoxes.from_boxes_json([])
+  );
+  const signingUrl = await getErgoPaySigningUrl(reduced);
+  const txId = tx.id().to_str();
   return {
     id: txId,
-    ...unsignedTransaction,
+    unsignedTransaction: {
+      id: txId,
+      ...unsignedTransaction,
+    },
+    reducedTransaction: signingUrl,
+    rawReducedTx: reduced
   };
 };
 
 const outputBox = (
   address: string,
-  amount: TransferAmount,
+  amount: TransferAmount | TransferAmount[],
   creationHeight: number
 ) => {
+  if (!Array.isArray(amount)) {
+    amount = [amount];
+  }
+  const value =
+    amount.filter((_amount) => _amount.tokenId === null || _amount.tokenId === "0000000000000000000000000000000000000000000000000000000000000000")[0]?.amount ??
+    MIN_SAFE_ERG;
+  const assets = amount
+    .filter((_amount) => _amount.tokenId !== null && _amount.tokenId !== "0000000000000000000000000000000000000000000000000000000000000000")
+    .map((_amount) => {
+      return {
+        tokenId: _amount.tokenId ?? "",
+        amount: _amount.amount.toString(),
+      };
+    });
   const ergoTree = Address.from_mainnet_str(address)
     .to_ergo_tree()
     .to_base16_bytes();
-  const value = amount.tokenId === null ? amount.amount : MIN_SAFE_ERG;
   return {
     value: value.toString(),
     ergoTree: ergoTree,
     creationHeight: creationHeight,
-    assets:
-      amount.tokenId === null
-        ? []
-        : [
-            {
-              tokenId: amount.tokenId,
-              amount: amount.amount.toString(),
-            },
-          ],
+    assets: [...assets],
     additionalRegisters: {},
   };
 };
@@ -175,7 +222,7 @@ const changeBox = (
   Array.from(diff.entries()).forEach((entry) => {
     if (entry[1] < 0) {
       throw new Error(
-        "Input boxes doesn't have enough assets for the transaction"
+        "The selected wallet doesn't have enough funds to cover the transaction"
       );
     }
   });
@@ -191,4 +238,52 @@ const changeBox = (
       }),
     additionalRegisters: {},
   };
+};
+
+const getErgoStateContext = async () => {
+  const res = await getExplorerBlockHeaders();
+  const block_headers = BlockHeaders.from_json(res);
+  const pre_header = PreHeader.from_block_header(block_headers.get(0));
+  return new ErgoStateContext(pre_header, block_headers);
+};
+
+const getTxReduced = async (
+  unsignedTx: UnsignedTransaction,
+  inputs: ErgoBoxes,
+  dataInputs: ErgoBoxes
+) => {
+  const ctx = await getErgoStateContext();
+  return ReducedTransaction.from_unsigned_tx(
+    unsignedTx,
+    inputs,
+    dataInputs,
+    ctx
+  );
+};
+
+const getTxReducedB64Safe = async (
+  unsignedTx: UnsignedTransaction,
+  inputs: ErgoBoxes,
+  dataInputs: ErgoBoxes
+) => {
+  const reduced = await getTxReduced(unsignedTx, inputs, dataInputs);
+  const txReducedBase64 = btoa(
+    String.fromCharCode(...reduced.sigma_serialize_bytes())
+  );
+  const ergoPayTx = txReducedBase64.replace(/\//g, "_").replace(/\+/g, "-");
+  return ergoPayTx;
+};
+
+const getErgoPaySigningUrl = async (reducedTx: string) => {
+  const id = nanoid();
+  const oneHourFromNow: Date = new Date();
+  oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
+  await prisma.keyValuePair.create({
+    data: {
+      key: id,
+      value: reducedTx,
+      expiresAt: oneHourFromNow
+    },
+  });
+  return `${process.env.ERGOPAY_DOMAIN}/api/ergopay/${id}`;
 };

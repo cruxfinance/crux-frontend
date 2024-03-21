@@ -80,6 +80,10 @@ const Header: FC<IHeaderProps> = ({ }) => {
   const [navbarOpen, setNavbarOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
 
+  useEffect(() => {
+    // console.log('hello')
+  }, [isLocked, scrollBarCompensation])
+
   const router = useRouter();
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
   const upLg = useMediaQuery(theme.breakpoints.up("lg"));

@@ -115,3 +115,66 @@ interface SideNavItem {
   header: string;
   items: { subtitle: string; link?: string }[];
 }
+
+type ArrayElement<ArrayType extends readonly unknown[]> =
+  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+
+type Severity = "info" | "error" | "success" | "warning";
+
+type WalletButtonProps = {
+  name: string;
+  walletType: string;
+  icon: string;
+  iconDark: string;
+  messageSigning: boolean;
+}
+
+interface WalletListItem {
+  addresses: string[];
+  name: string;
+}
+
+type TReport = {
+  id: string;
+  reportFilename: string | null;
+  koinlyGenerating: boolean;
+  customName: string | null;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+  wallets: Prisma.JsonValue;
+  taxYear: number | null;
+  status: $Enums.ReportStatus;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+interface IPaymentAmount {
+  tokenId: string;
+  amount: number;
+  decimals: number;
+}
+
+interface TransferAmount {
+  tokenId: string;
+  amount: number;
+}
+
+type TokenInfoApi = {
+  token_id: string;
+  token_name: string;
+  token_description: string;
+  decimals: number;
+  minted: number;
+  value_in_erg: number;
+  locked_supply: number;
+  liquid_supply: number;
+  burned_supply: number;
+};
+
+interface AllowedToken {
+  id: string;
+  name: string;
+  icon: string | null;
+  decimals: number;
+}

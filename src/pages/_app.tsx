@@ -8,18 +8,19 @@ import Layout from "@components/layout/Layout";
 import Head from "next/head";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import AlertWrapper, { IAlertMessages } from "@components/AlertWrapper";
 import { trpc } from "@lib/trpc";
 import { SessionProvider } from "next-auth/react";
 import { WalletProvider } from "@lib/contexts/WalletContext";
 import { useRouter } from "next/router";
 import { ScrollLockProvider } from "@contexts/ScrollLockContext";
+import RefreshAccessLevel from "@components/user/RefreshAccessLevel";
+import { AlertProvider } from "@lib/contexts/AlertContext";
+import AlertComponent from "@components/Alert";
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
-  const [alert, setAlert] = useState<IAlertMessages[]>([]);
-  const router = useRouter()
-  const isNoLayoutPage = router.pathname === '/ergopad-chart'
+  const router = useRouter();
+  const isNoLayoutPage = router.pathname === "/ergopad-chart";
 
   return (
     <>
@@ -34,25 +35,21 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <ThemeProvider theme={theme}>
             <CssBaseline enableColorScheme />
-            <WalletProvider>
-              <ScrollLockProvider>
-                {isNoLayoutPage ? (
-                  <Component {...pageProps} />
-                ) : (
-                  <Layout>
+            <AlertProvider>
+              <WalletProvider>
+                <ScrollLockProvider>
+                  <AlertComponent />
+                  {isNoLayoutPage ? (
                     <Component {...pageProps} />
-                  </Layout>
-                )}
-              </ScrollLockProvider>
-            </WalletProvider>
-            <AlertWrapper
-              alerts={alert}
-              close={(i: number) => {
-                setAlert((prevState) =>
-                  prevState.filter((_item, idx) => idx !== i)
-                );
-              }}
-            />
+                  ) : (
+                    <Layout>
+                      <Component {...pageProps} />
+                    </Layout>
+                  )}
+                </ScrollLockProvider>
+                <RefreshAccessLevel />
+              </WalletProvider>
+            </AlertProvider>
           </ThemeProvider>
         </LocalizationProvider>
       </SessionProvider>

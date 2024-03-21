@@ -1,10 +1,9 @@
+import { ERG_TOKEN_ID_MAP, allowedTokens, getIcon } from "@lib/configs/paymentTokens";
 import { trpc } from "@lib/trpc";
-import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
 import { LoadingButton } from "@mui/lab";
 import {
   Avatar,
   Box,
-  Button,
   FormControl,
   InputLabel,
   ListItemIcon,
@@ -15,41 +14,6 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-
-interface AllowedToken {
-  id: string;
-  name: string;
-  icon: string | null;
-  decimals: number;
-}
-
-export const ERG_TOKEN_ID_MAP =
-  "0000000000000000000000000000000000000000000000000000000000000000";
-
-export const allowedTokens: AllowedToken[] = [
-  {
-    id: "0000000000000000000000000000000000000000000000000000000000000000",
-    name: "erg",
-    icon: null,
-    decimals: 9,
-  },
-  {
-    id: "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365",
-    name: "CRUX",
-    icon: null,
-    decimals: 4
-  }
-];
-
-export const getIcon = async (id: string) => {
-  // Check for the icon locally first
-  let url = await checkLocalIcon(id);
-  // Otherwise, check the server for it
-  if (!url) {
-    url = await getIconUrlFromServer(id);
-  }
-  return url;
-};
 
 const CreatePaymentInstrument = () => {
   const [token, setToken] = useState(ERG_TOKEN_ID_MAP);
@@ -96,8 +60,11 @@ const CreatePaymentInstrument = () => {
   };
 
   return (
-    <Paper sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}>
-      <Typography variant="h6">Add a new currency</Typography>
+    <Paper
+      variant="outlined"
+      sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}
+    >
+      <Typography variant="h6">Create a new Payment Instrument</Typography>
       <Box sx={{ width: "50%" }}>
         <FormControl fullWidth sx={{ mt: 2, mb: 3 }}>
           <InputLabel id="token-select-label">Token</InputLabel>

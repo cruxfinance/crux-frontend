@@ -125,4 +125,11 @@ const useWallet = (): WalletContextType => {
   return context;
 };
 
-export { WalletProvider, WalletConsumer, useWallet };
+const getErgoWalletContext = async () => {
+  const nautilus = window.ergoConnector.nautilus;
+  await nautilus.connect();
+  const context = await nautilus.getContext();
+  return context;
+};
+
+export { WalletProvider, WalletConsumer, useWallet, getErgoWalletContext };

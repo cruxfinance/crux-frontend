@@ -5,7 +5,7 @@ import {
 } from "./paymentInstrument";
 import { PAYMENT_PENDING_ALLOWANCE, SUBSCRIPTION_CONFIG } from "./config";
 import { getTokenPriceInfo } from "@server/utils/tokenPrice";
-import { SubscriptionStatus } from "@prisma/client";
+import { SubscriptionStatus, UserPrivilegeLevel } from "@prisma/client";
 
 interface CreateSubscription {
   userId: string;
@@ -133,4 +133,50 @@ export const findSubscriptions = async (userId: string) => {
     subscriptionIds.map((subscriptionId) => getSubscription(subscriptionId))
   );
   return subscriptions;
+};
+
+export const getCurrentUpdatedSubcription = async (userId: string) => {
+  const subscriptions = await findSubscriptions(userId);
+  // get last updated subscription
+  const activeSubscription =
+    [...subscriptions].sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+    )[0] ?? null;
+  if (activeSubscription === null) {
+    // noop if no subscription
+    await prisma.user.update({
+      where: { id: userId },
+      data: { privilegeLevel: UserPrivilegeLevel.DEFAULT },
+    });
+    return null;
+  }
+  if (activeSubscription.status !== SubscriptionStatus.ACTIVE) {
+    try {
+      // try auto charging subscription
+      await renewSubscription(activeSubscription.id);
+      activeSubscription.status = SubscriptionStatus.ACTIVE;
+    } catch (e) {
+      // could not renew the subscription
+      console.warn(e);
+    }
+  }
+  // if expired or the subscription has never been activated
+  if (
+    activeSubscription.status === SubscriptionStatus.EXPIRED ||
+    (activeSubscription.activationTimestamp === null &&
+      activeSubscription.status === SubscriptionStatus.PAYMENT_PENDING)
+  ) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { privilegeLevel: UserPrivilegeLevel.DEFAULT },
+    });
+    // we might have updated the subscription so get the latest object
+    return await getSubscription(activeSubscription.id);
+  }
+  await prisma.user.update({
+    where: { id: userId },
+    data: { privilegeLevel: activeSubscription.allowedAccess },
+  });
+  // need the latest data
+  return await getSubscription(activeSubscription.id);
 };

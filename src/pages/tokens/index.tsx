@@ -276,7 +276,7 @@ const Tokens: FC = () => {
 
       <TokenFilterOptions filters={filters} setFilters={setFilters} open={filterModalOpen} setOpen={setFilterModalOpen} />
 
-      <Paper sx={{ position: 'relative' }}>
+      <Paper variant="outlined" sx={{ position: 'relative' }}>
         {upLg
           ? (
             <>

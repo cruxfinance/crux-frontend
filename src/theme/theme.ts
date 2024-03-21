@@ -21,7 +21,6 @@ declare module '@mui/material/styles' {
 const lightPrimaryMain = '#FE6B8B'
 const lightSecondaryMain = '#FF8E53'
 
-
 const lightPrimaryDark = "#FF2D85"
 const lightSecondaryDark = "#FF7235"
 
@@ -75,7 +74,7 @@ const mainTheme = [{
     //   display: 'inline-block',
     // },
     body1: {
-      letterSpacing: '0.07em',
+      // letterSpacing: '0.04em',
       lineHeight: '1.5'
     },
     body2: {
@@ -131,7 +130,7 @@ const mainTheme = [{
           },
         },
         outlined: {
-          padding: '6px 12px'
+          padding: '6px 12px',
         }
       },
     },
@@ -250,6 +249,46 @@ const mainTheme = [{
           },
         }
       }
+    },
+    MuiSwitch: {
+      styleOverrides: {
+        root: {
+          width: 32,
+          height: 20,
+          padding: 0,
+          display: 'flex',
+          '&:active': {
+            '& .MuiSwitch-thumb': {
+              width: 20,
+            },
+            '& .MuiSwitch-switchBase.Mui-checked': {
+              transform: 'translateX(9px)',
+            },
+          },
+          '& .MuiSwitch-switchBase': {
+            padding: 2,
+            '&.Mui-checked': {
+              transform: 'translateX(12px)',
+              color: '#fff',
+              '& + .MuiSwitch-track': {
+                opacity: 1,
+              },
+            },
+          },
+          '& .MuiSwitch-thumb': {
+            boxShadow: '0 2px 4px 0 rgb(0 35 11 / 20%)',
+            width: 16,
+            height: 16,
+            borderRadius: 12,
+            transition: 'width 200ms'
+          },
+          '& .MuiSwitch-track': {
+            borderRadius: 16,
+            opacity: 1,
+            boxSizing: 'border-box',
+          },
+        }
+      }
     }
   }
 }];
@@ -342,10 +381,9 @@ let darkTheme = createTheme({
   components: {
     MuiPaper: {
       styleOverrides: {
-        root: {
+        outlined: {
           background: 'radial-gradient(at right top, #12121B, #0A0D15)',
           border: '1px solid rgba(200, 225, 255, 0.1)',
-          borderRadius: '10px'
           // backdropFilter: "blur(20px)",
           // boxShadow: `10px 10px 20px 5px rgba(0,0,0,0.3)`,
           // '&:before': {
@@ -366,6 +404,10 @@ let darkTheme = createTheme({
           //   maskComposite: 'exclude'
           // }
         },
+        root: {
+          borderRadius: '10px',
+          backgroundImage: 'none'
+        }
       },
     },
     // MuiLink: {
@@ -425,6 +467,22 @@ let darkTheme = createTheme({
         }
       }
     },
+    MuiSwitch: {
+      styleOverrides: {
+        root: {
+          '& .MuiSwitch-switchBase': {
+            '&.Mui-checked': {
+              '& + .MuiSwitch-track': {
+                backgroundColor: lightPrimaryMain
+              },
+            },
+          },
+          '& .MuiSwitch-track': {
+            backgroundColor: 'rgba(255,255,255,.35)',
+          },
+        }
+      }
+    }
   }
 }, ...mainTheme);
 

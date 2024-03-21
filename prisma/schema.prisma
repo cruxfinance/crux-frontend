@@ -45,22 +45,28 @@ enum UserPrivilegeLevel {
 }
 
 model User {
-  id                 String              @id @default(cuid())
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
+  id                 String               @id @default(cuid())
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
   name               String?
   status             String?
-  defaultAddress     String?             @unique @map("default_address")
+  defaultAddress     String?              @unique @map("default_address")
   nonce              String?
   image              String?
-  privilegeLevel     UserPrivilegeLevel  @default(DEFAULT) @map("privilege_level")
+  email              String?
+  privilegeLevel     UserPrivilegeLevel   @default(DEFAULT) @map("privilege_level")
   accounts           Account[]
   sessions           Session[]
   wallets            Wallet[]
+  addedWallets       AddedWallet[]
   loginRequests      LoginRequest[]
   chartData          ChartData[]
   paymentInstruments PaymentInstrument[]
+  simpleTransactions SimpleTransaction[]
   subscriptions      Subscription[]
+  reports            Report[]
+  notifications      Notification[]
+  mobileVerification MobileVerification[]
 
   @@map("users")
 }
@@ -84,6 +90,18 @@ model Wallet {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
+}
+
+model AddedWallet {
+  id              String   @id @default(cuid())
+  type            String?
+  changeAddress   String   @map("change_address")
+  unusedAddresses String[] @map("unused_addresses")
+  usedAddresses   String[] @map("used_addresses")
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("added_wallets")
 }
 
 enum LoginRequestStatus {
@@ -138,6 +156,28 @@ model Transaction {
   @@map("transactions")
 }
 
+model SimpleTransaction {
+  id            String            @id @default(cuid())
+  txId          String?           @map("tx_id")
+  changeAddress String?           @map("change_address")
+  amounts       Json
+  status        TransactionStatus @default(PENDING)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  userId        String            @map("user_id")
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentFor    String            @map("payment_for") // what is the payment for? Left as string to keep it open
+  itemId        String            @map("item_id") // what is the ID of the item that was paid for. 
+
+  // example: paymentFor "report" itemId "cltoooyyb0001u0dcfao6rw7f"
+  // if we add something else to pay for later, we can use whatever name needed in paymentFor
+  // rather than using JSON, this allows us to quickly grab specific transactions from db
+  // this also allows us to list all "report" payments, 
+  // or if we want to show outstanding payments generated to pay for a specific report, we can do that too, without parsing JSON
+
+  @@map("simple_transactions")
+}
+
 enum PaymentInstrumentStatus {
   ACTIVE
   IN_USE
@@ -185,18 +225,74 @@ enum SubscriptionStatus {
 }
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @map("user_id")
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentInstrumentId  String             @map("payment_instrument_id")
-  paymentInstrument    PaymentInstrument  @relation(fields: [paymentInstrumentId], references: [id], onDelete: Cascade)
-  requiredAmountUSD    BigInt             @map("required_amount_usd") // 2 decimals
-  allowedAccess        UserPrivilegeLevel @default(BASIC) @map("allowed_access")
-  periodSeconds        Int                @map("period_seconds")
-  activationTimestamp  DateTime?          @map("activation_timestamp")
-  status               SubscriptionStatus @default(PAYMENT_PENDING)
-  createdAt            DateTime           @default(now()) @map("created_at")
-  updatedAt            DateTime           @updatedAt @map("updated_at")
+  id                  String             @id @default(cuid())
+  userId              String             @map("user_id")
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentInstrumentId String             @map("payment_instrument_id")
+  paymentInstrument   PaymentInstrument  @relation(fields: [paymentInstrumentId], references: [id], onDelete: Cascade)
+  requiredAmountUSD   BigInt             @map("required_amount_usd") // 2 decimals
+  allowedAccess       UserPrivilegeLevel @default(BASIC) @map("allowed_access")
+  periodSeconds       Int                @map("period_seconds")
+  activationTimestamp DateTime?          @map("activation_timestamp")
+  status              SubscriptionStatus @default(PAYMENT_PENDING)
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
 
+  @@unique([userId])
   @@map("subscriptions")
+}
+
+enum ReportStatus {
+  PREPAID
+  AVAILABLE
+  PAYMENT_PENDING
+}
+
+model Report {
+  id               String       @id @default(cuid())
+  reportFilename   String?      @map("report_filename")
+  koinlyGenerating Boolean      @default(false) @map("koinly_generating")
+  customName       String?      @map("custom_name")
+  dateFrom         DateTime?    @map("date_from")
+  dateTo           DateTime?    @map("date_to")
+  wallets          Json?
+  taxYear          Int?         @map("tax_year")
+  status           ReportStatus
+  userId           String       @map("user_id")
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notifications")
+}
+
+model KeyValuePair {
+  key       String    @id
+  value     String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  expiresAt DateTime? @map("expires_at")
+
+  @@map("kv")
+}
+
+model MobileVerification {
+  verificationId String   @id @default(cuid())
+  createdAt      DateTime @default(now()) @map("created_at")
+  address        String?
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mobile_verification")
 }

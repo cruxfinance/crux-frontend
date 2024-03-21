@@ -1,17 +1,17 @@
+import { UserPrivilegeLevel } from "@prisma/client";
+import { prisma } from "@server/prisma";
+import { getCookie, setCookie } from "cookies-next";
 import { Address, verify_signature } from "ergo-lib-wasm-nodejs";
+import { nanoid } from "nanoid";
 import { NextApiRequest, NextApiResponse } from "next";
 import { RequestInternal, Session, User } from "next-auth";
-import { ProviderType } from "next-auth/providers/index";
 import {
   JWTDecodeParams,
   JWTEncodeParams,
   decode,
   encode,
 } from "next-auth/jwt";
-import { getCookie, setCookie } from "cookies-next";
-import { nanoid } from "nanoid";
-import { prisma } from "@server/prisma";
-import { UserPrivilegeLevel } from "@prisma/client";
+import { ProviderType } from "next-auth/providers/index";
 
 /**
  * Module augmentation for `next-auth` types.
@@ -147,7 +147,7 @@ export const createNewUser = async (
 
     if (!result) {
       await prisma.user.delete({ where: { id: userId } });
-      throw new Error("Verification failed."); // Throw error if verification fails
+      throw new Error("Verification failed.");
     }
 
     const user = await prisma.user.update({
@@ -171,7 +171,7 @@ export const createNewUser = async (
 
     if (!user) {
       await prisma.user.delete({ where: { id: userId } });
-      throw new Error("User update failed."); // Throw error if user update fails
+      throw new Error("User update failed.");
     }
 
     const account = await prisma.account.create({

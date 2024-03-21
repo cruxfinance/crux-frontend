@@ -1,5 +1,5 @@
 import { TransactionStatus } from "@prisma/client";
-import { explorerApi, cruxApi } from "@server/services/axiosInstance";
+import { cruxApi } from "@server/services/axiosInstance";
 
 // TODO: Migrate to crux/tx_status API
 // export const checkTransactionStatus = async (transactionId: string) => {
@@ -15,7 +15,8 @@ import { explorerApi, cruxApi } from "@server/services/axiosInstance";
 //   }
 // };
 
-const TRANSACTION_CONFIRMATION_COUNT = 2; // Use atleast two confirmations to protect against forks
+// const TRANSACTION_CONFIRMATION_COUNT = 2; // Use atleast two confirmations to protect against forks
+const TRANSACTION_CONFIRMATION_COUNT = 1; // Using 1 because ergo block times typically don't cause forks
 
 export const checkTransactionStatus = async (transactionId: string) => {
   try {

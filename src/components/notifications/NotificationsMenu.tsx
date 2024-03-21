@@ -5,45 +5,23 @@ import {
   Typography,
   Box,
   Button,
-  Grid,
   Badge,
   Popover,
   MenuList,
   MenuItem,
-  ListItemIcon,
   useMediaQuery,
   Dialog,
-  Avatar,
-  Fade,
   DialogContent,
 } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
-import ErrorIcon from "@mui/icons-material/Error";
+import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-import Link from "@mui/material/Link";
-import CloseIcon from "@mui/icons-material/Close";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useScrollLock } from "@contexts/ScrollLockContext";
-
-interface IMenuItemProps {
-  icon: React.ReactElement;
-  txType: string;
-  txId: string;
-  success: string;
-  time: string;
-  unread: boolean;
-  index: number;
-}
-
-interface IImportMenuItem {
-  txType: string;
-  txId: string;
-  success: string;
-  time: string;
-  unread: boolean;
-}
+import { trpc } from "@lib/trpc";
+import { useWallet } from "@contexts/WalletContext";
+import Notification from "./Notification";
+import { Notification as NotificationType } from "@prisma/client";
 
 interface INotificationsProps {
   dialogOpen: boolean;
@@ -58,8 +36,10 @@ const NotificationsMenu: FC<INotificationsProps> = ({
   handleDialogOpen,
   handleDialogClose,
 }) => {
-  const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } = useScrollLock();
+  const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } =
+    useScrollLock();
   const theme = useTheme();
+  const { sessionStatus } = useWallet()
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
     null
@@ -75,150 +55,80 @@ const NotificationsMenu: FC<INotificationsProps> = ({
   const open = Boolean(anchorEl);
   const id = open ? "notification-menu" : undefined;
 
-  const [currentMenuItems, setCurrentMenuItems] =
-    useState<IImportMenuItem[]>(sampleMenuItems);
   const [numberUnread, setNumberUnread] = useState(0);
 
-  useEffect(() => {
-    const array = currentMenuItems.filter((item) => item.unread === true);
-    setNumberUnread(array.length);
-  }, [currentMenuItems]);
+  const notifications = trpc.notification.getNotifications.useQuery(undefined, {
+    enabled: sessionStatus === "authenticated",
+  });
+  const markAsRead = trpc.notification.markAsRead.useMutation();
+  const markAllAsRead = trpc.notification.markAllAsRead.useMutation();
 
-  const setRead = (i: number) => {
-    setCurrentMenuItems((prevArray) => {
-      const newArray = prevArray.map((item, index) => {
-        if (index === i) {
-          return {
-            ...item,
-            unread: !prevArray[index].unread,
-          };
-        }
-        return item;
-      });
-      return newArray;
-    });
+  useEffect(() => {
+    if (notifications.data) {
+      const array = notifications.data.filter((item) => item.read === false);
+      setNumberUnread(array.length);
+    }
+  }, [notifications.data]);
+
+  const setRead = async (notificationId: string) => {
+    try {
+      await markAsRead.mutateAsync({ notificationId });
+      await notifications.refetch();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const markAllRead = () => {
-    setCurrentMenuItems((prevArray) => {
-      const newArray = prevArray.map((item) => {
-        return {
-          ...item,
-          unread: false,
-        };
-      });
-      return newArray;
-    });
+  const markAllRead = async () => {
+    try {
+      await markAllAsRead.mutateAsync();
+      await notifications.refetch();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const isLg = useMediaQuery("(min-width:534px)");
-
-  const CustomMenuItem: FC<IMenuItemProps> = ({
-    icon,
-    txType,
-    txId,
-    success,
-    time,
-    unread,
-    index,
-  }) => {
-    return (
-      <MenuItem
-        onClick={() => setRead(index)}
-        sx={{
-          background: unread ? "#161a25" : "none",
-          "&:hover": {
-            background: unread ? "#212737" : "#212737",
-          },
-        }}
-      >
-        <ListItemIcon>{icon}</ListItemIcon>
-        <Grid container direction="column" sx={{ whiteSpace: "normal" }}>
-          <Grid item>
-            {txType + " "}
-            <Link
-              href={"https://explorer.ergoplatform.com/en/transactions/" + txId}
-            >
-              {txId}
-            </Link>{" "}
-            {success}
-          </Grid>
-          <Grid
-            item
-            sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}
-          >
-            {time + " ago"}
-          </Grid>
-        </Grid>
-        <ListItemIcon>
-          <FiberManualRecordIcon
-            sx={{
-              fontSize: "12px",
-              ml: "18px",
-              color: unread ? theme.palette.text.primary : "rgba(0,0,0,0)",
-            }}
-          />
-        </ListItemIcon>
-      </MenuItem>
-    );
-  };
 
   const Contents: FC = () => {
     return (
       <Box
         sx={{
           // minWidth: "420px",
-          height: '100%',
-          maxWidth: isLg ? "420px" : "534px",
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between'
+          height: "100%",
+          maxWidth: isLg ? "620px" : "534px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
         }}
       >
         <Box>
-          <Box
-            sx={{ width: "100%", px: "12px", py: "12px", display: "block" }}
-          >
+          <Box sx={{ width: "100%", px: "12px", py: "12px", display: "block" }}>
             <Typography variant="h6">Notifications</Typography>
           </Box>
-          <Box
-            sx={{
-              overflowY: "scroll",
-              display: "block",
-            }}
-          >
-            <MenuList sx={{ py: 0 }}>
-              {currentMenuItems.length > 0 ? (
-                currentMenuItems.map((item, i) => {
-                  const icon = item.success.includes("confirmed") ? (
-                    <CheckCircleIcon fontSize="small" color="success" />
-                  ) : item.success.includes("failed") ? (
-                    <CancelIcon fontSize="small" color="error" />
-                  ) : (
-                    <ErrorIcon fontSize="small" color="warning" />
-                  );
-                  if (i < 3) {
-                    return (
-                      <CustomMenuItem
-                        txType={item.txType}
-                        txId={item.txId}
-                        success={item.success}
-                        icon={icon}
-                        time={item.time}
-                        unread={item.unread}
-                        key={item.txId}
-                        index={i}
-                      />
-                    );
-                  }
-                })
-              ) : (
-                <MenuItem>
-                  <Typography sx={{ py: 1 }}>Ugh... this looks empty!</Typography>
-                </MenuItem>
-              )}
-            </MenuList>
-          </Box>
+          <MenuList sx={{ py: 0 }}>
+            {notifications.data && notifications.data.length > 0
+              ? [...notifications.data].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                .slice(0, 5) // Then, limit the notifications to the first 3 after sorting
+                .map((item) => (
+                  <Notification
+                    key={item.id}
+                    id={item.id}
+                    createdAt={item.createdAt}
+                    body={item.body}
+                    href={item.href ?? undefined}
+                    read={item.read}
+                    setRead={setRead}
+                  />
+                ))
+              : <MenuItem>
+                <Typography sx={{ py: 1 }}>
+                  No notifications at this time.
+                </Typography>
+              </MenuItem>
+            }
+          </MenuList>
+
         </Box>
         <Box
           sx={{
@@ -261,19 +171,13 @@ const NotificationsMenu: FC<INotificationsProps> = ({
           <NotificationsIcon />
         </Badge>
       </IconButton>
-      <Dialog
-        open={dialogOpen}
-        onClose={() => handleDialogClose()}
-        fullScreen
-      >
+      <Dialog open={dialogOpen} onClose={() => handleDialogClose()} fullScreen>
         <DialogContent>
           <IconButton
             sx={{
-              position: 'fixed',
-              top: '26px',
-              right: isLocked
-                ? `${scrollBarCompensation + 7}px`
-                : '7px',
+              position: "fixed",
+              top: "26px",
+              right: isLocked ? `${scrollBarCompensation + 7}px` : "7px",
             }}
             onClick={() => handleDialogClose()}
           >
@@ -330,105 +234,3 @@ const NotificationsMenu: FC<INotificationsProps> = ({
 };
 
 export default NotificationsMenu;
-
-////////////////////////////////
-// START SAMPLE DATA ///////////
-////////////////////////////////
-
-const sampleMenuItems: IImportMenuItem[] = [
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzjdfkkals1',
-  //   success: 'confirmed',
-  //   time: '8 minutes',
-  //   unread: true
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzjdfkkals2',
-  //   success: 'submitted to mempool',
-  //   time: '12 minutes',
-  //   unread: true
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'abcdalkdsjflkjasdf',
-  //   success: 'failed',
-  //   time: '2 hours',
-  //   unread: false
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzjdfkkals3',
-  //   success: 'confirmed',
-  //   time: '8 minutes',
-  //   unread: true
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzjdfkkal4s',
-  //   success: 'submitted to mempool',
-  //   time: '12 minutes',
-  //   unread: true
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'abcdalkd5sjflkjasdf',
-  //   success: 'failed',
-  //   time: '2 hours',
-  //   unread: false
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzjdfk6kals',
-  //   success: 'confirmed',
-  //   time: '8 minutes',
-  //   unread: true
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzjdfkkal7s',
-  //   success: 'submitted to mempool',
-  //   time: '12 minutes',
-  //   unread: true
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'abcdalkds8jflkjasdf',
-  //   success: 'failed',
-  //   time: '2 hours',
-  //   unread: false
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzjdfkka9ls',
-  //   success: 'confirmed',
-  //   time: '8 minutes',
-  //   unread: true
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzj99dfkkals',
-  //   success: 'submitted to mempool',
-  //   time: '12 minutes',
-  //   unread: true
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'abcdalkdsjf88lkjasdf',
-  //   success: 'failed',
-  //   time: '2 hours',
-  //   unread: false
-  // },
-  // {
-  //   txType: 'Purchase transaction',
-  //   txId: 'xyzjdfkk777als',
-  //   success: 'confirmed',
-  //   time: '8 minutes',
-  //   unread: true
-  // }
-];
-
-////////////////////////////////
-// END SAMPLE DATA /////////////
-////////////////////////////////

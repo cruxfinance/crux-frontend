@@ -13,6 +13,12 @@ import {
 import { createTRPCRouter, protectedProcedure } from "@server/trpc";
 import { z } from "zod";
 
+const allowedTokens = [
+  null, // erg
+  "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365", // CRUX
+  "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04", // SigUSD
+];
+
 export const subscriptionRouter = createTRPCRouter({
   // Find Stuff
   findPaymentInstruments: protectedProcedure.query(async ({ ctx }) => {
@@ -24,6 +30,36 @@ export const subscriptionRouter = createTRPCRouter({
   findSubscriptions: protectedProcedure.query(async ({ ctx }) => {
     const subscriptions = await findSubscriptions(ctx.session.user.id);
     return subscriptions;
+  }),
+  findOrCreateDefaultPaymentInstruments: protectedProcedure.query(
+    async ({ ctx }) => {
+      const paymentInstruments = await findPaymentInstruments(
+        ctx.session.user.id
+      );
+      if (paymentInstruments.length !== 0) {
+        return paymentInstruments;
+      }
+      await Promise.all(
+        allowedTokens.map((token) => {
+          return createPaymentInstrument({
+            userId: ctx.session.user.id,
+            tokenId: token,
+          });
+        })
+      );
+      const updatedPaymentInstruments = await findPaymentInstruments(
+        ctx.session.user.id
+      );
+      return updatedPaymentInstruments;
+    }
+  ),
+  findActiveSubscripion: protectedProcedure.query(async ({ ctx }) => {
+    const subscriptions = await findSubscriptions(ctx.session.user.id);
+    const activeSubscription =
+      [...subscriptions].sort(
+        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+      )[0] ?? null;
+    return activeSubscription;
   }),
   // Payment Instruments
   getPaymentInstrument: protectedProcedure
