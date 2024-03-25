@@ -76,8 +76,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       reducedTx: tx.rawReducedTx,
       address: address
     });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (error: unknown) {
+    // Initialize default error message
+    let errorMessage = 'An unexpected error occurred';
+    let errorStack = '';
+
+    // Check if error is an instance of Error
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorStack = error.stack || '';
+      console.error('Error:', errorMessage, 'Stack:', errorStack);
+    } else {
+      // Handle non-Error types gracefully
+      errorMessage = 'Unexpected error: ' + error;
+      console.error(errorMessage);
+    }
+
+    // Respond with error message and optionally include the stack in development mode
+    res.status(500).json({
+      error: 'Internal server error',
+      details: errorMessage,
+      ...(process.env.NODE_ENV === 'development' && { stack: errorStack }) // Include stack trace only in development environment
+    });
   }
 }
