@@ -60,7 +60,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log(tx)
 
-    await prisma.keyValuePair.update({
+    if (!tx) {
+      return res.status(500).json({
+        error: "Unable to build transaction.",
+        message: "The server could not build this transaction due to an unknown error. "
+      });
+    }
+
+    const updateKv = await prisma.keyValuePair.update({
       where: {
         key: verificationId
       },
@@ -68,6 +75,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         value: JSON.stringify({ txId: tx.id })
       }
     })
+
+    if (!updateKv) {
+      return res.status(502).json({
+        error: "Unable to complete transaction.",
+        message: "The server encountered an issue connecting to an internal service. "
+      });
+    }
 
     await deleteExpiredKeyPairs();
 
