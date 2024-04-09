@@ -266,6 +266,9 @@ export const signInCallback = async (
       expires: sessionExpiry,
       req: req,
       res: res,
+      httpOnly: true,
+      secure: process.env.AUTH_DOMAIN !== "http://localhost:3000", // support localhost
+      sameSite: true
     });
 
     return true;
