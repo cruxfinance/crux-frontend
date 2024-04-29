@@ -2,8 +2,7 @@ import { useState, FC, useEffect } from "react";
 import { Pie } from "@visx/shape";
 import { Group } from "@visx/group";
 import { Text } from "@visx/text";
-import { generateGradient } from "@lib/utils/color";
-import { currencies, Currencies } from '@lib/utils/currencies';
+import { currencies, Currencies } from "@lib/utils/currencies";
 import { IActiveToken } from "../portfolio/TokenSummary";
 import { formatNumber } from "@lib/utils/general";
 
@@ -27,35 +26,49 @@ export interface IPieChartProps {
   colors: string[];
   totalValue: number;
   activeSymbol: string | null;
-  setActiveSymbol: React.Dispatch<React.SetStateAction<string | null>>
+  setActiveSymbol: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
-export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeSymbol, setActiveSymbol, totalValue }) => {
+export const PieChart: FC<IPieChartProps> = ({
+  tokens,
+  currency,
+  colors,
+  activeSymbol,
+  setActiveSymbol,
+  totalValue,
+}) => {
   const [active, setActive] = useState<IActiveToken>(null);
-  const [tokensWithAngles, setTokensWithAngles] = useState<IAngledPieToken[]>([])
+  const [tokensWithAngles, setTokensWithAngles] = useState<IAngledPieToken[]>(
+    []
+  );
   const width = 250;
   const half = width / 2;
-  const currencySymbol = currencies[currency]
+  const currencySymbol = currencies[currency];
 
   let currentAngle = 0;
 
   useEffect(() => {
     // Calculate start and end angle for each token
-    const addAngles = tokens.map(token => {
+    const addAngles = tokens.map((token) => {
       const value = token.amount * token.value;
       const startAngle = currentAngle;
       const endAngle = currentAngle + (value / totalValue) * 2 * Math.PI;
       currentAngle = endAngle;
       return { ...token, startAngle, endAngle };
     });
-    setTokensWithAngles(addAngles)
-  }, [tokens])
+    setTokensWithAngles(addAngles);
+  }, [tokens]);
 
   useEffect(() => {
-    const activeToken = tokensWithAngles.find(token => token.name === activeSymbol);
+    const activeToken = tokensWithAngles.find(
+      (token) => token.name === activeSymbol
+    );
 
     if (activeToken && activeSymbol !== active?.name) {
-      setActive({ ...activeToken, color: colors[tokensWithAngles.indexOf(activeToken)] });
+      setActive({
+        ...activeToken,
+        color: colors[tokensWithAngles.indexOf(activeToken)],
+      });
     } else if (!activeToken && active) {
       setActive(null);
     }
@@ -81,36 +94,38 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
           >
             {(pie) => {
               // Sort arcs based on start angle
-              const sortedArcs = [...pie.arcs].sort((a, b) => a.startAngle - b.startAngle);
-
+              const sortedArcs = [...pie.arcs].sort(
+                (a, b) => a.startAngle - b.startAngle
+              );
               return sortedArcs.map((arc, i) => {
                 if (!arc) return null; // Skip rendering if arc is null
                 return (
-                  <g
-                    key={`${arc.data.name}-${i}`}
-                    onMouseEnter={() => {
-                      arc.data && setActive({ ...arc.data, color: colors[i] })
-                      setActiveSymbol(arc.data.name)
-                    }}
-                    onMouseLeave={() => {
-                      setActive(null)
-                      setActiveSymbol(null)
-                    }}
-                  >
-                    <path
-                      d={pie.path(arc)!}
-                      fill={colors[i]}
-                    />
-                  </g>
+                  <>
+                    <g
+                      key={`${arc.data.name}-${i}`}
+                      onMouseEnter={() => {
+                        arc.data &&
+                          setActive({ ...arc.data, color: colors[i] });
+                        setActiveSymbol(arc.data.name);
+                      }}
+                      onMouseLeave={() => {
+                        setActive(null);
+                        setActiveSymbol(null);
+                      }}
+                    >
+                      <path d={pie.path(arc)!} fill={colors[i]} />
+                    </g>
+                  </>
                 );
               });
             }}
           </Pie>
-
           {active ? (
             <>
               <Text textAnchor="middle" fill="#fff" fontSize={40} dy={0}>
-                {`${currencySymbol}${Math.floor(active.amount * active.value).toLocaleString()}`}
+                {`${currencySymbol}${Math.floor(
+                  active.amount * active.value
+                ).toLocaleString()}`}
               </Text>
               <Text
                 textAnchor="middle"
@@ -126,34 +141,30 @@ export const PieChart: FC<IPieChartProps> = ({ tokens, currency, colors, activeS
                 fontSize={15}
                 dy={50}
               >
-                {active.name !== 'small values' ? active.name.split(' ')[0] : active.name}
+                {active.name !== "small values"
+                  ? active.name.split(" ")[0]
+                  : active.name}
               </Text>
-              {active.name !== 'small values' && (
+              {active.name !== "small values" && (
                 <Text
                   textAnchor="middle"
                   fill={active.color}
                   fontSize={15}
                   dy={70}
                 >
-                  {active.name.split(' ').slice(1).join(' ')}
+                  {active.name.split(" ").slice(1).join(" ")}
                 </Text>
               )}
             </>
           ) : (
             <>
               <Text textAnchor="middle" fill="#fff" fontSize={40} dy={10}>
-                {`${currencySymbol}${Math.floor(
-                  tokens.reduce((acc, coin) => acc + coin.amount * coin.value, 0)
-                ).toLocaleString()}`}
+                {`${currencySymbol}${Math.floor(totalValue).toLocaleString()}`}
               </Text>
-
-              {/* <Text textAnchor="middle" fill="#aaa" fontSize={20} dy={30}>
-                {`${tokens.length} Assets`}
-              </Text> */}
             </>
           )}
         </Group>
       </svg>
     </main>
   );
-}
+};
