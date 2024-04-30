@@ -127,7 +127,7 @@ const TokenSummary: FC<ITokenSummary> = ({
         <Grid>
           <Box ref={pieChartRef} sx={{ textAlign: "center" }}>
             <PieChart
-              totalValue={totalValue}
+              totalValue={currency === "ERG" ? totalValue : totalValue * exchangeRate}
               tokens={
                 currency === "ERG" ? reducedTokensList : reducedTokensListUSD
               }
