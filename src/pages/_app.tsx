@@ -20,7 +20,7 @@ import AlertComponent from "@components/Alert";
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
   const router = useRouter();
-  const isNoLayoutPage = router.pathname === "/ergopad-chart";
+  const isNoLayoutPage = router.pathname === "/ergopad-chart" || router.pathname.includes('embedded-charts');
 
   return (
     <>
