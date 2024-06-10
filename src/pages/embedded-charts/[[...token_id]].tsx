@@ -63,9 +63,7 @@ const TokenInfo: FC = () => {
   return (
     <Box>
       <Box sx={{ mb: 1 }}>
-        {defaultWidgetProps.symbol &&
-          <TVChartContainer defaultWidgetProps={defaultWidgetProps} currency={'ERG'} height="calc(100vh - 50px)" />
-        }
+        <TVChartContainer defaultWidgetProps={defaultWidgetProps} currency={'ERG'} height="calc(100vh - 50px)" />
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
         <Typography sx={{
