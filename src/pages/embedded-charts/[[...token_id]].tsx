@@ -8,10 +8,11 @@ import {
 } from "@lib/charts/charting_library";
 import { TVChartContainer } from '@components/charts/AdvancedChart';
 import Logo from '@components/svgs/Logo';
-import router from 'next/router';
+import { useRouter } from 'next/router';
 import { checkLocalIcon } from '@lib/utils/icons';
 
 const TokenInfo: FC = () => {
+  const router = useRouter();
   const { token_id } = router.query
   const tokenId = token_id?.toString()
 
