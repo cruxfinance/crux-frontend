@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 
 const BouncingDotsLoader = (props: any) => {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', minHeight: '24px', my: 3 }}>
       <Box sx={dotStyles(0)}></Box>
       <Box sx={dotStyles(0.2)}></Box>
       <Box sx={dotStyles(0.4)}></Box>
