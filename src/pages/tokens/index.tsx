@@ -10,7 +10,10 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Avatar,
-  CircularProgress
+  CircularProgress,
+  IconButton,
+  InputBase,
+  TextField
 } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2';
 import TokenSort from '@components/tokens/TokenSort'
@@ -22,6 +25,9 @@ import { currencies, Currencies } from '@lib/utils/currencies';
 import { useInView } from "react-intersection-observer";
 import BouncingDotsLoader from '@components/DotLoader';
 import { checkLocalIcon, getIconUrlFromServer } from '@lib/utils/icons';
+import SearchIcon from '@mui/icons-material/Search';
+import YoutubeSearchedForIcon from '@mui/icons-material/YoutubeSearchedFor';
+
 
 const Tokens: FC = () => {
   const theme = useTheme()
@@ -42,6 +48,7 @@ const Tokens: FC = () => {
   const [view, inView] = useInView({
     threshold: 0,
   });
+  const [searchString, setSearchString] = useState('')
 
   const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
     if (value !== null) {
@@ -60,19 +67,22 @@ const Tokens: FC = () => {
     filters: IFilters,
     sorting: ISorting,
     queries: IQueries,
-    timeframe: ITimeframe
+    timeframe: ITimeframe,
+    inputtedSearchString: string
   ) {
     setLoading(true);
     try {
       setError(undefined)
+
       const endpoint = `${process.env.CRUX_API}/spectrum/token_list`;
       const payload = {
         ...filters,
         ...sorting,
         ...queries,
-        ...timeframe
+        ...timeframe,
+        "name_filter": inputtedSearchString
       };
-      // console.log(JSON.stringify(payload));
+      // console.log(payload);
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -84,24 +94,26 @@ const Tokens: FC = () => {
       const data: IApiTokenData[] = await response.json();
       // console.log(data);
       if (data.length === 0) setNoMore(true)
-      else setNoMore(false)
-      const awaitedData = await Promise.all(data.map((item) => {
-        const tokenData = mapApiDataToTokenData(item)
-        return tokenData
-      }))
-      if (queries.offset === 0) {
-        setFilteredTokens(awaitedData)
-        setErgExchange(data[0].erg_price_usd)
-      }
       else {
-        setFilteredTokens(prev => [...prev, ...awaitedData])
-      }
-      setQueries(prevQueries => {
-        return {
-          ...prevQueries,
-          offset: prevQueries.offset + 20
+        setNoMore(false)
+        const awaitedData = await Promise.all(data.map((item) => {
+          const tokenData = mapApiDataToTokenData(item)
+          return tokenData
+        }))
+        if (queries.offset === 0) {
+          setFilteredTokens(awaitedData)
+          setErgExchange(data[0].erg_price_usd)
         }
-      })
+        else {
+          setFilteredTokens(prev => [...prev, ...awaitedData])
+        }
+        setQueries(prevQueries => {
+          return {
+            ...prevQueries,
+            offset: prevQueries.offset + 20
+          }
+        })
+      }
       // setInitialLoading(false)
     } catch (error) {
       console.error('Error fetching token data:', error);
@@ -109,10 +121,9 @@ const Tokens: FC = () => {
     } finally {
       setLoading(false);
       setInitialLoading(false)
+      setSearchLoading(false)
     }
   }
-
-
 
   const mapApiDataToTokenData = async ({
     name,
@@ -168,9 +179,9 @@ const Tokens: FC = () => {
         }
       })
       setFilteredTokens([])
-      await fetchTokenData(filters, sorting, { ...queries, offset: 0 }, timeframe);
+      await fetchTokenData(filters, sorting, { ...queries, offset: 0 }, timeframe, searchString);
     }
-    else fetchTokenData(filters, sorting, queries, timeframe);
+    else fetchTokenData(filters, sorting, queries, timeframe, searchString);
   };
 
   // // page-load
@@ -220,15 +231,61 @@ const Tokens: FC = () => {
     )
   }
 
+  const handleSearchStringChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const newString = e.target.value
+    setSearchString(newString)
+    // console.log(searchString)
+  }
+
+  const handleEnterKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearchSubmit();
+    }
+  };
+
+  const [triggerSearchFetch, setTriggerSearchFetch] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const handleSearchSubmit = () => {
+    setSearchLoading(true)
+    setQueries(prevQueries => {
+      return {
+        ...prevQueries,
+        offset: 0
+      }
+    })
+    setTriggerSearchFetch(true)
+  }
+
+  useEffect(() => {
+    if (triggerSearchFetch) {
+      fetchData(true);
+      setTriggerSearchFetch(false)
+    }
+  }, [triggerSearchFetch])
+
+  const CurrencyToggleButton: FC = () => {
+    return (
+      <ToggleButtonGroup
+        value={currency}
+        exclusive
+        onChange={handleCurrencyChange}
+        size="small"
+      >
+        <ToggleButton value="USD">USD</ToggleButton>
+        <ToggleButton value="ERG">Erg</ToggleButton>
+      </ToggleButtonGroup>
+    )
+  }
+
   return (
     <Container>
-      <Box sx={{ mb: 2, display: 'flex', flexDirection: 'row' }}>
+      <Box sx={{ mb: 2, display: 'flex', flexDirection: upLg ? 'row' : 'column', gap: 2 }}>
         <Box>
-          <Grid container alignItems="center" spacing={2}>
-            <Grid>
+          <Grid container alignItems="center" spacing={2} justifyContent="space-between">
+            <Grid xs="auto">
               <TokenSort sorting={sorting} setSorting={setSorting} />
             </Grid>
-            <Grid>
+            <Grid xs="auto">
               <ToggleButtonGroup
                 exclusive
                 size="small"
@@ -249,8 +306,7 @@ const Tokens: FC = () => {
                 </ToggleButton>
               </ToggleButtonGroup>
             </Grid>
-
-            <Grid>
+            <Grid xs="auto">
               <Button
                 variant="contained"
                 onClick={() => setFilterModalOpen(!filterModalOpen)}
@@ -259,18 +315,37 @@ const Tokens: FC = () => {
                 Filters {numberFilters > 0 && '(' + numberFilters + ')'}
               </Button>
             </Grid>
+            <Grid sx={{ display: upLg ? 'none' : 'flex' }} xs="auto">
+              <CurrencyToggleButton />
+            </Grid>
           </Grid>
         </Box>
-        <Box sx={{ flexGrow: 1, textAlign: 'right' }}>
-          <ToggleButtonGroup
-            value={currency}
-            exclusive
-            onChange={handleCurrencyChange}
-            size="small"
-          >
-            <ToggleButton value="USD">USD</ToggleButton>
-            <ToggleButton value="ERG">Erg</ToggleButton>
-          </ToggleButtonGroup>
+        <Box sx={{ flexGrow: 1 }}>
+          <TextField
+            id="search-field"
+            variant="filled"
+            value={searchString}
+            onChange={handleSearchStringChange}
+            onKeyDown={handleEnterKeyPress}
+            fullWidth
+            placeholder="Search"
+            disabled={searchLoading}
+            sx={{
+              '& .Mui-disabled': {
+                borderColor: theme.palette.text.disabled
+              }
+            }}
+            InputProps={{
+              endAdornment: (
+                <IconButton onClick={handleSearchSubmit} aria-label="search" edge="end" sx={{ borderRadius: 0 }}>
+                  {searchLoading ? <YoutubeSearchedForIcon /> : <SearchIcon />}
+                </IconButton>
+              )
+            }}
+          />
+        </Box>
+        <Box sx={{ textAlign: 'right', display: upLg ? 'flex' : 'none' }}>
+          <CurrencyToggleButton />
         </Box>
       </Box>
 
@@ -346,20 +421,22 @@ const Tokens: FC = () => {
                       </Box>
                     </Box>
                   ) : error ? (
-                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                      <Typography sx={{ mb: 2 }}>
-                        {error}
-                      </Typography>
-                      <Button variant="outlined" onClick={() => window.location.reload()}>
-                        Reload the page
-                      </Button>
+                    <Box sx={{ position: 'relative', minHeight: '300px' }}>
+                      <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <Typography sx={{ mb: 2 }}>
+                          {error}
+                        </Typography>
+                        <Button variant="outlined" onClick={() => window.location.reload()}>
+                          Reload the page
+                        </Button>
+                      </Box>
                     </Box>
                   )
                     : (
                       <>
                         {filteredTokens.map((token, i) => {
                           return (
-                            <Box key={token.name}
+                            <Box key={`${token.tokenId}-${i}`}
                               sx={{
                                 py: 1,
                                 background: i % 2 ? '' : theme.palette.background.paper,
@@ -480,31 +557,35 @@ const Tokens: FC = () => {
               }}>
                 {loading && initialLoading
                   ? (
-                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                      <Box sx={{ mb: 2 }}>
-                        <CircularProgress size={60} />
+                    <Box sx={{ position: 'relative', minHeight: '300px' }}>
+                      <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <Box sx={{ mb: 2 }}>
+                          <CircularProgress size={60} />
+                        </Box>
+                        <Typography>
+                          Loading assets...
+                        </Typography>
                       </Box>
-                      <Typography>
-                        Loading assets...
-                      </Typography>
                     </Box>
                   ) :
 
                   error ? (
-                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                      <Typography sx={{ mb: 2 }}>
-                        {error}
-                      </Typography>
-                      <Button variant="outlined" onClick={() => window.location.reload()}>
-                        Reload the page
-                      </Button>
+                    <Box sx={{ position: 'relative', minHeight: '300px' }}>
+                      <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <Typography sx={{ mb: 2 }}>
+                          {error}
+                        </Typography>
+                        <Button variant="outlined" onClick={() => window.location.reload()}>
+                          Reload the page
+                        </Button>
+                      </Box>
                     </Box>
                   )
                     : (
                       <>
                         {filteredTokens.map((token, i) => {
                           return (
-                            <Box key={token.name}
+                            <Box key={`${token.tokenId}-${i}`}
                               sx={{
                                 py: 1,
                                 background: i % 2 ? '' : theme.palette.background.paper,
