@@ -258,20 +258,34 @@ const Tokens: FC = () => {
 
   useEffect(() => {
     if (triggerSearchFetch) {
-      fetchData();
+      fetchData(true);
       setTriggerSearchFetch(false)
     }
   }, [triggerSearchFetch])
 
+  const CurrencyToggleButton: FC = () => {
+    return (
+      <ToggleButtonGroup
+        value={currency}
+        exclusive
+        onChange={handleCurrencyChange}
+        size="small"
+      >
+        <ToggleButton value="USD">USD</ToggleButton>
+        <ToggleButton value="ERG">Erg</ToggleButton>
+      </ToggleButtonGroup>
+    )
+  }
+
   return (
     <Container>
-      <Box sx={{ mb: 2, display: 'flex', flexDirection: 'row', gap: 2 }}>
+      <Box sx={{ mb: 2, display: 'flex', flexDirection: upLg ? 'row' : 'column', gap: 2 }}>
         <Box>
-          <Grid container alignItems="center" spacing={2}>
-            <Grid>
+          <Grid container alignItems="center" spacing={2} justifyContent="space-between">
+            <Grid xs="auto">
               <TokenSort sorting={sorting} setSorting={setSorting} />
             </Grid>
-            <Grid>
+            <Grid xs="auto">
               <ToggleButtonGroup
                 exclusive
                 size="small"
@@ -292,8 +306,7 @@ const Tokens: FC = () => {
                 </ToggleButton>
               </ToggleButtonGroup>
             </Grid>
-
-            <Grid>
+            <Grid xs="auto">
               <Button
                 variant="contained"
                 onClick={() => setFilterModalOpen(!filterModalOpen)}
@@ -301,6 +314,9 @@ const Tokens: FC = () => {
               >
                 Filters {numberFilters > 0 && '(' + numberFilters + ')'}
               </Button>
+            </Grid>
+            <Grid sx={{ display: upLg ? 'none' : 'flex' }} xs="auto">
+              <CurrencyToggleButton />
             </Grid>
           </Grid>
         </Box>
@@ -328,16 +344,8 @@ const Tokens: FC = () => {
             }}
           />
         </Box>
-        <Box sx={{ textAlign: 'right' }}>
-          <ToggleButtonGroup
-            value={currency}
-            exclusive
-            onChange={handleCurrencyChange}
-            size="small"
-          >
-            <ToggleButton value="USD">USD</ToggleButton>
-            <ToggleButton value="ERG">Erg</ToggleButton>
-          </ToggleButtonGroup>
+        <Box sx={{ textAlign: 'right', display: upLg ? 'flex' : 'none' }}>
+          <CurrencyToggleButton />
         </Box>
       </Box>
 
@@ -549,24 +557,28 @@ const Tokens: FC = () => {
               }}>
                 {loading && initialLoading
                   ? (
-                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                      <Box sx={{ mb: 2 }}>
-                        <CircularProgress size={60} />
+                    <Box sx={{ position: 'relative', minHeight: '300px' }}>
+                      <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <Box sx={{ mb: 2 }}>
+                          <CircularProgress size={60} />
+                        </Box>
+                        <Typography>
+                          Loading assets...
+                        </Typography>
                       </Box>
-                      <Typography>
-                        Loading assets...
-                      </Typography>
                     </Box>
                   ) :
 
                   error ? (
-                    <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                      <Typography sx={{ mb: 2 }}>
-                        {error}
-                      </Typography>
-                      <Button variant="outlined" onClick={() => window.location.reload()}>
-                        Reload the page
-                      </Button>
+                    <Box sx={{ position: 'relative', minHeight: '300px' }}>
+                      <Box sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <Typography sx={{ mb: 2 }}>
+                          {error}
+                        </Typography>
+                        <Button variant="outlined" onClick={() => window.location.reload()}>
+                          Reload the page
+                        </Button>
+                      </Box>
                     </Box>
                   )
                     : (
