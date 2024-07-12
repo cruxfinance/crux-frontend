@@ -7,6 +7,8 @@ import ManageSubscription from "@components/user/manage/ManageSubscription";
 import { findSubscriptions } from "@server/services/subscription/subscription";
 import { useState } from "react";
 import { trpc } from "@lib/trpc";
+import ReviseSubscription from "@components/user/manage/ReviseSubscription";
+import { PaymentInstrument } from "@components/user/manage/ManagePaymentInstruments";
 
 export type Subscription = ArrayElement<
   Awaited<ReturnType<typeof findSubscriptions>>
@@ -14,13 +16,26 @@ export type Subscription = ArrayElement<
 
 const Subscriptions: NextPage = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [paymentInstruments, setPaymentInstruments] = useState<
+    PaymentInstrument[]
+  >([]);
+  const [loadingPaymentInstruments, setLoadingPaymentInstruments] = useState(true);
+
   trpc.subscription.findActiveSubscripion.useQuery(undefined, {
     onSuccess: (data) => {
       setSubscription(data);
-      setLoading(false);
+      setLoadingSubscription(false);
     },
   });
+  trpc.subscription.findPaymentInstruments.useQuery(undefined, {
+    onSuccess: (data) => {
+      setPaymentInstruments(data);
+      setLoadingPaymentInstruments(false);
+    },
+  });
+
+  const loading = loadingPaymentInstruments || loadingSubscription
 
   return (
     <SideMenu title="Settings" navItems={userNavItems}>
@@ -33,6 +48,11 @@ const Subscriptions: NextPage = () => {
             <CircularProgress />
           </Box>
         </Paper>
+      )}
+      {!loading && subscription !== null && (
+        <Box sx={{ mb: 2 }}>
+          <ReviseSubscription subscription={subscription} paymentInstruments={paymentInstruments} />
+        </Box>
       )}
       {!loading && subscription !== null && (
         <Box sx={{ mb: 2 }}>

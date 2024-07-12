@@ -1,8 +1,9 @@
+import { prisma } from "@server/prisma";
 import {
-  addPaymentInstrumentBalance,
+  createOrUpdateTransaction,
   createPaymentInstrument,
   findPaymentInstruments,
-  getPaymentInstrument,
+  getPaymentInstrument
 } from "@server/services/subscription/paymentInstrument";
 import {
   createSubscription,
@@ -96,6 +97,7 @@ export const subscriptionRouter = createTRPCRouter({
         paymentInstrumentId: z.string(),
         address: z.string(),
         amount: z.number(),
+        txId: z.string()
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -107,12 +109,26 @@ export const subscriptionRouter = createTRPCRouter({
           `User ${userId} not authorized to access PaymentInstrument ${paymentInstrumentId}.`
         );
       }
-      const result = await addPaymentInstrumentBalance({
-        paymentInstrumentId: paymentInstrumentId,
-        address: input.address,
-        amount: input.amount,
+      const updatedPaymentInstrument = await prisma.paymentInstrument.update({
+        where: { id: input.paymentInstrumentId },
+        data: {
+          ...paymentInstrument,
+          transactions: undefined,
+          charges: undefined
+        },
       });
-      return result;
+      if (!updatedPaymentInstrument) {
+        return { success: false, message: 'Unable to update payment instrument' }
+      }
+      const transaction = await createOrUpdateTransaction(
+        input.txId,
+        input.paymentInstrumentId,
+        input.amount
+      );
+      if (!transaction) {
+        return { success: false, message: 'Unable to update transaction' }
+      }
+      return { success: true };
     }),
   // Subscriptions
   getSubscription: protectedProcedure

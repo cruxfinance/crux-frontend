@@ -202,7 +202,7 @@ interface AddPaymentInstrumentBalance {
   amount: number;
 }
 
-const createOrUpdateTransaction = async (
+export const createOrUpdateTransaction = async (
   id: string,
   paymentInstrumentId: string,
   amount: number

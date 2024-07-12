@@ -51,6 +51,7 @@ const TokenFilterOptions: FC<ITokenFilterProps> = ({ filters, setFilters, open, 
       }, {} as Record<string, number>)
     setFilters(newFilters)
     setOpen(false)
+    localStorage.setItem('tokenFilters', JSON.stringify(newFilters));
   }
 
   const handleReset = () => {

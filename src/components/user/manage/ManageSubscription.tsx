@@ -13,6 +13,7 @@ import { Subscription } from "@pages/user/subscription";
 import { SubscriptionStatus } from "@prisma/client";
 import { useRouter } from "next/router";
 import { FC, Fragment, useState } from "react";
+import ReviseSubscription from "./ReviseSubscription";
 
 interface ManageSubscriptionProps {
   subscription: Subscription | null;
@@ -69,7 +70,7 @@ const ManageSubscription: FC<ManageSubscriptionProps> = ({ subscription }) => {
         sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}
       >
         <Typography variant="h6" sx={{ mb: 2 }}>
-          Existing Subscriptions
+          Current Subscription
         </Typography>
         <Paper sx={{ p: 3, width: "100%", position: "relative" }}>
           {subscription === null &&
@@ -119,13 +120,13 @@ const ManageSubscription: FC<ManageSubscriptionProps> = ({ subscription }) => {
                   >
                     Activate or Renew
                   </LoadingButton>
-                  <Button
+                  {/* <Button
                     sx={{ mt: 2 }}
                     variant="outlined"
                     onClick={() => router.push("/user/subscription/revise")}
                   >
                     Revise Subscription
-                  </Button>
+                  </Button> */}
                 </Box>
               </Box>
             </>

@@ -36,15 +36,11 @@ import Link from "@components/Link";
 import { getErgoWalletContext } from "@contexts/WalletContext";
 import ErgopayQrCode from "../ErgopayQrCode";
 import { allowedTokens, getIcon, ERG_TOKEN_ID_MAP } from "@lib/configs/paymentTokens";
+import PayPaymentInstrumentDialog from "@components/payments/PayPaymentInstrumentDialog";
 
 export type PaymentInstrument = ArrayElement<
   Awaited<ReturnType<typeof findPaymentInstruments>>
 >;
-
-interface AddBalanceFormProps {
-  address: string;
-  amount: string;
-}
 
 const ManagePaymentInstruments = () => {
   const session = useSession();
@@ -54,22 +50,20 @@ const ManagePaymentInstruments = () => {
     PaymentInstrument[]
   >([]);
   const [tokenList, setTokenList] = useState(allowedTokens);
-  const [selectedInstrument, setSelectedInstrument] = useState<string | null>(
-    null
-  );
-  const [addBalance, setAddBalance] = useState<AddBalanceFormProps>({
-    address: session.data?.user.address ?? "",
-    amount: "0",
-  });
   const [openDialog, setOpenDialog] = useState(false);
-  const [ergopayUrl, setErgopayUrl] = useState<string | null>(null);
-  const [openPopover, setOpenPopover] = useState(false);
-  const [popoverProps, setPopoverProps] = useState({
-    transactionId: "",
-    error: "",
-  });
   const [loading, setLoading] = useState(true);
   const [dialogLoading, setDialogLoading] = useState(false);
+  const [selectedPaymentInstrument, setSelectedPaymentInstrument] = useState<PaymentInstrument | undefined>(undefined);
+  const [selectedTokenDetails, setSelectedTokenDetails] = useState<AllowedToken | undefined>(undefined)
+  const [order, setOrder] = useState<TransferAmount[]>([])
+
+  const getTokenDetails = (tokenId: string | null) => {
+    return tokenList.filter(
+      (token) =>
+        token.id === tokenId ||
+        (token.id === ERG_TOKEN_ID_MAP && tokenId === null)
+    )[0];
+  };
 
   const query =
     trpc.subscription.findOrCreateDefaultPaymentInstruments.useQuery(
@@ -85,86 +79,70 @@ const ManagePaymentInstruments = () => {
     trpc.subscription.addPaymentInstrumentBalance.useMutation();
 
   const handleOpen = (paymentInstrumentId: string) => {
-    setSelectedInstrument(paymentInstrumentId);
+    const newSelectedInstrument = paymentInstruments.find(instrument => instrument.id === paymentInstrumentId);
+    if (newSelectedInstrument) {
+      setSelectedTokenDetails(getTokenDetails(newSelectedInstrument.tokenId))
+      setSelectedPaymentInstrument(newSelectedInstrument)
+    }
     setOpenDialog(true);
   };
 
   const handleClose = () => {
-    setAddBalance({
-      address: session.data?.user.address ?? "",
-      amount: "0",
-    });
-    setSelectedInstrument(null);
     setOpenDialog(false);
   };
 
-  const handleOpenPopover = (transactionId: string) => {
-    setPopoverProps({ transactionId: transactionId, error: "" });
-    setOpenPopover(true);
-  };
+  // const submitTransaction = async () => {
+  //   if (Number(addBalance.amount) <= 0) {
+  //     return;
+  //   }
+  //   setDialogLoading(true);
+  //   try {
+  //     const paymentInstrument = paymentInstruments.filter(
+  //       (paymentInstrument) => paymentInstrument.id === selectedInstrument
+  //     )[0];
+  //     const tokenDetails = getTokenDetails(paymentInstrument.tokenId);
+  //     const addBalanceResponse = await addBalanceMutation.mutateAsync({
+  //       address: addBalance.address,
+  //       paymentInstrumentId: paymentInstrument.id,
+  //       amount: Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals),
+  //     });
+  //     const unsignedTransaction =
+  //       addBalanceResponse.unsignedTransaction.unsignedTransaction;
+  //     const wallet = await getErgoWalletContext();
+  //     const signedTransaction = await wallet.sign_tx(unsignedTransaction);
+  //     const tx = await wallet.submit_tx(signedTransaction);
+  //     handleOpenPopover(tx);
+  //     await query.refetch();
+  //     handleClose();
+  //   } catch (e: any) {
+  //     handleOpenPopoverError(e?.info ?? e.toString());
+  //   }
+  //   setDialogLoading(false);
+  // };
 
-  const handleOpenPopoverError = (error: string) => {
-    setPopoverProps({ transactionId: "", error: error });
-    setOpenPopover(true);
-  };
-
-  const handleClosePopover = () => {
-    setPopoverProps({ transactionId: "", error: "" });
-    setOpenPopover(false);
-  };
-
-  const submitTransaction = async () => {
-    if (Number(addBalance.amount) <= 0) {
-      return;
-    }
-    setDialogLoading(true);
-    try {
-      const paymentInstrument = paymentInstruments.filter(
-        (paymentInstrument) => paymentInstrument.id === selectedInstrument
-      )[0];
-      const tokenDetails = getTokenDetails(paymentInstrument.tokenId);
-      const addBalanceResponse = await addBalanceMutation.mutateAsync({
-        address: addBalance.address,
-        paymentInstrumentId: paymentInstrument.id,
-        amount: Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals),
-      });
-      const unsignedTransaction =
-        addBalanceResponse.unsignedTransaction.unsignedTransaction;
-      const wallet = await getErgoWalletContext();
-      const signedTransaction = await wallet.sign_tx(unsignedTransaction);
-      const tx = await wallet.submit_tx(signedTransaction);
-      handleOpenPopover(tx);
-      await query.refetch();
-      handleClose();
-    } catch (e: any) {
-      handleOpenPopoverError(e?.info ?? e.toString());
-    }
-    setDialogLoading(false);
-  };
-
-  const submitErgoPayRequest = async () => {
-    if (Number(addBalance.amount) <= 0) {
-      return;
-    }
-    setDialogLoading(true);
-    try {
-      const paymentInstrument = paymentInstruments.filter(
-        (paymentInstrument) => paymentInstrument.id === selectedInstrument
-      )[0];
-      const tokenDetails = getTokenDetails(paymentInstrument.tokenId);
-      const addBalanceResponse = await addBalanceMutation.mutateAsync({
-        address: addBalance.address,
-        paymentInstrumentId: paymentInstrument.id,
-        amount: Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals),
-      });
-      const reducedTransactionUrl =
-        addBalanceResponse.unsignedTransaction.reducedTransaction;
-      setErgopayUrl(reducedTransactionUrl);
-    } catch (e: any) {
-      handleOpenPopoverError(e.toString());
-    }
-    setDialogLoading(false);
-  };
+  // const submitErgoPayRequest = async () => {
+  //   if (Number(addBalance.amount) <= 0) {
+  //     return;
+  //   }
+  //   setDialogLoading(true);
+  //   try {
+  //     const paymentInstrument = paymentInstruments.filter(
+  //       (paymentInstrument) => paymentInstrument.id === selectedInstrument
+  //     )[0];
+  //     const tokenDetails = getTokenDetails(paymentInstrument.tokenId);
+  //     const addBalanceResponse = await addBalanceMutation.mutateAsync({
+  //       address: addBalance.address,
+  //       paymentInstrumentId: paymentInstrument.id,
+  //       amount: Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals),
+  //     });
+  //     const reducedTransactionUrl =
+  //       addBalanceResponse.unsignedTransaction.reducedTransaction;
+  //     setErgopayUrl(reducedTransactionUrl);
+  //   } catch (e: any) {
+  //     handleOpenPopoverError(e.toString());
+  //   }
+  //   setDialogLoading(false);
+  // };
 
   useEffect(() => {
     const resolveIcons = async () => {
@@ -186,14 +164,6 @@ const ManagePaymentInstruments = () => {
     resolveIcons();
   }, []);
 
-  const getTokenDetails = (tokenId: string | null) => {
-    return tokenList.filter(
-      (token) =>
-        token.id === tokenId ||
-        (token.id === ERG_TOKEN_ID_MAP && tokenId === null)
-    )[0];
-  };
-
   return (
     <Fragment>
       <Paper
@@ -201,7 +171,10 @@ const ManagePaymentInstruments = () => {
         sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}
       >
         <Typography variant="h6" sx={{ mb: 2 }}>
-          View and Manage existing Payment Instruments
+          View and Manage existing balances
+        </Typography>
+        <Typography sx={{ fontSize: '0.9rem!important', mb: 2 }}>
+          You need an existing balance to maintain a subscription. A subscription can be attached to only one currency at a time. When the balance runs out, your subscription will be suspended until you load it again.
         </Typography>
         <Box>
           {loading && (
@@ -259,7 +232,7 @@ const ManagePaymentInstruments = () => {
                   </Typography>
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ mb: 2 }}>
-                    <Typography>Id: {paymentInstrument.id}</Typography>
+                    {/* <Typography>Id: {paymentInstrument.id}</Typography>
                     {desktop && (
                       <Typography>
                         TokenId: {paymentInstrument.tokenId ?? ERG_TOKEN_ID_MAP}
@@ -271,7 +244,7 @@ const ManagePaymentInstruments = () => {
                     </Typography>
                     <Typography>
                       UpdatedAt: {paymentInstrument.updatedAt.toUTCString()}
-                    </Typography>
+                    </Typography> */}
                     <Button
                       sx={{ mt: 1 }}
                       variant="outlined"
@@ -286,7 +259,7 @@ const ManagePaymentInstruments = () => {
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ mb: 2 }}>
                     {paymentInstrument.charges.length === 0 &&
-                      "There are no charges for this Payment Instrument."}
+                      "There are no charges for this currency."}
                     {paymentInstrument.charges.length !== 0 && (
                       <TableContainer component={Paper}>
                         <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -338,7 +311,7 @@ const ManagePaymentInstruments = () => {
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ mb: 2 }}>
                     {paymentInstrument.transactions.length === 0 &&
-                      "There are no transactions for this Payment Instrument."}
+                      "There are no transactions for this currency."}
                     {paymentInstrument.transactions.length !== 0 && (
                       <TableContainer component={Paper}>
                         <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -406,140 +379,14 @@ const ManagePaymentInstruments = () => {
           ))}
         </Box>
       </Paper>
-      <Dialog
-        open={openDialog}
-        onClose={handleClose}
-        aria-labelledby="payment-instrument-add-balance-dialog-title"
-        aria-describedby="payment-instrument-add-balance-dialog-description"
-      >
-        <DialogTitle id="payment-instrument-add-balance-dialog-title">
-          Add Balance to Payment Instrument
-        </DialogTitle>
-        {ergopayUrl ? (
-          <DialogContent>
-            <ErgopayQrCode url={ergopayUrl} />
-          </DialogContent>
-        ) : (
-          <DialogContent>
-            <DialogContentText id="payment-instrument-add-balance-dialog-description">
-              Add the required amount to your Payment Instrument for
-              subscriptions. The Payment Instrument will be auto charged to
-              renew subscriptions. Balance will be updated after 2 confirmations
-              on chain. Note that balance added to a Payment Instrument is
-              non-refundable.
-              <TextField
-                sx={{ mt: 2 }}
-                id="payment-instrument-add-balance-address"
-                label="Address"
-                value={addBalance.address}
-                onChange={(e) =>
-                  setAddBalance({
-                    ...addBalance,
-                    address: e.target.value,
-                  })
-                }
-                fullWidth
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-              <TextField
-                sx={{ mt: 2 }}
-                id="payment-instrument-add-balance-amount"
-                label="Amount"
-                type="number"
-                value={addBalance.amount}
-                onChange={(e) =>
-                  setAddBalance({
-                    ...addBalance,
-                    amount: e.target.value,
-                  })
-                }
-                fullWidth
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </DialogContentText>
-          </DialogContent>
-        )}
-        {ergopayUrl ? (
-          <DialogActions sx={{ pb: 2 }}>
-            <Button onClick={handleClose}>Close</Button>
-          </DialogActions>
-        ) : (
-          <DialogActions sx={{ pb: 2 }}>
-            <LoadingButton
-              onClick={submitErgoPayRequest}
-              autoFocus
-              loading={dialogLoading}
-            >
-              Pay with Mobile
-            </LoadingButton>
-            <LoadingButton
-              onClick={submitTransaction}
-              autoFocus
-              loading={dialogLoading}
-            >
-              Pay with Nautilus
-            </LoadingButton>
-            <Button onClick={handleClose}>Cancel</Button>
-          </DialogActions>
-        )}
-      </Dialog>
-      <Popover
-        id="payment-instrument-add-balance-amount-popover"
-        open={openPopover}
-        onClose={handleClosePopover}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        sx={{
-          maxWidth: "500px",
-          mt: "10px",
-          "& .MuiPopover-paper": {
-            overflow: "hidden",
-            background: theme.palette.background.paper,
-          },
-        }}
-      >
-        <Box
-          sx={{
-            minWidth: "420px",
-            minHeight: "80px",
-            p: 2,
-          }}
-        >
-          {popoverProps.transactionId && (
-            <>
-              <Typography>Transaction Submitted.</Typography>
-              <Typography sx={{ pt: 1 }}>
-                <Link
-                  href={`https://explorer.ergoplatform.com/en/transactions/${popoverProps.transactionId}`}
-                  sx={{
-                    color: "#7bd1be",
-                    cursor: "pointer",
-                    "&:hover": {
-                      textDecoration: "underline",
-                    },
-                  }}
-                >
-                  {popoverProps.transactionId}
-                </Link>
-              </Typography>
-            </>
-          )}
-          {popoverProps.error && (
-            <>
-              <Typography sx={{ color: theme.palette.primary.main }}>
-                ERROR
-              </Typography>
-              <Typography sx={{ pt: 1 }}>{popoverProps.error}</Typography>
-            </>
-          )}
-        </Box>
-      </Popover>
+      {selectedPaymentInstrument && selectedTokenDetails && (
+        <PayPaymentInstrumentDialog
+          open={openDialog}
+          setOpen={setOpenDialog}
+          paymentInstrument={selectedPaymentInstrument}
+          tokenDetails={selectedTokenDetails}
+        />
+      )}
     </Fragment>
   );
 };

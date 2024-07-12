@@ -184,7 +184,7 @@ const ReviseSubscription: FC<ReviseSubscriptionProps> = ({
         sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}
       >
         <Typography variant="h6" sx={{ mb: 2 }}>
-          Upgrade your Subscription Plan
+          Available subscriptions
         </Typography>
         <Box
           sx={{
@@ -326,9 +326,9 @@ const isSameSubscriptionConfig = (
   return (
     config.allowedPriviledgeLevel === subscription.allowedAccess &&
     config.discountedAmountUSD * 100 ===
-      Number(subscription.requiredAmountUSD) &&
+    Number(subscription.requiredAmountUSD) &&
     config.subscriptionPeriodMonths * 30 * 24 * 60 * 60 ===
-      subscription.periodSeconds &&
+    subscription.periodSeconds &&
     config.allowedTokenIds
       .map((token) => token.tokenId)
       .includes(paymentInstrument?.tokenId)
