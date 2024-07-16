@@ -15,6 +15,7 @@ import { currencies, Currencies } from "@lib/utils/currencies";
 import Link from "../Link";
 import BouncingDotsLoader from "../DotLoader";
 import FilterListIcon from '@mui/icons-material/FilterList';
+import CloseIcon from '@mui/icons-material/Close';
 
 export interface PropsType {
   currency: Currencies;
@@ -52,7 +53,8 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
   const [offset, setOffset] = useState(0);
   const [maxId, setMaxId] = useState<number | null>(null);
   const limit = 40;
-  const [highlightedItems, setHighlightedItems] = useState<number[]>([]);
+  const [highlightedItems, setHighlightedItems] = useState<{ [id: number]: number }>({});
+  const [filterAddresses, setFilterAddresses] = useState<string[]>([])
 
   const [view, inView] = useInView({
     threshold: 0,
@@ -60,21 +62,28 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
 
   useEffect(() => {
     if (inView && !loading && !initialLoading) {
-      fetchTradeHistory(tokenId, offset);
+      fetchTradeHistory(tokenId, offset, filterAddresses);
     }
   }, [inView]);
 
   useEffect(() => {
     if (tokenId) {
-      setOffset(0); // Reset the offset
-      fetchTradeHistory(tokenId, 0); // Start from the beginning
+      reset()
     }
   }, [tokenId]);
 
-  const fetchTradeHistory = async (tokenId: string, currentOffset: number) => {
+  const reset = (newAddresses?: string[]) => {
+    setOffset(0); // Reset the offset
+    setMaxId(null)
+    setTradeHistory([])
+    fetchTradeHistory(tokenId, 0, newAddresses); // Start from the beginning
+  }
+
+  const fetchTradeHistory = async (tokenId: string, currentOffset: number, addresses?: string[]) => {
     setLoading(true);
     try {
-      const endpoint = `${process.env.CRUX_API}/dex/order_history?token_id=${tokenId}&offset=${currentOffset}&limit=${limit}`;
+      const endpoint =
+        `${process.env.CRUX_API}/dex/order_history?token_id=${tokenId}&offset=${currentOffset}&limit=${limit}${addresses && addresses.length > 0 ? `&addresses=${addresses.map((item, i) => i === addresses.length - 1 ? item : `${item},`)}` : ''}`;
       // console.log('Fetching trade history from endpoint:', endpoint);
 
       const response = await fetch(endpoint, {
@@ -105,13 +114,12 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
   ////////////////////////////////////
   // START WEBSOCKET STUFF
   ////////////////////////////////////
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const connect = useCallback(() => {
     let socket: WebSocket;
     let pingInterval: NodeJS.Timeout;
 
-    socket = new WebSocket(`wss://api.cruxfinance.io/dex/order_history/ws?token_id=${tokenId}&offset=0&limit=25&min_id=${maxId}`);
+    socket = new WebSocket(`wss://api.cruxfinance.io/dex/order_history/ws?token_id=${tokenId}&offset=0&limit=25&min_id=${maxId}${filterAddresses.length > 0 ? `&addresses=${filterAddresses.map((item, i) => i === filterAddresses.length - 1 ? item : `${item},`)}` : ''}`);
 
     socket.onopen = () => {
       console.log('WebSocket connection established');
@@ -125,21 +133,30 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
     };
 
     socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      setTradeHistory((prevTradeHistory) => [...message, ...prevTradeHistory]);
-      setMaxId(message[0].id)
-      const newItemIds = message.map((item: DexOrder) => item.id);
-      setHighlightedItems(newItemIds);
+      const message: DexOrder[] = JSON.parse(event.data);
+      setTradeHistory((prevTradeHistory) => {
+        const existingIds = new Set(prevTradeHistory.map(item => item.id));
+        const newUniqueItems = message.filter(item => !existingIds.has(item.id));
 
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+        if (newUniqueItems.length > 0) {
+          const now = Date.now();
+          const expirationTime = now + 3000; // 3 seconds from now
+          setHighlightedItems(prev => {
+            const newHighlightedItems = { ...prev };
+            for (const item of newUniqueItems) {
+              newHighlightedItems[item.id] = expirationTime;
+            }
+            return newHighlightedItems;
+          });
+          setMaxId(newUniqueItems[0].id);
+          setOffset(prevOffset => prevOffset + newUniqueItems.length)
+          console.log("New unique items:", newUniqueItems.map(item => item.id));
+          return [...newUniqueItems, ...prevTradeHistory];
+        }
 
-      timerRef.current = setTimeout(() => {
-        setHighlightedItems([]);
-      }, 20000);
-
-      console.log(message);
+        return prevTradeHistory;
+      });
+      console.log("Received message:", message);
     };
 
     socket.onerror = (error) => {
@@ -174,22 +191,68 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
     };
   }, [maxId, connect]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setHighlightedItems(prev => {
+        const newHighlightedItems = { ...prev };
+        let changed = false;
+        for (const [id, expirationTime] of Object.entries(newHighlightedItems)) {
+          if (Number(expirationTime) <= now) {
+            delete newHighlightedItems[Number(id)];
+            changed = true;
+          }
+        }
+        return changed ? newHighlightedItems : prev;
+      });
+    }, 1000); // Check every second
+
+    return () => clearInterval(interval);
+  }, []);
+
   ////////////////////////////////////
   // END WEBSOCKET STUFF
   ////////////////////////////////////
 
-  const getPrice = (baseAmount: string | number, quoteAmount: string | number) => {
+  const getPrice = (baseAmount: string | number, quoteAmount: string | number, decimals?: number) => {
     var price = Number(baseAmount) / Number(quoteAmount)
 
     if (currency === "USD") {
       price = price * exchangeRate
     }
 
-    return formatNumber(price, 6, true)
+    return formatNumber(price, decimals ? decimals : 6, true)
   }
 
   const removeCurrentForTesting = () => {
+    setTradeHistory((prevHistory) => {
+      if (prevHistory.length === 0) {
+        console.log("Trade history is empty");
+        return prevHistory;
+      }
 
+      const newHistory = prevHistory.slice(1);
+
+      if (newHistory.length > 0) {
+        setMaxId(newHistory[0].id);
+      } else {
+        setMaxId(null);
+      }
+
+      console.log("Removed top item. New top item ID:", newHistory[0]?.id);
+      return newHistory;
+    });
+  };
+
+  const filterByMaker = (maker: string) => {
+    if (filterAddresses.length > 0) {
+      setFilterAddresses([])
+      reset()
+    }
+    else {
+      setFilterAddresses([maker])
+      reset([maker])
+    }
   }
 
   return (
@@ -201,10 +264,10 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
               <Grid xs={2} sx={{ textAlign: 'left' }}>
                 Type
               </Grid>
-              <Grid xs={2} sx={{ textAlign: 'left' }}>
+              <Grid xs={2} >
                 Total {tradingPair}
               </Grid>
-              <Grid xs={2}>
+              <Grid xs={2} >
                 Total {tokenTicker}
               </Grid>
               <Grid xs={2}>
@@ -225,10 +288,28 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                 <Box key={`${item.id}-${i}`}
                   sx={{
                     py: 1,
+                    transition: 'all 0.5s ease-in-out',
+                    "@keyframes highlightGlow": {
+                      "0%": {
+                        transform: "scale(0.95)",
+                        background: i % 2 ? '' : theme.palette.background.paper
+                      },
+                      "50%": {
+                        transform: "scale(1)",
+                        background: 'rgba(255,255,255,0.3)'
+                      },
+                      "100%": {
+                        transform: "scale(1)",
+                        background: i % 2 ? '' : theme.palette.background.paper
+                      }
+                    },
+                    animation: highlightedItems[item.id] && highlightedItems[item.id] > Date.now()
+                      ? 'highlightGlow 2s ease-in-out'
+                      : 'none',
                     background: i % 2 ? '' : theme.palette.background.paper,
                     '&:hover': {
                       background: theme.palette.background.hover,
-                    }
+                    },
                   }}
                 >
                   <Grid container spacing={1} alignItems="center" sx={{ textAlign: 'right', px: 2 }}>
@@ -237,7 +318,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                         {item.order_type}
                       </Typography>
                     </Grid>
-                    <Grid xs={2} sx={{ textAlign: 'left' }}>
+                    <Grid xs={2} >
                       <Typography sx={{ color: itemColor }}>
                         {formatNumber(Number(item.total_filled_base_amount), 4)}
                       </Typography>
@@ -275,6 +356,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                         <Button
                           variant="outlined"
                           color="inherit"
+                          onClick={() => filterByMaker(item.maker_address)}
                           sx={{
                             width: '24px',
                             height: '24px',
@@ -286,13 +368,22 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                             p: 0
                           }}
                         >
-                          <FilterListIcon
-                            sx={{
-                              width: '20px',
-                              height: '20px',
-                              color: "#7bd1be"
-                            }}
-                          />
+                          {filterAddresses.length > 0
+                            ? <CloseIcon
+                              sx={{
+                                width: '20px',
+                                height: '20px',
+                                color: "#7bd1be"
+                              }}
+                            />
+                            : <FilterListIcon
+                              sx={{
+                                width: '20px',
+                                height: '20px',
+                                color: "#7bd1be"
+                              }}
+                            />
+                          }
                         </Button>
                       </Box>
                     </Grid>
@@ -314,31 +405,46 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                 <Typography>Age</Typography>
               </Grid>
               <Grid xs={3} sx={{ textAlign: 'left' }}>
-                Price ({currency})
+                Price ({currencies[currency]})
               </Grid>
               <Grid xs={2} sx={{ textAlign: 'left' }}>
-                <Typography>Total {tradingPair}</Typography>
-                <Typography>Total {tokenTicker}</Typography>
+                <Typography>Amt {capitalizeFirstLetter(tradingPair)}</Typography>
+                <Typography>Amt {tokenTicker.slice(0, 3)}</Typography>
               </Grid>
               <Grid xs={2} sx={{ textAlign: 'right' }}>
                 Maker
               </Grid>
             </Grid>
           </Box>
-          <Box sx={{ mb: 2, maxHeight: '75vh', overflowY: 'scroll', overflowX: 'hidden' }}>
+          <Box sx={{ mb: 2, flex: 1, overflowY: 'scroll', overflowX: 'hidden' }}>
             {!initialLoading && tradeHistory.map((item, i) => {
               const itemColor = item.order_type.includes('Buy') ? theme.palette.up.main : theme.palette.down.main;
               return (
                 <Box key={item.id}
                   sx={{
                     py: 1,
-                    background: highlightedItems.includes(item.id)
-                      ? 'rgba(255,255,255,0.5)'
-                      : i % 2 ? '' : theme.palette.background.paper,
-                    transition: 'background-color 0.5s ease',
+                    transition: 'all 0.5s ease-in-out',
+                    "@keyframes highlightGlow": {
+                      "0%": {
+                        transform: "scale(0.95)",
+                        background: i % 2 ? '' : theme.palette.background.paper
+                      },
+                      "50%": {
+                        transform: "scale(1)",
+                        background: 'rgba(255,255,255,0.3)'
+                      },
+                      "100%": {
+                        transform: "scale(1)",
+                        background: i % 2 ? '' : theme.palette.background.paper
+                      }
+                    },
+                    animation: highlightedItems[item.id] && highlightedItems[item.id] > Date.now()
+                      ? 'highlightGlow 2s ease-in-out'
+                      : 'none',
+                    background: i % 2 ? '' : theme.palette.background.paper,
                     '&:hover': {
                       background: theme.palette.background.hover,
-                    }
+                    },
                   }}
                 >
                   <Grid container spacing={1} alignItems="center" columns={9} sx={{ textAlign: 'right', px: 2 }}>
@@ -346,13 +452,13 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                       <Typography sx={{ color: itemColor, textAlign: 'left' }}>
                         {item.order_type}
                       </Typography>
-                      <Typography sx={{ color: itemColor }}>
+                      <Typography sx={{ color: itemColor, textAlign: 'left' }}>
                         {timeFromNow(new Date(item.chain_time))}
                       </Typography>
                     </Grid>
                     <Grid xs={3} sx={{ textAlign: 'left' }}>
                       <Typography sx={{ color: itemColor }}>
-                        {currencies[currency]}{getPrice(item.total_filled_base_amount, item.filled_quote_amount)}
+                        {currencies[currency]}{getPrice(item.total_filled_base_amount, item.filled_quote_amount, 4)}
                       </Typography>
                     </Grid>
                     <Grid xs={2} sx={{ textAlign: 'left' }}>
@@ -360,7 +466,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                         {formatNumber(Number(item.order_base_amount), 2, true)}
                       </Typography>
                       <Typography sx={{ color: itemColor }}>
-                        {currencies[currency]}{formatNumber(Number(item.filled_quote_amount), 2, true)}
+                        {formatNumber(Number(item.filled_quote_amount), 2, true)}
                       </Typography>
                     </Grid>
                     <Grid xs={2}>
@@ -375,12 +481,13 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                               }
                             }}
                           >
-                            {getShorterAddress(item.maker_address)}
+                            {item.maker_address.slice(0, 3)}
                           </Link>
                         </Typography>
                         <Button
                           variant="outlined"
                           color="inherit"
+                          onClick={() => filterByMaker(item.maker_address)}
                           sx={{
                             width: '24px',
                             height: '24px',
@@ -392,13 +499,22 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                             p: 0
                           }}
                         >
-                          <FilterListIcon
-                            sx={{
-                              width: '20px',
-                              height: '20px',
-                              color: "#7bd1be"
-                            }}
-                          />
+                          {filterAddresses.length > 0
+                            ? <CloseIcon
+                              sx={{
+                                width: '20px',
+                                height: '20px',
+                                color: "#7bd1be"
+                              }}
+                            />
+                            : <FilterListIcon
+                              sx={{
+                                width: '20px',
+                                height: '20px',
+                                color: "#7bd1be"
+                              }}
+                            />
+                          }
                         </Button>
                       </Box>
                     </Grid>
@@ -411,9 +527,18 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
             </Box>
           </Box>
         </>
-      )}
+      )
+      }
+      {/* <Button onClick={removeCurrentForTesting}>
+        Dev
+      </Button> */}
     </>
   );
 };
 
 export default TradeHistory;
+
+const capitalizeFirstLetter = (string: string) => {
+  if (!string) return '';
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+}

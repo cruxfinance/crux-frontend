@@ -253,7 +253,7 @@ const TokenInfo: FC = () => {
             )}
           </Box>
           {!upLg && (
-            <Paper sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
+            <Paper sx={{ p: 2, width: '100%', position: 'relative', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 100px)' }} id="history">
               <TradeHistory
                 currency={currency}
                 tokenId={tokenId}
