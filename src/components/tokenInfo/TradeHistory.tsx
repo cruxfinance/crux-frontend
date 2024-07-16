@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useRef } from "react";
+import React, { FC, useState, useEffect, useRef, useCallback } from "react";
 import {
   Typography,
   useTheme,
@@ -21,6 +21,7 @@ export interface PropsType {
   tradingPair: string;
   tokenId: string;
   tokenTicker: string;
+  exchangeRate: number;
 }
 
 interface DexOrder {
@@ -42,7 +43,7 @@ interface DexOrder {
   "chain_time": number
 }
 
-const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTicker }) => {
+const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTicker, exchangeRate }) => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const [loading, setLoading] = useState(false);
@@ -51,6 +52,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
   const [offset, setOffset] = useState(0);
   const [maxId, setMaxId] = useState<number | null>(null);
   const limit = 40;
+  const [highlightedItems, setHighlightedItems] = useState<number[]>([]);
 
   const [view, inView] = useInView({
     threshold: 0,
@@ -73,7 +75,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
     setLoading(true);
     try {
       const endpoint = `${process.env.CRUX_API}/dex/order_history?token_id=${tokenId}&offset=${currentOffset}&limit=${limit}`;
-      console.log('Fetching trade history from endpoint:', endpoint);
+      // console.log('Fetching trade history from endpoint:', endpoint);
 
       const response = await fetch(endpoint, {
         method: 'GET',
@@ -87,7 +89,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
 
       setTradeHistory((prevTradeHistory) => [...prevTradeHistory, ...data]);
 
-      if (data.length > 0) {
+      if (data.length > 0 && !maxId) {
         const newMaxId = data[0].id;
         setMaxId(newMaxId);
       }
@@ -100,17 +102,44 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
     }
   }
 
-  const socket = new WebSocket(`wss://api.cruxfinance.io/dex/order_history/ws?token_id=${tokenId}&offset=0&limit=25&min_id=${maxId}`);
+  ////////////////////////////////////
+  // START WEBSOCKET STUFF
+  ////////////////////////////////////
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
+  const connect = useCallback(() => {
+    let socket: WebSocket;
+    let pingInterval: NodeJS.Timeout;
+
+    socket = new WebSocket(`wss://api.cruxfinance.io/dex/order_history/ws?token_id=${tokenId}&offset=0&limit=25&min_id=${maxId}`);
+
     socket.onopen = () => {
       console.log('WebSocket connection established');
+      pingInterval = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'ping' }));
+        } else if (socket.readyState === WebSocket.CLOSING || socket.readyState === WebSocket.CLOSED) {
+          clearInterval(pingInterval);
+        }
+      }, 10000);
     };
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      // Handle incoming message
-      console.log(message)
+      setTradeHistory((prevTradeHistory) => [...message, ...prevTradeHistory]);
+      setMaxId(message[0].id)
+      const newItemIds = message.map((item: DexOrder) => item.id);
+      setHighlightedItems(newItemIds);
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      timerRef.current = setTimeout(() => {
+        setHighlightedItems([]);
+      }, 20000);
+
+      console.log(message);
     };
 
     socket.onerror = (error) => {
@@ -119,13 +148,49 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
 
     socket.onclose = () => {
       console.log('WebSocket connection closed');
+      clearInterval(pingInterval);
+      setTimeout(connect, 5000);
     };
 
-    // Clean up on component unmount
     return () => {
-      socket.close();
+      if (socket) {
+        socket.close();
+      }
+      clearInterval(pingInterval);
     };
-  }, []);
+  }, [maxId, tokenId]);
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+
+    if (maxId) {
+      cleanup = connect();
+    }
+
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, [maxId, connect]);
+
+  ////////////////////////////////////
+  // END WEBSOCKET STUFF
+  ////////////////////////////////////
+
+  const getPrice = (baseAmount: string | number, quoteAmount: string | number) => {
+    var price = Number(baseAmount) / Number(quoteAmount)
+
+    if (currency === "USD") {
+      price = price * exchangeRate
+    }
+
+    return formatNumber(price, 6, true)
+  }
+
+  const removeCurrentForTesting = () => {
+
+  }
 
   return (
     <>
@@ -137,13 +202,13 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                 Type
               </Grid>
               <Grid xs={2} sx={{ textAlign: 'left' }}>
+                Total {tradingPair}
+              </Grid>
+              <Grid xs={2}>
+                Total {tokenTicker}
+              </Grid>
+              <Grid xs={2}>
                 Price ({currency})
-              </Grid>
-              <Grid xs={2}>
-                Total ({tokenTicker})
-              </Grid>
-              <Grid xs={2}>
-                Value
               </Grid>
               <Grid xs={2}>
                 Age
@@ -174,17 +239,17 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                     </Grid>
                     <Grid xs={2} sx={{ textAlign: 'left' }}>
                       <Typography sx={{ color: itemColor }}>
-                        {currencies[currency]}{formatNumber(Number(item.order_quote_amount), 4)}
+                        {formatNumber(Number(item.total_filled_base_amount), 4)}
                       </Typography>
                     </Grid>
                     <Grid xs={2}>
                       <Typography sx={{ color: itemColor }}>
-                        {formatNumber(Number(item.order_base_amount), 2, true)}
+                        {formatNumber(Number(item.total_filled_quote_amount), 2, true)}
                       </Typography>
                     </Grid>
                     <Grid xs={2}>
                       <Typography sx={{ color: itemColor }}>
-                        {currencies[currency]}{formatNumber(Number(item.filled_quote_amount), 2, true)}
+                        {currencies[currency]}{getPrice(item.total_filled_base_amount, item.filled_quote_amount)}
                       </Typography>
                     </Grid>
                     <Grid xs={2}>
@@ -252,8 +317,8 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                 Price ({currency})
               </Grid>
               <Grid xs={2} sx={{ textAlign: 'left' }}>
-                <Typography>Total #</Typography>
-                <Typography>Value</Typography>
+                <Typography>Total {tradingPair}</Typography>
+                <Typography>Total {tokenTicker}</Typography>
               </Grid>
               <Grid xs={2} sx={{ textAlign: 'right' }}>
                 Maker
@@ -267,7 +332,10 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                 <Box key={item.id}
                   sx={{
                     py: 1,
-                    background: i % 2 ? '' : theme.palette.background.paper,
+                    background: highlightedItems.includes(item.id)
+                      ? 'rgba(255,255,255,0.5)'
+                      : i % 2 ? '' : theme.palette.background.paper,
+                    transition: 'background-color 0.5s ease',
                     '&:hover': {
                       background: theme.palette.background.hover,
                     }
@@ -284,7 +352,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                     </Grid>
                     <Grid xs={3} sx={{ textAlign: 'left' }}>
                       <Typography sx={{ color: itemColor }}>
-                        {currencies[currency]}{formatNumber(Number(item.order_quote_amount), 4)}
+                        {currencies[currency]}{getPrice(item.total_filled_base_amount, item.filled_quote_amount)}
                       </Typography>
                     </Grid>
                     <Grid xs={2} sx={{ textAlign: 'left' }}>

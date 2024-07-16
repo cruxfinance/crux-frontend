@@ -232,7 +232,13 @@ const TokenInfo: FC = () => {
               </Paper>
               {upLg && (
                 <Paper variant="outlined" sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
-                  <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
+                  <TradeHistory
+                    currency={currency}
+                    tokenId={tokenId}
+                    tradingPair={tradingPair ? tradingPair : 'ERG'}
+                    tokenTicker={tokenInfo.ticker}
+                    exchangeRate={exchangeRate}
+                  />
                 </Paper>
               )}
             </Box>
@@ -248,7 +254,13 @@ const TokenInfo: FC = () => {
           </Box>
           {!upLg && (
             <Paper sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
-              <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
+              <TradeHistory
+                currency={currency}
+                tokenId={tokenId}
+                tradingPair={tradingPair ? tradingPair : 'ERG'}
+                tokenTicker={tokenInfo.ticker}
+                exchangeRate={exchangeRate}
+              />
             </Paper>
           )}
         </>

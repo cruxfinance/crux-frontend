@@ -277,6 +277,7 @@ export const updateSubscription = async (input: UpdateSubscription) => {
       status: SubscriptionStatus.ACTIVE,
       activationTimestamp: new Date(),
       updatedAt: new Date(),
+      subscriptionType: input.updateSubscriptionConfigId
     },
   });
   return {
