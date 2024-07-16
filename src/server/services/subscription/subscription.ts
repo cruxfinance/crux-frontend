@@ -1,11 +1,11 @@
+import { SubscriptionStatus, UserPrivilegeLevel } from "@prisma/client";
 import { prisma } from "@server/prisma";
+import { getTokenPriceInfo } from "@server/utils/tokenPrice";
+import { PAYMENT_PENDING_ALLOWANCE, SUBSCRIPTION_CONFIG } from "./config";
 import {
   chargePaymentInstrument,
   getPaymentInstrument,
 } from "./paymentInstrument";
-import { PAYMENT_PENDING_ALLOWANCE, SUBSCRIPTION_CONFIG } from "./config";
-import { getTokenPriceInfo } from "@server/utils/tokenPrice";
-import { SubscriptionStatus, UserPrivilegeLevel } from "@prisma/client";
 
 interface CreateSubscription {
   userId: string;
@@ -43,6 +43,7 @@ export const createSubscription = async (input: CreateSubscription) => {
       allowedAccess: subscriptionConfig.allowedPriviledgeLevel,
       periodSeconds:
         subscriptionConfig.subscriptionPeriodMonths * 30 * 24 * 60 * 60,
+      subscriptionType: input.subscriptionConfigId
     },
   });
   return subscription;
@@ -60,7 +61,7 @@ export const getSubscription = async (subscriptionId: string) => {
   const now = new Date().getTime();
   const expiryTimestamp = subscription.activationTimestamp
     ? subscription.activationTimestamp.getTime() +
-      subscription.periodSeconds * 1000
+    subscription.periodSeconds * 1000
     : subscription.createdAt.getTime();
   if (now > expiryTimestamp + PAYMENT_PENDING_ALLOWANCE) {
     const updatedSubscription = await prisma.subscription.update({
@@ -97,7 +98,7 @@ export const renewSubscription = async (subcriptionId: string) => {
   const tokenPriceInfo = await getTokenPriceInfo(paymentInstrument.tokenId);
   const amountToCharge = Math.floor(
     (Number(subcription.requiredAmountUSD) / tokenPriceInfo.tokenPrice) *
-      Math.pow(10, tokenPriceInfo.tokenDecimals - 2) // USD decimal adjustment
+    Math.pow(10, tokenPriceInfo.tokenDecimals - 2) // USD decimal adjustment
   );
   const now = Math.floor(new Date().getTime() / (10 * 60 * 1000));
   const charge = await chargePaymentInstrument({
@@ -209,15 +210,15 @@ export const getSubscriptionUpdateParams = async (
       : 0;
   const secondsElaspedAfterActivation = activeSubscription.activationTimestamp
     ? (new Date().getTime() -
-        activeSubscription.activationTimestamp.getTime()) /
-      1000
+      activeSubscription.activationTimestamp.getTime()) /
+    1000
     : Math.max();
   // amount of total charge that has been consumed
   const consumedAmountUSD = Math.min(
     totalChargedAmountUSD,
     Math.floor(
       totalChargedAmountUSD *
-        (secondsElaspedAfterActivation / activeSubscription.periodSeconds)
+      (secondsElaspedAfterActivation / activeSubscription.periodSeconds)
     )
   );
   // amount left to consume
@@ -254,7 +255,7 @@ export const updateSubscription = async (input: UpdateSubscription) => {
   const tokenPriceInfo = await getTokenPriceInfo(paymentInstrument.tokenId);
   const amountToCharge = Math.floor(
     (Number(updateChargeParams.amountUSD) / tokenPriceInfo.tokenPrice) *
-      Math.pow(10, tokenPriceInfo.tokenDecimals - 2) // USD decimal adjustment
+    Math.pow(10, tokenPriceInfo.tokenDecimals - 2) // USD decimal adjustment
   );
   const now = Math.floor(new Date().getTime() / (10 * 60 * 1000));
   const charge = await chargePaymentInstrument({

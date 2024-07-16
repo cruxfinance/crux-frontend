@@ -13,7 +13,7 @@ import { Subscription } from "@pages/user/subscription";
 import { SubscriptionStatus } from "@prisma/client";
 import { useRouter } from "next/router";
 import { FC, Fragment, useState } from "react";
-import ReviseSubscription from "./ReviseSubscription";
+// import ReviseSubscription from "./ReviseSubscription";
 
 interface ManageSubscriptionProps {
   subscription: Subscription | null;
@@ -27,7 +27,7 @@ const ManageSubscription: FC<ManageSubscriptionProps> = ({ subscription }) => {
     message: "",
     error: "",
   });
-  const router = useRouter();
+  // const router = useRouter();
 
   const subscriptionRenew = trpc.subscription.renewSubscription.useMutation();
   const queries = trpc.useQueries((t) => [
@@ -70,45 +70,37 @@ const ManageSubscription: FC<ManageSubscriptionProps> = ({ subscription }) => {
         sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}
       >
         <Typography variant="h6" sx={{ mb: 2 }}>
-          Current Subscription
+          Subscription Details
         </Typography>
         <Paper sx={{ p: 3, width: "100%", position: "relative" }}>
           {subscription === null &&
             "There is no active Subscription assosiated with your account."}
           {subscription && (
             <>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Details
-              </Typography>
-              <Divider sx={{ my: 1 }} />
               <Box>
-                <Typography>Id: {subscription.id}</Typography>
+                {/* <Typography>Id: {subscription.id}</Typography> */}
                 <Typography>
-                  AccessLevel: {subscription.allowedAccess}
+                  Access Level: {subscription.allowedAccess}
                 </Typography>
-                <Typography>
+                {/* <Typography>
                   PaymentInstrument: {subscription.paymentInstrumentId}
+                </Typography> */}
+                <Typography>
+                  Charge per {Math.floor(subscription.periodSeconds / (60 * 60 * 24))} days:{" "}
+                  ${Number(subscription.requiredAmountUSD) / 100}
                 </Typography>
                 <Typography>
-                  ChargeableAmount:{" "}
-                  {Number(subscription.requiredAmountUSD) / 100}$
-                </Typography>
-                <Typography>
-                  SubscriptionPeriod:{" "}
-                  {Math.floor(subscription.periodSeconds / (60 * 60 * 24))} days
-                </Typography>
-                <Typography>
-                  ActivatedAt:{" "}
+                  Activated:{" "}
                   {subscription.activationTimestamp
                     ? new Date(subscription.activationTimestamp).toUTCString()
                     : "-"}
                 </Typography>
-                <Typography>
+                {/* <Typography>
                   CreatedAt: {subscription.createdAt.toUTCString()}
                 </Typography>
                 <Typography>
                   UpdatedAt: {subscription.updatedAt.toUTCString()}
-                </Typography>
+                </Typography> */}
                 <Typography>Status: {subscription.status}</Typography>
                 <Box sx={{ display: "flex" }}>
                   <LoadingButton

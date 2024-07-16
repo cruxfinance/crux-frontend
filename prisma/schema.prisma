@@ -237,6 +237,7 @@ model Subscription {
   status              SubscriptionStatus @default(PAYMENT_PENDING)
   createdAt           DateTime           @default(now()) @map("created_at")
   updatedAt           DateTime           @updatedAt @map("updated_at")
+  subscriptionType    String             @default("") @map("subscription_type")
 
   @@unique([userId])
   @@map("subscriptions")

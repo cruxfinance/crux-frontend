@@ -254,7 +254,7 @@ const TokenInfo: FC = () => {
         </>
       )}
       {!upSm && (
-        <Paper variant="outlined" sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 11500 }} elevation={3}>
+        <Paper variant="outlined" sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 11500 }}>
           <BottomNavigation
             showLabels
             value={navigation}

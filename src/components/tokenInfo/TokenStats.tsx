@@ -22,7 +22,7 @@ const TokenStats: FC<PropsType> = ({ currency, tokenInfo }) => {
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
   return (
     <>
-      <Typography sx={{ mb: 2 }}>{tokenInfo.description}</Typography>
+      <Typography sx={{ mb: 2, overflowWrap: 'anywhere' }}>{tokenInfo.description}</Typography>
       <Typography sx={{ mb: 2 }}>
         <Link href={`https://explorer.ergoplatform.com/en/token/${tokenInfo.tokenId}`}>
           {getShortAddress(tokenInfo.tokenId)}

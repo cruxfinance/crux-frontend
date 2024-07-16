@@ -22,7 +22,7 @@ const Subscriptions: NextPage = () => {
   >([]);
   const [loadingPaymentInstruments, setLoadingPaymentInstruments] = useState(true);
 
-  trpc.subscription.findActiveSubscripion.useQuery(undefined, {
+  const querySubscription = trpc.subscription.findActiveSubscripion.useQuery(undefined, {
     onSuccess: (data) => {
       setSubscription(data);
       setLoadingSubscription(false);
@@ -34,6 +34,8 @@ const Subscriptions: NextPage = () => {
       setLoadingPaymentInstruments(false);
     },
   });
+
+  const refreshSubscription = () => querySubscription.refetch()
 
   const loading = loadingPaymentInstruments || loadingSubscription
 
@@ -51,7 +53,7 @@ const Subscriptions: NextPage = () => {
       )}
       {!loading && subscription !== null && (
         <Box sx={{ mb: 2 }}>
-          <ReviseSubscription subscription={subscription} paymentInstruments={paymentInstruments} />
+          <ReviseSubscription subscription={subscription} paymentInstruments={paymentInstruments} refetchSubscription={refreshSubscription} />
         </Box>
       )}
       {!loading && subscription !== null && (

@@ -44,7 +44,7 @@ export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency, he
       fullscreen: defaultWidgetProps.fullscreen,
       autosize: defaultWidgetProps.autosize,
       theme: 'dark',
-      debug: true
+      // debug: true
     };
 
     const mergedWidgetOptions = {

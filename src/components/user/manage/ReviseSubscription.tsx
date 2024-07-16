@@ -25,103 +25,32 @@ import { getSubscriptionUpdateParams } from "@server/services/subscription/subsc
 import { trpc } from "@lib/trpc";
 import { PaymentInstrument } from "@prisma/client";
 import { useRouter } from "next/router";
+import ReviseSubscriptionConfigCard from "./ReviseSubscriptionConfigCard";
+import { useAlert } from '@contexts/AlertContext';
 
 interface ReviseSubscriptionProps {
   subscription: Subscription;
   paymentInstruments: PaymentInstrument[];
+  refetchSubscription: Function
 }
 
 export type UpdateSubscriptionParams = Awaited<
   ReturnType<typeof getSubscriptionUpdateParams>
 >;
 
-interface ReviseSubscriptionConfigCardProps {
-  config: SubscriptionConfig;
-  setSelectedPlan: Function;
-  disabled: boolean;
-  loading: boolean;
-}
-
-const ReviseSubscriptionConfigCard: FC<ReviseSubscriptionConfigCardProps> = ({
-  config,
-  setSelectedPlan,
-  disabled,
-  loading,
-}) => {
-  return (
-    <Card
-      sx={{
-        maxWidth: 300,
-        m: 2,
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-      }}
-    >
-      <CardContent>
-        <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
-          {config.id}
-        </Typography>
-        <Typography variant="h6" component="div">
-          {config.name}
-        </Typography>
-        {disabled && (
-          <Typography component="div" sx={{ mb: 1 }}>
-            (Current)
-          </Typography>
-        )}
-        <Typography sx={{ mt: 0.5, mb: 1.5 }} color="text.secondary">
-          {config.description}
-        </Typography>
-        <Box display="flex">
-          {config.amountUSD !== config.discountedAmountUSD && (
-            <Typography
-              variant="h6"
-              sx={{
-                mt: 0.5,
-                textDecoration: "line-through",
-                mr: 1,
-              }}
-              color="text.secondary"
-            >
-              {config.amountUSD}$
-            </Typography>
-          )}
-          <Typography variant="h6" sx={{ mt: 0.5, mb: 1.5, fontWeight: 700 }}>
-            {config.discountedAmountUSD}$
-          </Typography>
-        </Box>
-      </CardContent>
-      <CardActions sx={{ mt: "auto", pl: 2, pb: 2 }}>
-        <LoadingButton
-          variant="outlined"
-          size="small"
-          onClick={() => setSelectedPlan(config.id)}
-          disabled={disabled}
-          loading={loading}
-        >
-          Switch Plan
-        </LoadingButton>
-      </CardActions>
-    </Card>
-  );
-};
-
 const ReviseSubscription: FC<ReviseSubscriptionProps> = ({
   subscription,
   paymentInstruments,
+  refetchSubscription
 }) => {
   const router = useRouter();
   const theme = useTheme();
+  const { addAlert } = useAlert()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [updateSubscriptionParams, setUpdateSubscriptionParams] =
     useState<UpdateSubscriptionParams | null>(null);
+  const [openUpdateSubscriptionDialog, setOpenUpdateSubscriptionDialog] = useState(false)
   const [loading, setLoading] = useState(false);
-  const [openPopover, setOpenPopover] = useState(false);
-  const [popoverProps, setPopoverProps] = useState({
-    message: "",
-    error: "",
-  });
 
   trpc.subscription.getUpdateSubscriptionParams.useQuery(
     {
@@ -136,21 +65,6 @@ const ReviseSubscription: FC<ReviseSubscriptionProps> = ({
       enabled: selectedPlan !== null,
     }
   );
-
-  const handleOpenPopover = (message: string) => {
-    setPopoverProps({ message: message, error: "" });
-    setOpenPopover(true);
-  };
-
-  const handleOpenPopoverError = (error: string) => {
-    setPopoverProps({ message: "", error: error });
-    setOpenPopover(true);
-  };
-
-  const handleClosePopover = () => {
-    setPopoverProps({ message: "", error: "" });
-    setOpenPopover(false);
-  };
 
   const updateSubscription = trpc.subscription.updateSubscription.useMutation();
   const update = async () => {
@@ -169,10 +83,12 @@ const ReviseSubscription: FC<ReviseSubscriptionProps> = ({
         updateSubscriptionConfigId: subscriptionConfig.id,
         activeSubscriptionId: subscription.id,
       });
-      handleOpenPopover("Woohoo!!!");
-      router.push("/user/subscription");
+      addAlert('success', `Subscription ${subscriptionConfig.name} activated.`)
+      setOpenUpdateSubscriptionDialog(false)
+      refetchSubscription()
     } catch (e: any) {
-      handleOpenPopoverError(e.toString());
+      addAlert('error', `Error changing subscription. Please contact support if the problem persists. `)
+      setOpenUpdateSubscriptionDialog(false)
     }
     setLoading(false);
   };
@@ -191,6 +107,7 @@ const ReviseSubscription: FC<ReviseSubscriptionProps> = ({
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "space-evenly",
+            alignItems: "stretch"
           }}
         >
           {SUBSCRIPTION_CONFIG.map((config) => (
@@ -198,28 +115,29 @@ const ReviseSubscription: FC<ReviseSubscriptionProps> = ({
               key={config.id}
               config={config}
               setSelectedPlan={(plan: string) => {
-                setSelectedPlan(plan), setLoading(true);
+                setSelectedPlan(plan), setLoading(true), setOpenUpdateSubscriptionDialog(true);
               }}
-              disabled={isSameSubscriptionConfig(
-                config,
-                subscription,
-                paymentInstruments.filter(
-                  (pay) => pay.id === subscription.paymentInstrumentId
-                )[0]
-              )}
+              disabled={subscription.subscriptionType === config.id}
               loading={loading && config.id === selectedPlan}
             />
           ))}
         </Box>
       </Paper>
       <Dialog
-        open={selectedPlan !== null && updateSubscriptionParams !== null}
+        open={openUpdateSubscriptionDialog}
         onClose={() => {
           setSelectedPlan(null);
           setUpdateSubscriptionParams(null);
+          setOpenUpdateSubscriptionDialog(false)
         }}
         aria-labelledby="revise-subscription-dialog-title"
         aria-describedby="revise-subscription-dialog-description"
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
       >
         <DialogTitle id="create-subscription-dialog-title">
           Revise Subscription -{" "}
@@ -260,7 +178,7 @@ const ReviseSubscription: FC<ReviseSubscriptionProps> = ({
         <DialogActions sx={{ pb: 2 }}>
           <Button
             onClick={() => {
-              setSelectedPlan(null), setUpdateSubscriptionParams(null);
+              setSelectedPlan(null), setUpdateSubscriptionParams(null), setOpenUpdateSubscriptionDialog(false)
             }}
           >
             Cancel
@@ -275,63 +193,7 @@ const ReviseSubscription: FC<ReviseSubscriptionProps> = ({
           </LoadingButton>
         </DialogActions>
       </Dialog>
-      <Popover
-        id="subscription-popover"
-        open={openPopover}
-        onClose={handleClosePopover}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        sx={{
-          mt: "10px",
-          "& .MuiPopover-paper": {
-            overflow: "hidden",
-            background: theme.palette.background.paper,
-          },
-        }}
-      >
-        <Box
-          sx={{
-            minWidth: "420px",
-            minHeight: "80px",
-            p: 2,
-          }}
-        >
-          {popoverProps.message && (
-            <>
-              <Typography>Subcription Activated</Typography>
-              <Typography sx={{ pt: 1 }}>{popoverProps.message}</Typography>
-            </>
-          )}
-          {popoverProps.error && (
-            <>
-              <Typography sx={{ color: theme.palette.primary.main }}>
-                ERROR
-              </Typography>
-              <Typography sx={{ pt: 1 }}>{popoverProps.error}</Typography>
-            </>
-          )}
-        </Box>
-      </Popover>
     </Fragment>
-  );
-};
-
-const isSameSubscriptionConfig = (
-  config: SubscriptionConfig,
-  subscription: Subscription,
-  paymentInstrument: PaymentInstrument
-) => {
-  return (
-    config.allowedPriviledgeLevel === subscription.allowedAccess &&
-    config.discountedAmountUSD * 100 ===
-    Number(subscription.requiredAmountUSD) &&
-    config.subscriptionPeriodMonths * 30 * 24 * 60 * 60 ===
-    subscription.periodSeconds &&
-    config.allowedTokenIds
-      .map((token) => token.tokenId)
-      .includes(paymentInstrument?.tokenId)
   );
 };
 
