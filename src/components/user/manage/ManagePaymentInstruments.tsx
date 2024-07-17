@@ -171,7 +171,7 @@ const ManagePaymentInstruments = () => {
         sx={{ p: 3, width: "100%", position: "relative", pb: 4 }}
       >
         <Typography variant="h6" sx={{ mb: 2 }}>
-          View and Manage existing balances
+          View and Manage Existing Balances
         </Typography>
         <Typography sx={{ fontSize: '0.9rem!important', mb: 2 }}>
           You need an existing balance to maintain a subscription. A subscription can be attached to only one currency at a time. When the balance runs out, your subscription will be suspended until you load it again.
