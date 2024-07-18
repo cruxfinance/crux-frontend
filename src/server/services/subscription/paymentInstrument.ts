@@ -1,7 +1,6 @@
 import { TransactionStatus } from "@prisma/client";
 import { prisma } from "@server/prisma";
 import { checkTransactionStatus } from "@server/utils/checkTransactionStatus";
-import { getUnsignedTransaction } from "@server/utils/ergoClient";
 import {
   acquireTransactionalLock,
   releaseTransactionalLock,
@@ -196,13 +195,65 @@ export const chargePaymentInstrument = async (
   }
 };
 
+export const refundPaymentInstrument = async (
+  input: ChargePaymentInstrument
+) => {
+  if (input.amount < 0) {
+    throw new Error(`Amount should be positive.`);
+  }
+  const lock = await acquireTransactionalLock(
+    `refundPaymentInstrument.${input.paymentInstrumentId}`
+  );
+  try {
+    const paymentInstrument = await getPaymentInstrument(
+      input.paymentInstrumentId
+    );
+    if (paymentInstrument.tokenId !== input.tokenId) {
+      throw new Error(
+        `TokenId: ${input.tokenId} not supported for PaymentInstrument ${paymentInstrument.id}.`
+      );
+    }
+    const charge = await prisma.charge.create({
+      data: {
+        id: input.idempotencyKey,
+        paymentInstrumentId: input.paymentInstrumentId,
+        amount: -input.amount,
+      },
+    });
+    const updatedPaymentInstrument = await prisma.paymentInstrument.update({
+      where: {
+        id: input.paymentInstrumentId,
+      },
+      data: {
+        ...paymentInstrument,
+        transactions: undefined,
+        charges: undefined,
+        balance: Number(paymentInstrument.balance) + input.amount,
+        updatedAt: new Date(),
+      },
+    });
+    return {
+      paymentInstrument: updatedPaymentInstrument,
+      charge: charge,
+    };
+  } catch (e: any) {
+    throw e;
+  } finally {
+    await releaseTransactionalLock(
+      `refundPaymentInstrument.${input.paymentInstrumentId}`,
+      lock
+    );
+  }
+};
+
 interface AddPaymentInstrumentBalance {
   paymentInstrumentId: string;
   address: string;
   amount: number;
+  txId: string;
 }
 
-export const createOrUpdateTransaction = async (
+const createOrUpdateTransaction = async (
   id: string,
   paymentInstrumentId: string,
   amount: number
@@ -237,10 +288,6 @@ export const addPaymentInstrumentBalance = async (
     const paymentInstrument = await getPaymentInstrument(
       input.paymentInstrumentId
     );
-    const tx = await getUnsignedTransaction(input.address, RECIPIENT, {
-      tokenId: paymentInstrument.tokenId ?? '',
-      amount: input.amount,
-    });
     const updatedPaymentInstrument = await prisma.paymentInstrument.update({
       where: { id: input.paymentInstrumentId },
       data: {
@@ -251,12 +298,11 @@ export const addPaymentInstrumentBalance = async (
       },
     });
     const transaction = await createOrUpdateTransaction(
-      tx.id,
+      input.txId,
       input.paymentInstrumentId,
       input.amount
     );
     return {
-      unsignedTransaction: tx,
       transactionStatus: transaction,
       paymentInstrument: updatedPaymentInstrument,
     };
