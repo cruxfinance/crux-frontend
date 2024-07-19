@@ -27,6 +27,8 @@ import BouncingDotsLoader from '@components/DotLoader';
 import { checkLocalIcon, getIconUrlFromServer } from '@lib/utils/icons';
 import SearchIcon from '@mui/icons-material/Search';
 import YoutubeSearchedForIcon from '@mui/icons-material/YoutubeSearchedFor';
+import { trpc } from '@lib/trpc';
+import PresetDropdown from '@components/tokens/PresetDropdown';
 
 
 const Tokens: FC = () => {
@@ -34,13 +36,9 @@ const Tokens: FC = () => {
   const router = useRouter()
   const upLg = useMediaQuery(theme.breakpoints.up('lg'))
   const [loading, setLoading] = useState(false)
-  const [currency, setCurrency] = useState<Currencies>('USD')
   const [ergExchange, setErgExchange] = useState(1)
   const [filteredTokens, setFilteredTokens] = useState<ITokenData[]>([])
-  const [filters, setFilters] = useState<IFilters>({})
-  const [sorting, setSorting] = useState<ISorting>({ sort_by: 'Volume', sort_order: 'Desc' })
   const [queries, setQueries] = useState<IQueries>({ limit: 20, offset: 0 });
-  const [timeframe, setTimeframe] = useState<ITimeframe>({ filter_window: 'Day' });
   const [filterModalOpen, setFilterModalOpen] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [noMore, setNoMore] = useState(false)
@@ -48,7 +46,150 @@ const Tokens: FC = () => {
   const [view, inView] = useInView({
     threshold: 0,
   });
+
+  /////////////////////////
+  // START FILTERS STUFF //
+  /////////////////////////
+  const [currency, setCurrency] = useState<Currencies>('USD')
+  const [timeframe, setTimeframe] = useState<ITimeframe>({ filter_window: 'Day' });
+  const [filters, setFilters] = useState<IFilters>({})
+  const [sorting, setSorting] = useState<ISorting>({ sort_by: 'Volume', sort_order: 'Desc' })
   const [searchString, setSearchString] = useState('')
+  const [userPresets, setUserPresets] = useState<{ id: string; name: string }[]>([]);
+  const [currentSelectedPreset, setCurrentSelectedPreset] = useState<string | null>(null);
+
+  const getFilterPresets = trpc.savedSettings.getUsersFilterPresets.useQuery();
+  const createPresetMutation = trpc.savedSettings.createNewFilterPreset.useMutation();
+  const updatePresetMutation = trpc.savedSettings.updateSavedFilterPreset.useMutation();
+  const deleteSavedFilterPresetMutation = trpc.savedSettings.deleteSavedFilterPreset.useMutation();
+  const updateCurrentPreset = trpc.savedSettings.updateSavedFilterPreset.useMutation();
+
+  const handleUpdateCurrentPreset = (presetId: string) => {
+    const currentSettings = {
+      id: presetId,
+      presetName: userPresets.find(preset => preset.id === presetId)?.name || '',
+      timeframe: timeframe.filter_window,
+      sort_by: sorting.sort_by,
+      sort_order: sorting.sort_order,
+      price_min: filters.price_min || undefined,
+      price_max: filters.price_max || undefined,
+      liquidity_min: filters.liquidity_min || undefined,
+      liquidity_max: filters.liquidity_max || undefined,
+      market_cap_min: filters.market_cap_min || undefined,
+      market_cap_max: filters.market_cap_max || undefined,
+      pct_change_min: filters.pct_change_min || undefined,
+      pct_change_max: filters.pct_change_max || undefined,
+      volume_min: filters.volume_min || undefined,
+      volume_max: filters.volume_max || undefined,
+      buys_min: filters.buys_min || undefined,
+      buys_max: filters.buys_max || undefined,
+      sells_min: filters.sells_min || undefined,
+      sells_max: filters.sells_max || undefined,
+      currency,
+      searchString,
+    };
+
+    updateCurrentPreset.mutate(currentSettings, {
+      onSuccess: (updatedPreset) => {
+        getFilterPresets.refetch();
+        setUserPresets(prevPresets =>
+          prevPresets.map(preset =>
+            preset.id === updatedPreset.id ? { ...preset, ...updatedPreset } : preset
+          )
+        );
+        // Optionally, show a success message
+        // showSuccessMessage('Preset updated successfully');
+      },
+      onError: (error) => {
+        // Handle any errors, maybe show an error message
+        console.error('Failed to update preset:', error);
+        // showErrorMessage('Failed to update preset');
+      }
+    });
+  };
+
+  const handleDelete = (presetId: string) => {
+    deleteSavedFilterPresetMutation.mutate(
+      { id: presetId },
+      {
+        onSuccess: () => {
+          setUserPresets(userPresets.filter(preset => preset.id !== presetId));
+        },
+      }
+    );
+  };
+
+  useEffect(() => {
+    if (getFilterPresets.data) {
+      setUserPresets(getFilterPresets.data.map(preset => ({ id: preset.id, name: preset.presetName })));
+    }
+  }, [getFilterPresets.isFetched]);
+
+  const handlePresetSelect = (presetId: string) => {
+    const selectedPreset = getFilterPresets.data?.find(preset => preset.id === presetId);
+    console.log(selectedPreset)
+    if (selectedPreset) {
+      setFilters(Object.entries({
+        price_min: selectedPreset.price_min,
+        price_max: selectedPreset.price_max,
+        liquidity_min: selectedPreset.liquidity_min,
+        liquidity_max: selectedPreset.liquidity_max,
+        market_cap_min: selectedPreset.market_cap_min,
+        market_cap_max: selectedPreset.market_cap_max,
+        pct_change_min: selectedPreset.pct_change_min,
+        pct_change_max: selectedPreset.pct_change_max,
+        volume_min: selectedPreset.volume_min,
+        volume_max: selectedPreset.volume_max,
+        buys_min: selectedPreset.buys_min,
+        buys_max: selectedPreset.buys_max,
+        sells_min: selectedPreset.sells_min,
+        sells_max: selectedPreset.sells_max
+      }).reduce((acc, [key, value]) => {
+        if (value != null) {
+          acc[key as keyof IFilters] = value;
+        }
+        return acc;
+      }, {} as IFilters));
+      setSorting({ sort_by: selectedPreset.sort_by || 'Volume', sort_order: selectedPreset.sort_order === "Asc" ? selectedPreset.sort_order : 'Desc' });
+      setTimeframe({ filter_window: selectedPreset.timeframe as "Hour" | "Day" | "Week" | "Month" });
+      setCurrency(selectedPreset.currency as Currencies || 'USD');
+      setSearchString(selectedPreset.searchString || '');
+    }
+  };
+
+  const handleSaveCurrent = () => {
+    const newPreset = {
+      presetName: `Preset ${userPresets.length + 1}`,
+      ...filters,
+      ...sorting,
+      timeframe: timeframe.filter_window,
+      currency,
+      searchString,
+    };
+    createPresetMutation.mutate(newPreset, {
+      onSuccess: (data) => {
+        setUserPresets([...userPresets, { id: data.id, name: data.presetName }]);
+        setCurrentSelectedPreset(data.id)
+        getFilterPresets.refetch()
+      },
+    });
+  };
+
+  const handleRename = (presetId: string, newName: string) => {
+    updatePresetMutation.mutate(
+      { id: presetId, presetName: newName, timeframe: timeframe.filter_window },
+      {
+        onSuccess: () => {
+          setUserPresets(userPresets.map(preset =>
+            preset.id === presetId ? { ...preset, name: newName } : preset
+          ));
+        },
+      }
+    );
+  };
+  ///////////////////////
+  // END FILTERS STUFF //
+  ///////////////////////
 
   const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
     if (value !== null) {
@@ -217,7 +358,7 @@ const Tokens: FC = () => {
     }
   }, [currency])
 
-  const numberFilters = Math.round(Object.keys(filters).length / 2)
+  const numberFilters = Math.round(Object.keys(filters).length)
 
   const formatPercent = (pct: number) => {
     return (
@@ -281,7 +422,19 @@ const Tokens: FC = () => {
     <Container>
       <Box sx={{ mb: 2, display: 'flex', flexDirection: upLg ? 'row' : 'column', gap: 2 }}>
         <Box>
-          <Grid container alignItems="center" spacing={2} justifyContent="space-between">
+          <Grid container alignItems="center" spacing={2} justifyContent={{ xs: "center", md: "space-between" }}>
+            <Grid xs="auto">
+              <PresetDropdown
+                presets={userPresets}
+                onPresetSelect={handlePresetSelect}
+                onSaveCurrent={handleSaveCurrent}
+                onRename={handleRename}
+                onDelete={handleDelete}
+                onUpdateCurrent={handleUpdateCurrentPreset}
+                currentSelectedPreset={currentSelectedPreset}
+                setCurrentSelectedPreset={setCurrentSelectedPreset}
+              />
+            </Grid>
             <Grid xs="auto">
               <TokenSort sorting={sorting} setSorting={setSorting} />
             </Grid>

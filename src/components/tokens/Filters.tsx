@@ -61,7 +61,14 @@ const TokenFilterOptions: FC<ITokenFilterProps> = ({ filters, setFilters, open, 
 
   const handleChangeFilters = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setInputValues(prev => ({ ...prev, [name]: value }));
+    setInputValues(prev => {
+      if (value === '') {
+        const newState = { ...prev };
+        delete newState[name];
+        return newState;
+      }
+      else return { ...prev, [name]: value }
+    });
   };
 
   useEffect(() => {
@@ -71,7 +78,7 @@ const TokenFilterOptions: FC<ITokenFilterProps> = ({ filters, setFilters, open, 
         return acc;
       }, {} as Record<string, string>)
     setInputValues(initInputValues)
-  }, [])
+  }, [filters])
 
   return (
     <Dialog open={open} onClose={() => setOpen(false)}>
@@ -120,8 +127,8 @@ const Filter: FC<{
     const handleClear = () => {
       setInputValues(prev => {
         const newState = { ...prev };
-        delete newState[variableName + 'Min'];
-        delete newState[variableName + 'Max'];
+        delete newState[`${variableName}_min`];
+        delete newState[`${variableName}_max`];
         return newState;
       });
     }

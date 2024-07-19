@@ -67,6 +67,7 @@ model User {
   reports            Report[]
   notifications      Notification[]
   mobileVerification MobileVerification[]
+  filterPreset       FilterPreset[]
 
   @@map("users")
 }
@@ -296,4 +297,37 @@ model MobileVerification {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("mobile_verification")
+}
+
+model FilterPreset {
+  id String @id @default(cuid())
+
+  presetName     String  @map("preset_name")
+  timeframe      String
+  sort_by        String?
+  sort_order     String?
+  price_min      String?
+  price_max      String?
+  liquidity_min  String?
+  liquidity_max  String?
+  market_cap_min String?
+  market_cap_max String?
+  pct_change_min String?
+  pct_change_max String?
+  volume_min     String?
+  volume_max     String?
+  buys_min       Int?
+  buys_max       Int?
+  sells_min      Int?
+  sells_max      Int?
+  currency       String?
+  searchString   String? @map("search_string")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("filter_preset")
 }

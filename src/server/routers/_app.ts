@@ -4,6 +4,7 @@ import { authRouter } from "./auth";
 import { chartsRouter } from "./charts";
 import { notificationRouter } from "./notification";
 import { portfolioRouter } from "./portfolio";
+import { savedSettingsRouter } from "./savedSettings";
 import { subscriptionRouter } from "./subscription";
 import { transactionRouter } from "./transaction";
 import { userRouter } from "./user";
@@ -23,7 +24,8 @@ export const appRouter = createTRPCRouter({
   accounting: accountingRouter,
   notification: notificationRouter,
   verify: verifyRouter,
-  transaction: transactionRouter
+  transaction: transactionRouter,
+  savedSettings: savedSettingsRouter
 });
 
 // export type definition of API
