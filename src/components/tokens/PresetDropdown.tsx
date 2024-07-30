@@ -13,11 +13,14 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  useTheme,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useWallet } from '@contexts/WalletContext';
+import { useRouter } from 'next/router';
 
 interface PresetDropdownProps {
   presets: { id: string; name: string }[];
@@ -44,9 +47,14 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({
   const [editingPreset, setEditingPreset] = useState<{ id: string; name: string } | null>(null);
   const [newPresetName, setNewPresetName] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
+  const [editingOpen, setEditingOpen] = useState(false)
+  const { sessionData, sessionStatus, setNotSubscribedNotifyDialogOpen } = useWallet();
+  const isSubscriber = sessionData?.user.privilegeLevel === "BASIC" || sessionData?.user.privilegeLevel === "PRO" || sessionData?.user.privilegeLevel === "ADMIN";
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
+    if (isSubscriber) {
+      setAnchorEl(event.currentTarget);
+    } else setNotSubscribedNotifyDialogOpen(true)
   };
 
   const handleClose = () => {
@@ -62,6 +70,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({
   const handleEditClick = (event: React.MouseEvent, preset: { id: string; name: string }) => {
     event.stopPropagation();
     setEditingPreset(preset);
+    setEditingOpen(true)
     setNewPresetName(preset.name);
   };
 
@@ -78,8 +87,9 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({
   const handleRenameSubmit = () => {
     if (editingPreset) {
       onRename(editingPreset.id, newPresetName);
-      setEditingPreset(null);
     }
+    setEditingOpen(false)
+    setEditingPreset(null);
   };
 
   const handleDeleteConfirm = () => {
@@ -89,15 +99,62 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({
     }
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      handleRenameSubmit();
+      setEditingOpen(false)
+    }
+  };
+
+  const theme = useTheme()
+
   return (
     <>
       <Button
-        endIcon={<ExpandMoreIcon />}
         onClick={handleClick}
         variant="outlined"
         size="small"
+        disabled={sessionStatus === "loading"}
+        sx={{
+          width: '110px',
+          justifyContent: 'space-between',
+          '& .MuiButton-endIcon': {
+            marginLeft: 'auto',
+          },
+          '& .MuiSvgIcon-root': {
+            fontSize: '1.25rem',
+            marginLeft: '4px',
+          },
+          '& .default-text, & .hover-text': {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%'
+          },
+          '& .default-text': {
+            display: 'flex',
+          },
+          '& .hover-text': {
+            display: 'none',
+          },
+          ...(!isSubscriber && {
+            '&:hover': {
+              color: theme.palette.getContrastText('#7bd1be'),
+              background: '#7bd1be!important',
+              borderColor: '#7bd1be!important',
+              '& .default-text': {
+                display: 'none',
+              },
+              '& .hover-text': {
+                display: 'flex',
+              },
+            },
+          }),
+        }}
       >
-        Presets
+        <span className="default-text"><Box>Presets</Box><ExpandMoreIcon /></span>
+        <span className="hover-text">Get premium</span>
       </Button>
       <Menu
         anchorEl={anchorEl}
@@ -143,7 +200,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({
           <ListItemText primary="Save current settings" />
         </MenuItem>
       </Menu>
-      <Dialog open={Boolean(editingPreset)} onClose={() => setEditingPreset(null)}>
+      <Dialog open={editingOpen} onClose={() => setEditingOpen(false)}>
         <DialogTitle>Rename Preset</DialogTitle>
         <DialogContent>
           <TextField
@@ -154,10 +211,11 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({
             fullWidth
             value={newPresetName}
             onChange={(e) => setNewPresetName(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditingPreset(null)}>Cancel</Button>
+          <Button onClick={() => setEditingOpen(false)}>Cancel</Button>
           <Button onClick={handleRenameSubmit}>Save</Button>
         </DialogActions>
       </Dialog>

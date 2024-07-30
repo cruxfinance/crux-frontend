@@ -13,7 +13,10 @@ import {
   CircularProgress,
   IconButton,
   InputBase,
-  TextField
+  TextField,
+  Checkbox,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2';
 import TokenSort from '@components/tokens/TokenSort'
@@ -29,6 +32,11 @@ import SearchIcon from '@mui/icons-material/Search';
 import YoutubeSearchedForIcon from '@mui/icons-material/YoutubeSearchedFor';
 import { trpc } from '@lib/trpc';
 import PresetDropdown from '@components/tokens/PresetDropdown';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import StarIcon from '@mui/icons-material/Star';
+import StarToggle from '@components/StarToggle';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import { useWallet } from '@contexts/WalletContext';
 
 
 const Tokens: FC = () => {
@@ -46,6 +54,9 @@ const Tokens: FC = () => {
   const [view, inView] = useInView({
     threshold: 0,
   });
+
+  const { sessionData, setNotSubscribedNotifyDialogOpen } = useWallet();
+  const isSubscriber = sessionData?.user.privilegeLevel === "BASIC" || sessionData?.user.privilegeLevel === "PRO" || sessionData?.user.privilegeLevel === "ADMIN";
 
   /////////////////////////
   // START FILTERS STUFF //
@@ -191,6 +202,51 @@ const Tokens: FC = () => {
   // END FILTERS STUFF //
   ///////////////////////
 
+  //////////////////////////
+  // STARRED TOKENS STUFF //
+  //////////////////////////
+
+  const starredTokensQuery = trpc.starredTokens.getStarredTokens.useQuery();
+  const updateStarredTokensMutation = trpc.starredTokens.updateStarredTokens.useMutation();
+
+  const [starredTokens, setStarredTokens] = useState<string[]>([]);
+  const [showOnlyStarred, setShowOnlyStarred] = useState(false);
+
+  console.log(starredTokens)
+  console.log(showOnlyStarred)
+
+  useEffect(() => {
+    if (starredTokensQuery.data) {
+      setStarredTokens(starredTokensQuery.data);
+    }
+  }, [starredTokensQuery.data]);
+
+  const toggleStarredToken = (tokenId: string) => {
+    const newStarredTokens = starredTokens.includes(tokenId)
+      ? starredTokens.filter(id => id !== tokenId)
+      : [...starredTokens, tokenId];
+
+    setStarredTokens(newStarredTokens);
+
+    updateStarredTokensMutation.mutate(newStarredTokens, {
+      onError: (error: any) => {
+        console.error('Failed to update starred tokens:', error);
+        // Revert the local state change
+        setStarredTokens(starredTokensQuery.data || []);
+        // Optionally show an error message to the user
+      }
+    });
+  };
+
+
+  const handlePremiumClick = () => {
+    setNotSubscribedNotifyDialogOpen(true)
+  }
+
+  //////////////////////////////
+  // END STARRED TOKENS STUFF //
+  //////////////////////////////
+
   const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
     if (value !== null) {
       setCurrency(value);
@@ -209,7 +265,8 @@ const Tokens: FC = () => {
     sorting: ISorting,
     queries: IQueries,
     timeframe: ITimeframe,
-    inputtedSearchString: string
+    inputtedSearchString: string,
+    starredOnly: boolean
   ) {
     setLoading(true);
     try {
@@ -221,7 +278,8 @@ const Tokens: FC = () => {
         ...sorting,
         ...queries,
         ...timeframe,
-        "name_filter": inputtedSearchString
+        "name_filter": inputtedSearchString,
+        "token_filter": starredOnly ? starredTokens : undefined
       };
       // console.log(payload);
       const response = await fetch(endpoint, {
@@ -320,9 +378,9 @@ const Tokens: FC = () => {
         }
       })
       setFilteredTokens([])
-      await fetchTokenData(filters, sorting, { ...queries, offset: 0 }, timeframe, searchString);
+      await fetchTokenData(filters, sorting, { ...queries, offset: 0 }, timeframe, searchString, showOnlyStarred);
     }
-    else fetchTokenData(filters, sorting, queries, timeframe, searchString);
+    else fetchTokenData(filters, sorting, queries, timeframe, searchString, showOnlyStarred);
   };
 
   // // page-load
@@ -341,7 +399,7 @@ const Tokens: FC = () => {
       // console.log('fetching filters or sorting or timeframe')
       fetchData(true);
     }
-  }, [filters, sorting, timeframe]);
+  }, [filters, sorting, timeframe, showOnlyStarred]);
 
   // grab the next 20 items as the user scrolls to the bottom
   useEffect(() => {
@@ -423,6 +481,59 @@ const Tokens: FC = () => {
       <Box sx={{ mb: 2, display: 'flex', flexDirection: upLg ? 'row' : 'column', gap: 2 }}>
         <Box>
           <Grid container alignItems="center" spacing={2} justifyContent={{ xs: "center", md: "space-between" }}>
+            <Grid xs="auto">
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                '& .default-text, & .hover-text': {
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  width: '100%'
+                },
+                '& .default-text': {
+                  display: 'flex',
+                },
+                '& .hover-text': {
+                  display: 'none',
+                },
+                ...(!isSubscriber && {
+                  '&:hover': {
+                    color: theme.palette.getContrastText('#7bd1be'),
+                    background: '#7bd1be!important',
+                    borderRadius: '6px',
+                    borderColor: '#7bd1be!important',
+                    '& .default-text': {
+                      display: 'none',
+                    },
+                    '& .hover-text': {
+                      display: 'flex',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    },
+                  },
+                }),
+              }}>
+                <span className="default-text">
+                  <StarToggle
+                    checked={showOnlyStarred}
+                    onChange={(e) => {
+                      setShowOnlyStarred(e.target.checked);
+                      // fetchData(true);
+                    }}
+                    disabled={initialLoading}
+                  />
+                </span>
+                <Box component="span" className="hover-text" onClick={handlePremiumClick}>
+                  <Button onClick={handlePremiumClick} size="small" sx={{ width: '36px', minWidth: '36px', height: '36px', color: theme.palette.getContrastText('#7bd1be') }}>
+                    <LockOpenIcon color="inherit" />
+                  </Button>
+                </Box>
+              </Box>
+            </Grid>
             <Grid xs="auto">
               <PresetDropdown
                 presets={userPresets}
@@ -607,6 +718,21 @@ const Tokens: FC = () => {
                               <Grid container spacing={2} alignItems="center">
                                 <Grid xs={3}>
                                   <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
+                                    <Box>
+                                      <Checkbox
+                                        sx={{
+                                          '&:hover': { bgcolor: 'transparent' },
+                                        }}
+                                        disableRipple
+                                        icon={<StarBorderIcon />}
+                                        checkedIcon={<StarIcon />}
+                                        checked={starredTokens.includes(token.tokenId)}
+                                        onClick={(e) => {
+                                          e.stopPropagation(); // Stop the event from bubbling up
+                                        }}
+                                        onChange={() => toggleStarredToken(token.tokenId)}
+                                      />
+                                    </Box>
                                     <Box sx={{ display: 'flex' }}>
                                       <Avatar src={token.icon} sx={{ width: '48px', height: '48px' }} />
                                     </Box>
@@ -614,9 +740,9 @@ const Tokens: FC = () => {
                                       <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {token.name}
                                       </Typography>
-                                      <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {/* <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {token.ticker.toUpperCase()}
-                                      </Typography>
+                                      </Typography> */}
                                     </Box>
                                   </Box>
                                 </Grid>

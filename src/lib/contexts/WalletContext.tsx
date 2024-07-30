@@ -17,9 +17,11 @@ interface WalletState {
     name: string;
     addresses: string[];
   };
+  addWalletModalOpen: boolean;
   sessionData: Session | null;
   sessionStatus: "loading" | "authenticated" | "unauthenticated";
   providerLoading: boolean;
+  notSubscribedNotifyDialogOpen: boolean;
 }
 
 interface WalletContextType extends WalletState {
@@ -35,6 +37,8 @@ interface WalletContextType extends WalletState {
   >;
   setProviderLoading: React.Dispatch<React.SetStateAction<boolean>>;
   fetchSessionData: Function;
+  setAddWalletModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setNotSubscribedNotifyDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 interface WalletConsumerProps {
@@ -57,6 +61,8 @@ const WalletProvider: FunctionComponent<{ children: ReactNode }> = ({
     useState<WalletState["sessionData"]>(null);
   const [sessionStatus, setSessionStatus] =
     useState<WalletState["sessionStatus"]>("unauthenticated");
+  const [addWalletModalOpen, setAddWalletModalOpen] = useState<boolean>(false);
+  const [notSubscribedNotifyDialogOpen, setNotSubscribedNotifyDialogOpen] = useState<boolean>(false);
 
   const fetchSessionData = useCallback(async () => {
     setProviderLoading(true);
@@ -95,6 +101,10 @@ const WalletProvider: FunctionComponent<{ children: ReactNode }> = ({
     fetchSessionData,
     providerLoading,
     setProviderLoading,
+    addWalletModalOpen,
+    setAddWalletModalOpen,
+    notSubscribedNotifyDialogOpen,
+    setNotSubscribedNotifyDialogOpen
   };
 
   return (

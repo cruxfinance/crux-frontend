@@ -54,6 +54,7 @@ model User {
   nonce              String?
   image              String?
   email              String?
+  starredTokens      String[]             @default([])
   privilegeLevel     UserPrivilegeLevel   @default(DEFAULT) @map("privilege_level")
   accounts           Account[]
   sessions           Session[]

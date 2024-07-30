@@ -16,6 +16,7 @@ import { ScrollLockProvider } from "@contexts/ScrollLockContext";
 import RefreshAccessLevel from "@components/user/RefreshAccessLevel";
 import { AlertProvider } from "@lib/contexts/AlertContext";
 import AlertComponent from "@components/Alert";
+import NotSubscribedNotifyDialog from "@components/dialogs/NotSubscribedNotifyDialog";
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
@@ -38,7 +39,6 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
             <AlertProvider>
               <WalletProvider>
                 <ScrollLockProvider>
-                  <AlertComponent />
                   {isNoLayoutPage ? (
                     <Component {...pageProps} />
                   ) : (
@@ -46,6 +46,8 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
                       <Component {...pageProps} />
                     </Layout>
                   )}
+                  <AlertComponent />
+                  <NotSubscribedNotifyDialog />
                 </ScrollLockProvider>
                 <RefreshAccessLevel />
               </WalletProvider>

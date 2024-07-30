@@ -28,7 +28,6 @@ interface IUserMenuProps { }
 const UserMenu: FC<IUserMenuProps> = () => {
   const theme = useTheme();
   const router = useRouter();
-  const [modalOpen, setModalOpen] = useState(false);
   const [addWalletModal, setAddWalletModal] = useState(false);
   const {
     wallet,
@@ -37,6 +36,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
     sessionStatus,
     providerLoading,
     setProviderLoading,
+    addWalletModalOpen,
+    setAddWalletModalOpen,
   } = useWallet();
 
   const { lockScroll, unlockScroll } = useScrollLock();
@@ -132,7 +133,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
       {/* {dappConnected ? 'connected to dapp' : 'not connected to dapp'} */}
       {(sessionStatus === "unauthenticated" || sessionStatus === "loading") && (
         <Button
-          onClick={() => setModalOpen(true)}
+          onClick={() => setAddWalletModalOpen(true)}
           variant="contained"
           disabled={providerLoading}
           sx={{ my: "5px" }}
@@ -255,8 +256,8 @@ const UserMenu: FC<IUserMenuProps> = () => {
         </>
       )}
       <SignIn
-        open={modalOpen}
-        setOpen={setModalOpen}
+        open={addWalletModalOpen}
+        setOpen={setAddWalletModalOpen}
         setLoading={setProviderLoading}
       // setDappConnected={setDappConnected}
       // connectDapp={dappConnection}

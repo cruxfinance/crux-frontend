@@ -16,6 +16,8 @@ import Link from "../Link";
 import BouncingDotsLoader from "../DotLoader";
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CloseIcon from '@mui/icons-material/Close';
+import { useWallet } from "@contexts/WalletContext";
+import { useRouter } from "next/router";
 
 export interface PropsType {
   currency: Currencies;
@@ -55,6 +57,10 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
   const limit = 40;
   const [highlightedItems, setHighlightedItems] = useState<{ [id: number]: number }>({});
   const [filterAddresses, setFilterAddresses] = useState<string[]>([])
+  const router = useRouter()
+  const { sessionData, sessionStatus, setNotSubscribedNotifyDialogOpen } = useWallet();
+  const isSubscriber = sessionData?.user.privilegeLevel === "BASIC" || sessionData?.user.privilegeLevel === "PRO" || sessionData?.user.privilegeLevel === "ADMIN";
+  const isLoggedIn = sessionStatus === "authenticated";
 
   const [view, inView] = useInView({
     threshold: 0,
@@ -83,6 +89,7 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
     setLoading(true);
     try {
       const endpoint =
+
         `${process.env.CRUX_API}/dex/order_history?token_id=${tokenId}&offset=${currentOffset}&limit=${limit}${addresses && addresses.length > 0 ? `&addresses=${addresses.map((item, i) => i === addresses.length - 1 ? item : `${item},`)}` : ''}`;
       // console.log('Fetching trade history from endpoint:', endpoint);
 
@@ -245,14 +252,23 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
   };
 
   const filterByMaker = (maker: string) => {
-    if (filterAddresses.length > 0) {
-      setFilterAddresses([])
-      reset()
+    if (isSubscriber) {
+      if (filterAddresses.length > 0) {
+        setFilterAddresses([])
+        reset()
+      }
+      else {
+        setFilterAddresses([maker])
+        reset([maker])
+      }
     }
     else {
-      setFilterAddresses([maker])
-      reset([maker])
+      setNotSubscribedNotifyDialogOpen(true)
     }
+  }
+
+  const handlePremiumClick = () => {
+    setNotSubscribedNotifyDialogOpen(true)
   }
 
   return (
@@ -339,52 +355,89 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                       </Typography>
                     </Grid>
                     <Grid xs={2}>
-                      <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-                        <Typography sx={{ color: itemColor }}>
-                          <Link
-                            href={`https://explorer.ergoplatform.com/en/addresses/${item.maker_address}`}
+                      <Box sx={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        '& .default-text, & .hover-text': {
+                          display: 'flex',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          width: '100%'
+                        },
+                        '& .default-text': {
+                          display: 'flex',
+                        },
+                        '& .hover-text': {
+                          display: 'none',
+                        },
+                        ...(!isSubscriber && {
+                          '&:hover': {
+                            color: theme.palette.getContrastText('#7bd1be'),
+                            background: '#7bd1be!important',
+                            borderRadius: '6px',
+                            borderColor: '#7bd1be!important',
+                            '& .default-text': {
+                              display: 'none',
+                            },
+                            '& .hover-text': {
+                              display: 'flex',
+                              justifyContent: 'center',
+                              cursor: 'pointer'
+                            },
+                          },
+                        }),
+                      }}>
+                        <span className="default-text">
+                          <Typography sx={{ color: itemColor }}>
+                            <Link
+                              href={`https://explorer.ergoplatform.com/en/addresses/${item.maker_address}`}
+                              sx={{
+                                color: '#7bd1be',
+                                '&:hover': {
+                                  textDecoration: 'underline'
+                                }
+                              }}
+                            >
+                              {getShorterAddress(item.maker_address)}
+                            </Link>
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            color="inherit"
+                            onClick={() => filterByMaker(item.maker_address)}
                             sx={{
-                              color: '#7bd1be',
-                              '&:hover': {
-                                textDecoration: 'underline'
-                              }
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '3px',
+                              background: theme.palette.background.paper,
+                              border: `1px solid #3B5959`,
+                              ml: 1,
+                              minWidth: '0!important',
+                              p: 0
                             }}
                           >
-                            {getShorterAddress(item.maker_address)}
-                          </Link>
-                        </Typography>
-                        <Button
-                          variant="outlined"
-                          color="inherit"
-                          onClick={() => filterByMaker(item.maker_address)}
-                          sx={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '3px',
-                            background: theme.palette.background.paper,
-                            border: `1px solid #3B5959`,
-                            ml: 1,
-                            minWidth: '0!important',
-                            p: 0
-                          }}
-                        >
-                          {filterAddresses.length > 0
-                            ? <CloseIcon
-                              sx={{
-                                width: '20px',
-                                height: '20px',
-                                color: "#7bd1be"
-                              }}
-                            />
-                            : <FilterListIcon
-                              sx={{
-                                width: '20px',
-                                height: '20px',
-                                color: "#7bd1be"
-                              }}
-                            />
-                          }
-                        </Button>
+                            {filterAddresses.length > 0
+                              ? <CloseIcon
+                                sx={{
+                                  width: '20px',
+                                  height: '20px',
+                                  color: "#7bd1be"
+                                }}
+                              />
+                              : <FilterListIcon
+                                sx={{
+                                  width: '20px',
+                                  height: '20px',
+                                  color: "#7bd1be"
+                                }}
+                              />
+                            }
+                          </Button>
+                        </span>
+                        <Box component="span" className="hover-text" onClick={handlePremiumClick}>Get premium</Box>
                       </Box>
                     </Grid>
                   </Grid>
@@ -470,7 +523,13 @@ const TradeHistory: FC<PropsType> = ({ currency, tradingPair, tokenId, tokenTick
                       </Typography>
                     </Grid>
                     <Grid xs={2}>
-                      <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <Box sx={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                      }}
+                      >
                         <Typography sx={{ color: itemColor }}>
                           <Link
                             href={`https://explorer.ergoplatform.com/en/addresses/${item.maker_address}`}
