@@ -42,7 +42,14 @@ const TokenSort: FC<ITokenSortProps> = ({ sx, sorting, setSorting }) => {
             onChange={handleSortSelection}
             aria-label="Select sorting item"
             size="small"
-            sx={{ height: '38px', borderRadius: '4px 0 0 4px' }}
+            sx={{
+              height: '38px',
+              borderRadius: '4px 0 0 4px',
+              width: '180px',  // Adjust this value as needed
+              '& .MuiSelect-select': {
+                paddingRight: '32px',  // Make room for the dropdown icon
+              }
+            }}
           >
             <MenuItem value={"Price"}>Price</MenuItem>
             <MenuItem value={"Liquidity"}>Liquidity</MenuItem>

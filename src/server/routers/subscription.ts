@@ -2,7 +2,7 @@ import {
   addPaymentInstrumentBalance,
   createPaymentInstrument,
   findPaymentInstruments,
-  getPaymentInstrument,
+  getPaymentInstrument
 } from "@server/services/subscription/paymentInstrument";
 import {
   createSubscription,
@@ -96,6 +96,7 @@ export const subscriptionRouter = createTRPCRouter({
         paymentInstrumentId: z.string(),
         address: z.string(),
         amount: z.number(),
+        txId: z.string()
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -111,6 +112,7 @@ export const subscriptionRouter = createTRPCRouter({
         paymentInstrumentId: paymentInstrumentId,
         address: input.address,
         amount: input.amount,
+        txId: input.txId,
       });
       return result;
     }),

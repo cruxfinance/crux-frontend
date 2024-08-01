@@ -22,6 +22,7 @@ export const AlertProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const addAlert = (type: Alert['type'], message: Alert['message']) => {
     const id = nanoid();
     setAlerts((prevAlerts) => [...prevAlerts, { id, type, message }]);
+    setTimeout(() => removeAlert(id), 6000);
   };
 
   const removeAlert = (id: string) => {

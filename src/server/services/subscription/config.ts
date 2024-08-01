@@ -30,8 +30,8 @@ export const SUBSCRIPTION_CONFIG: SubscriptionConfig[] = [
     subscriptionPeriodMonths: 1,
     allowedPriviledgeLevel: UserPrivilegeLevel.BASIC,
     description: "Basic subscription plan charged monthly.",
-    amountUSD: 1.99,
-    discountedAmountUSD: 1.99,
+    amountUSD: 10.00,
+    discountedAmountUSD: 10.00,
     allowedTokenIds: [ERG_CONFIG],
   },
   {
@@ -41,8 +41,8 @@ export const SUBSCRIPTION_CONFIG: SubscriptionConfig[] = [
     allowedPriviledgeLevel: UserPrivilegeLevel.BASIC,
     description:
       "Basic subscription plan charged monthly. Special disounted rate for using CRUX tokens.",
-    amountUSD: 1.99,
-    discountedAmountUSD: 1.49,
+    amountUSD: 10.00,
+    discountedAmountUSD: 7.00,
     allowedTokenIds: [
       {
         tokenId:

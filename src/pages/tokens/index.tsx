@@ -13,7 +13,10 @@ import {
   CircularProgress,
   IconButton,
   InputBase,
-  TextField
+  TextField,
+  Checkbox,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2';
 import TokenSort from '@components/tokens/TokenSort'
@@ -27,6 +30,13 @@ import BouncingDotsLoader from '@components/DotLoader';
 import { checkLocalIcon, getIconUrlFromServer } from '@lib/utils/icons';
 import SearchIcon from '@mui/icons-material/Search';
 import YoutubeSearchedForIcon from '@mui/icons-material/YoutubeSearchedFor';
+import { trpc } from '@lib/trpc';
+import PresetDropdown from '@components/tokens/PresetDropdown';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import StarIcon from '@mui/icons-material/Star';
+import StarToggle from '@components/StarToggle';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import { useWallet } from '@contexts/WalletContext';
 
 
 const Tokens: FC = () => {
@@ -34,13 +44,9 @@ const Tokens: FC = () => {
   const router = useRouter()
   const upLg = useMediaQuery(theme.breakpoints.up('lg'))
   const [loading, setLoading] = useState(false)
-  const [currency, setCurrency] = useState<Currencies>('USD')
   const [ergExchange, setErgExchange] = useState(1)
   const [filteredTokens, setFilteredTokens] = useState<ITokenData[]>([])
-  const [filters, setFilters] = useState<IFilters>({})
-  const [sorting, setSorting] = useState<ISorting>({ sort_by: 'Volume', sort_order: 'Desc' })
   const [queries, setQueries] = useState<IQueries>({ limit: 20, offset: 0 });
-  const [timeframe, setTimeframe] = useState<ITimeframe>({ filter_window: 'Day' });
   const [filterModalOpen, setFilterModalOpen] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [noMore, setNoMore] = useState(false)
@@ -48,7 +54,198 @@ const Tokens: FC = () => {
   const [view, inView] = useInView({
     threshold: 0,
   });
+
+  const { sessionData, setNotSubscribedNotifyDialogOpen } = useWallet();
+  const isSubscriber = sessionData?.user.privilegeLevel === "BASIC" || sessionData?.user.privilegeLevel === "PRO" || sessionData?.user.privilegeLevel === "ADMIN";
+
+  /////////////////////////
+  // START FILTERS STUFF //
+  /////////////////////////
+  const [currency, setCurrency] = useState<Currencies>('USD')
+  const [timeframe, setTimeframe] = useState<ITimeframe>({ filter_window: 'Day' });
+  const [filters, setFilters] = useState<IFilters>({})
+  const [sorting, setSorting] = useState<ISorting>({ sort_by: 'Volume', sort_order: 'Desc' })
   const [searchString, setSearchString] = useState('')
+  const [userPresets, setUserPresets] = useState<{ id: string; name: string }[]>([]);
+  const [currentSelectedPreset, setCurrentSelectedPreset] = useState<string | null>(null);
+
+  const getFilterPresets = trpc.savedSettings.getUsersFilterPresets.useQuery();
+  const createPresetMutation = trpc.savedSettings.createNewFilterPreset.useMutation();
+  const updatePresetMutation = trpc.savedSettings.updateSavedFilterPreset.useMutation();
+  const deleteSavedFilterPresetMutation = trpc.savedSettings.deleteSavedFilterPreset.useMutation();
+  const updateCurrentPreset = trpc.savedSettings.updateSavedFilterPreset.useMutation();
+
+  const handleUpdateCurrentPreset = (presetId: string) => {
+    const currentSettings = {
+      id: presetId,
+      presetName: userPresets.find(preset => preset.id === presetId)?.name || '',
+      timeframe: timeframe.filter_window,
+      sort_by: sorting.sort_by,
+      sort_order: sorting.sort_order,
+      price_min: filters.price_min || undefined,
+      price_max: filters.price_max || undefined,
+      liquidity_min: filters.liquidity_min || undefined,
+      liquidity_max: filters.liquidity_max || undefined,
+      market_cap_min: filters.market_cap_min || undefined,
+      market_cap_max: filters.market_cap_max || undefined,
+      pct_change_min: filters.pct_change_min || undefined,
+      pct_change_max: filters.pct_change_max || undefined,
+      volume_min: filters.volume_min || undefined,
+      volume_max: filters.volume_max || undefined,
+      buys_min: filters.buys_min || undefined,
+      buys_max: filters.buys_max || undefined,
+      sells_min: filters.sells_min || undefined,
+      sells_max: filters.sells_max || undefined,
+      currency,
+      searchString,
+    };
+
+    updateCurrentPreset.mutate(currentSettings, {
+      onSuccess: (updatedPreset) => {
+        getFilterPresets.refetch();
+        setUserPresets(prevPresets =>
+          prevPresets.map(preset =>
+            preset.id === updatedPreset.id ? { ...preset, ...updatedPreset } : preset
+          )
+        );
+        // Optionally, show a success message
+        // showSuccessMessage('Preset updated successfully');
+      },
+      onError: (error) => {
+        // Handle any errors, maybe show an error message
+        console.error('Failed to update preset:', error);
+        // showErrorMessage('Failed to update preset');
+      }
+    });
+  };
+
+  const handleDelete = (presetId: string) => {
+    deleteSavedFilterPresetMutation.mutate(
+      { id: presetId },
+      {
+        onSuccess: () => {
+          setUserPresets(userPresets.filter(preset => preset.id !== presetId));
+        },
+      }
+    );
+  };
+
+  useEffect(() => {
+    if (getFilterPresets.data) {
+      setUserPresets(getFilterPresets.data.map(preset => ({ id: preset.id, name: preset.presetName })));
+    }
+  }, [getFilterPresets.isFetched]);
+
+  const handlePresetSelect = (presetId: string) => {
+    const selectedPreset = getFilterPresets.data?.find(preset => preset.id === presetId);
+    console.log(selectedPreset)
+    if (selectedPreset) {
+      setFilters(Object.entries({
+        price_min: selectedPreset.price_min,
+        price_max: selectedPreset.price_max,
+        liquidity_min: selectedPreset.liquidity_min,
+        liquidity_max: selectedPreset.liquidity_max,
+        market_cap_min: selectedPreset.market_cap_min,
+        market_cap_max: selectedPreset.market_cap_max,
+        pct_change_min: selectedPreset.pct_change_min,
+        pct_change_max: selectedPreset.pct_change_max,
+        volume_min: selectedPreset.volume_min,
+        volume_max: selectedPreset.volume_max,
+        buys_min: selectedPreset.buys_min,
+        buys_max: selectedPreset.buys_max,
+        sells_min: selectedPreset.sells_min,
+        sells_max: selectedPreset.sells_max
+      }).reduce((acc, [key, value]) => {
+        if (value != null) {
+          acc[key as keyof IFilters] = value;
+        }
+        return acc;
+      }, {} as IFilters));
+      setSorting({ sort_by: selectedPreset.sort_by || 'Volume', sort_order: selectedPreset.sort_order === "Asc" ? selectedPreset.sort_order : 'Desc' });
+      setTimeframe({ filter_window: selectedPreset.timeframe as "Hour" | "Day" | "Week" | "Month" });
+      setCurrency(selectedPreset.currency as Currencies || 'USD');
+      setSearchString(selectedPreset.searchString || '');
+    }
+  };
+
+  const handleSaveCurrent = () => {
+    const newPreset = {
+      presetName: `Preset ${userPresets.length + 1}`,
+      ...filters,
+      ...sorting,
+      timeframe: timeframe.filter_window,
+      currency,
+      searchString,
+    };
+    createPresetMutation.mutate(newPreset, {
+      onSuccess: (data) => {
+        setUserPresets([...userPresets, { id: data.id, name: data.presetName }]);
+        setCurrentSelectedPreset(data.id)
+        getFilterPresets.refetch()
+      },
+    });
+  };
+
+  const handleRename = (presetId: string, newName: string) => {
+    updatePresetMutation.mutate(
+      { id: presetId, presetName: newName, timeframe: timeframe.filter_window },
+      {
+        onSuccess: () => {
+          setUserPresets(userPresets.map(preset =>
+            preset.id === presetId ? { ...preset, name: newName } : preset
+          ));
+        },
+      }
+    );
+  };
+  ///////////////////////
+  // END FILTERS STUFF //
+  ///////////////////////
+
+  //////////////////////////
+  // STARRED TOKENS STUFF //
+  //////////////////////////
+
+  const starredTokensQuery = trpc.starredTokens.getStarredTokens.useQuery();
+  const updateStarredTokensMutation = trpc.starredTokens.updateStarredTokens.useMutation();
+
+  const [starredTokens, setStarredTokens] = useState<string[]>([]);
+  const [showOnlyStarred, setShowOnlyStarred] = useState(false);
+
+  console.log(starredTokens)
+  console.log(showOnlyStarred)
+
+  useEffect(() => {
+    if (starredTokensQuery.data) {
+      setStarredTokens(starredTokensQuery.data);
+    }
+  }, [starredTokensQuery.data]);
+
+  const toggleStarredToken = (tokenId: string) => {
+    const newStarredTokens = starredTokens.includes(tokenId)
+      ? starredTokens.filter(id => id !== tokenId)
+      : [...starredTokens, tokenId];
+
+    setStarredTokens(newStarredTokens);
+
+    updateStarredTokensMutation.mutate(newStarredTokens, {
+      onError: (error: any) => {
+        console.error('Failed to update starred tokens:', error);
+        // Revert the local state change
+        setStarredTokens(starredTokensQuery.data || []);
+        // Optionally show an error message to the user
+      }
+    });
+  };
+
+
+  const handlePremiumClick = () => {
+    setNotSubscribedNotifyDialogOpen(true)
+  }
+
+  //////////////////////////////
+  // END STARRED TOKENS STUFF //
+  //////////////////////////////
 
   const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
     if (value !== null) {
@@ -68,7 +265,8 @@ const Tokens: FC = () => {
     sorting: ISorting,
     queries: IQueries,
     timeframe: ITimeframe,
-    inputtedSearchString: string
+    inputtedSearchString: string,
+    starredOnly: boolean
   ) {
     setLoading(true);
     try {
@@ -80,7 +278,8 @@ const Tokens: FC = () => {
         ...sorting,
         ...queries,
         ...timeframe,
-        "name_filter": inputtedSearchString
+        "name_filter": inputtedSearchString,
+        "token_filter": starredOnly ? starredTokens : undefined
       };
       // console.log(payload);
       const response = await fetch(endpoint, {
@@ -179,9 +378,9 @@ const Tokens: FC = () => {
         }
       })
       setFilteredTokens([])
-      await fetchTokenData(filters, sorting, { ...queries, offset: 0 }, timeframe, searchString);
+      await fetchTokenData(filters, sorting, { ...queries, offset: 0 }, timeframe, searchString, showOnlyStarred);
     }
-    else fetchTokenData(filters, sorting, queries, timeframe, searchString);
+    else fetchTokenData(filters, sorting, queries, timeframe, searchString, showOnlyStarred);
   };
 
   // // page-load
@@ -200,7 +399,7 @@ const Tokens: FC = () => {
       // console.log('fetching filters or sorting or timeframe')
       fetchData(true);
     }
-  }, [filters, sorting, timeframe]);
+  }, [filters, sorting, timeframe, showOnlyStarred]);
 
   // grab the next 20 items as the user scrolls to the bottom
   useEffect(() => {
@@ -217,7 +416,7 @@ const Tokens: FC = () => {
     }
   }, [currency])
 
-  const numberFilters = Math.round(Object.keys(filters).length / 2)
+  const numberFilters = Math.round(Object.keys(filters).length)
 
   const formatPercent = (pct: number) => {
     return (
@@ -281,7 +480,72 @@ const Tokens: FC = () => {
     <Container>
       <Box sx={{ mb: 2, display: 'flex', flexDirection: upLg ? 'row' : 'column', gap: 2 }}>
         <Box>
-          <Grid container alignItems="center" spacing={2} justifyContent="space-between">
+          <Grid container alignItems="center" spacing={2} justifyContent={{ xs: "center", md: "space-between" }}>
+            <Grid xs="auto">
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                '& .default-text, & .hover-text': {
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  width: '100%'
+                },
+                '& .default-text': {
+                  display: 'flex',
+                },
+                '& .hover-text': {
+                  display: 'none',
+                },
+                ...(!isSubscriber && {
+                  '&:hover': {
+                    color: theme.palette.getContrastText('#7bd1be'),
+                    background: '#7bd1be!important',
+                    borderRadius: '6px',
+                    borderColor: '#7bd1be!important',
+                    '& .default-text': {
+                      display: 'none',
+                    },
+                    '& .hover-text': {
+                      display: 'flex',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    },
+                  },
+                }),
+              }}>
+                <span className="default-text">
+                  <StarToggle
+                    checked={showOnlyStarred}
+                    onChange={(e) => {
+                      setShowOnlyStarred(e.target.checked);
+                      // fetchData(true);
+                    }}
+                    disabled={initialLoading}
+                  />
+                </span>
+                <Box component="span" className="hover-text" onClick={handlePremiumClick}>
+                  <Button onClick={handlePremiumClick} size="small" sx={{ width: '36px', minWidth: '36px', height: '36px', color: theme.palette.getContrastText('#7bd1be') }}>
+                    <LockOpenIcon color="inherit" />
+                  </Button>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid xs="auto">
+              <PresetDropdown
+                presets={userPresets}
+                onPresetSelect={handlePresetSelect}
+                onSaveCurrent={handleSaveCurrent}
+                onRename={handleRename}
+                onDelete={handleDelete}
+                onUpdateCurrent={handleUpdateCurrentPreset}
+                currentSelectedPreset={currentSelectedPreset}
+                setCurrentSelectedPreset={setCurrentSelectedPreset}
+              />
+            </Grid>
             <Grid xs="auto">
               <TokenSort sorting={sorting} setSorting={setSorting} />
             </Grid>
@@ -454,6 +718,21 @@ const Tokens: FC = () => {
                               <Grid container spacing={2} alignItems="center">
                                 <Grid xs={3}>
                                   <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, ml: 1 }}>
+                                    <Box>
+                                      <Checkbox
+                                        sx={{
+                                          '&:hover': { bgcolor: 'transparent' },
+                                        }}
+                                        disableRipple
+                                        icon={<StarBorderIcon />}
+                                        checkedIcon={<StarIcon />}
+                                        checked={starredTokens.includes(token.tokenId)}
+                                        onClick={(e) => {
+                                          e.stopPropagation(); // Stop the event from bubbling up
+                                        }}
+                                        onChange={() => toggleStarredToken(token.tokenId)}
+                                      />
+                                    </Box>
                                     <Box sx={{ display: 'flex' }}>
                                       <Avatar src={token.icon} sx={{ width: '48px', height: '48px' }} />
                                     </Box>
@@ -461,9 +740,9 @@ const Tokens: FC = () => {
                                       <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {token.name}
                                       </Typography>
-                                      <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {/* <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {token.ticker.toUpperCase()}
-                                      </Typography>
+                                      </Typography> */}
                                     </Box>
                                   </Box>
                                 </Grid>

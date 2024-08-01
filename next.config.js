@@ -8,12 +8,7 @@ const nextConfig = {
     ERGONODE_API: process.env.ERGONODE_API,
     ERGOPAY_DOMAIN: process.env.ERGOPAY_DOMAIN,
     AUTH_DOMAIN: process.env.AUTH_DOMAIN,
-    ADMIN_ADDRESS: process.env.ADMIN_ADDRESS,
-    AMAZON_ACCESS_KEY: process.env.AMAZON_ACCESS_KEY,
-    AMAZON_SECRET_KEY: process.env.AMAZON_SECRET_KEY,
-    AMAZON_REGION: process.env.AMAZON_REGION,
-    CRUX_PUBLIC_BUCKET: process.env.CRUX_PUBLIC_BUCKET,
-    CRUX_REPORTS_BUCKET: process.env.CRUX_REPORTS_BUCKET,
+    ADMIN_ADDRESS: process.env.ADMIN_ADDRESS
   },
   swcMinify: true,
   // webpack: function (config, options) {

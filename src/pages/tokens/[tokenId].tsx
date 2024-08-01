@@ -232,7 +232,13 @@ const TokenInfo: FC = () => {
               </Paper>
               {upLg && (
                 <Paper variant="outlined" sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
-                  <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
+                  <TradeHistory
+                    currency={currency}
+                    tokenId={tokenId}
+                    tradingPair={tradingPair ? tradingPair : 'ERG'}
+                    tokenTicker={tokenInfo.ticker}
+                    exchangeRate={exchangeRate}
+                  />
                 </Paper>
               )}
             </Box>
@@ -247,14 +253,20 @@ const TokenInfo: FC = () => {
             )}
           </Box>
           {!upLg && (
-            <Paper sx={{ p: 2, width: '100%', position: 'relative' }} id="history">
-              <TradeHistory currency={currency} tokenId={tokenId} tradingPair={tradingPair ? tradingPair : 'ERG'} tokenTicker={tokenInfo.ticker} />
+            <Paper sx={{ p: 2, width: '100%', position: 'relative', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 100px)' }} id="history">
+              <TradeHistory
+                currency={currency}
+                tokenId={tokenId}
+                tradingPair={tradingPair ? tradingPair : 'ERG'}
+                tokenTicker={tokenInfo.ticker}
+                exchangeRate={exchangeRate}
+              />
             </Paper>
           )}
         </>
       )}
       {!upSm && (
-        <Paper variant="outlined" sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 11500 }} elevation={3}>
+        <Paper variant="outlined" sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 11500 }}>
           <BottomNavigation
             showLabels
             value={navigation}

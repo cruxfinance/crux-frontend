@@ -31,15 +31,15 @@ export const uploadFile = async (fileName: string, data: string) => {
           "base64"
         ),
         ContentEncoding: "base64",
-        ContentType: `image/${type}`,
-        ACL: "public-read",
+        ContentType: `image/${type}`
       })
     );
     return {
       fileUrl: `https://${S3_BUCKET}.s3.${AMAZON_REGION}.amazonaws.com/${fileName}`,
     };
-  } catch (e) {
-    throw new Error("Failed to upload to S3");
+  } catch (e: any) {
+    console.error("Error uploading file to S3:", e.message);
+    throw e;
   }
 };
 
@@ -54,8 +54,8 @@ export const generateDownloadLink = async (fileName: string) => {
   try {
     const url = await getSignedUrl(client, command, { expiresIn: urlExpiry });
     return url;
-  } catch (error) {
-    console.error("Error generating download link:", error);
-    throw new Error("Failed to generate download link");
+  } catch (error: any) {
+    console.error("Error generating download link:", error.message);
+    throw error
   }
 };
