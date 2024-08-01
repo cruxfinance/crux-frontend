@@ -240,7 +240,7 @@ const Home: NextPage = () => {
                     maxWidth: "750px",
                   }}
                 >
-                  Feature rich DeFi tools for the Ergo Ecosystem
+                  Feature rich DeFi tools and portfolio review
                 </Typography>
               </Box>
               <Box>
@@ -250,7 +250,7 @@ const Home: NextPage = () => {
                   paragraph
                   sx={{ maxWidth: "720px", mb: 5 }}
                 >
-                  Track your portolio and interact with eUTXO DeFi in one place.
+                  Track your portolio and interact with DeFi in one place.
                   Set alerts, place orders, monitor P&L, and even print tax
                   reports.
                 </Typography>
@@ -262,7 +262,7 @@ const Home: NextPage = () => {
                 spacing={4}
                 justifyContent="center"
               >
-                <Button
+                {/* <Button
                   variant="contained"
                   href="https://ergopad.io/projects/cruxfinance"
                   target="_blank"
@@ -275,7 +275,7 @@ const Home: NextPage = () => {
                   }}
                 >
                   IDO Info
-                </Button>
+                </Button> */}
                 <Button
                   variant="outlined"
                   href="https://docs.cruxfinance.io"
@@ -311,7 +311,7 @@ const Home: NextPage = () => {
               gutterBottom
               sx={{ textAlign: "center" }}
             >
-              Platform Features
+              Planned Platform Features
             </Typography>
           </Grid>
           <Grid item md={1}></Grid>
@@ -330,10 +330,19 @@ const Home: NextPage = () => {
           )
         })} */}
         <MemoizedFeatureList features={features} />
+        <BlobTokenomics
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: -2,
+          }}
+        />
       </Container>
       {/* END features */}
 
-      {/* Roadmap */}
+      {/* Roadmap 
       <Container sx={{ mb: 24, position: "relative" }} id="roadmap">
         <BlobTokenomics
           sx={{
@@ -365,7 +374,7 @@ const Home: NextPage = () => {
         </Grow>
       </Container>
 
-      {/* Tokenomics */}
+      {/* Tokenomics 
       <Container
         sx={{ mb: 12, position: "relative", display: "block" }}
         id="tokenomics"
@@ -393,8 +402,8 @@ const Home: NextPage = () => {
             </Typography>
           </Grid>
           <Grid item md={3}></Grid>
-        </Grid>
-        {/* <Box sx={{
+        </Grid> */}
+      {/* <Box sx={{
             p: 2,
             background: 'linear-gradient(106deg, rgba(56.42, 56.81, 62.69, 0.45) 0%, rgba(73.63, 74.14, 81.81, 0.33) 100%)',
             boxShadow: '3px 3px 9px rgba(0, 0, 0, 0.50)',
@@ -412,7 +421,7 @@ const Home: NextPage = () => {
               wordWrap: 'break-word'
             }}>Test Glass</Box>
           </Box> */}
-        {/* <Feature
+      {/* <Feature
           {...{
             title: 'Overview',
             content: <Typography variant="subtitle1">
@@ -423,7 +432,7 @@ const Home: NextPage = () => {
             index: 0,
             aspect: '878 / 566'
           }} /> */}
-        <Box
+      {/* <Box
           sx={{
             display: "flex",
             flexDirection: "column",
@@ -453,7 +462,7 @@ const Home: NextPage = () => {
           </Grid>
           <Grid item md={1}></Grid>
         </Grid>
-      </Container>
+      </Container>*/}
     </>
   );
 };
