@@ -201,7 +201,7 @@ const PayReportDialog: FC<IPayReportDialogProps> = ({
       setPaymentWalletType(walletType)
       const amount = prices.discountedPrice / tokenInfo.data.priceInUsd
 
-      const numberTokens = Math.floor(amount * Math.pow(10, tokenDetails.decimals))
+      const numberTokens = Math.round(amount * Math.pow(10, tokenDetails.decimals))
       setOrder([{
         tokenId: tokenDetails.id,
         amount: numberTokens
