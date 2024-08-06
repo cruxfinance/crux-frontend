@@ -104,13 +104,12 @@ const PayPaymentInstrumentDialog: FC<IPayPaymentInstrumentDialogProps> = ({
     trpc.subscription.addPaymentInstrumentBalance.useMutation();
 
   const handleSubmitTx = async (txId: string) => {
-    const addBalanceResponse = await addBalanceMutation.mutateAsync({
+    await addBalanceMutation.mutateAsync({
       address: addBalance.address,
       paymentInstrumentId: paymentInstrument.id,
-      amount: Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals),
+      amount: Math.round(Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals)),
       txId
     });
-    console.log(addBalanceResponse)
   }
 
   const [order, setOrder] = useState<TransferAmount[]>([])
@@ -123,7 +122,7 @@ const PayPaymentInstrumentDialog: FC<IPayPaymentInstrumentDialogProps> = ({
 
     setPaymentWalletType(walletType)
 
-    const numberTokens = Math.floor(Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals))
+    const numberTokens = Math.round(Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals))
     setOrder([{
       tokenId: tokenDetails.id,
       amount: numberTokens
