@@ -681,19 +681,3 @@ const flattenTokenAmountsFromWrappedTokens = (
   }
   return amounts;
 };
-
-const testPortfolios = [
-  {
-    name: 'portfolio 1',
-    addresses: [
-      '9hgTSczegZZ6uyeGPJjTutG75E5H2uZ3RK6FYJZEYV1L41woeA5',
-      '9gDRYMhFwz2FjAcyYxgSqbwTmRzbkkx6vMujcRPLJWuxWd57q1S'
-    ]
-  },
-  {
-    name: 'Only Dry',
-    addresses: [
-      '9gDRYMhFwz2FjAcyYxgSqbwTmRzbkkx6vMujcRPLJWuxWd57q1S'
-    ]
-  }
-]
