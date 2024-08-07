@@ -11,14 +11,15 @@ import {
 import Grid from '@mui/system/Unstable_Grid/Grid';
 import { resolveIpfs } from '@lib/utils/assetsNew';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import { INftItem } from './NftList';
 
-interface INftList {
+interface IFungibleCollectablesList {
   tokenList: INftItem[];
   boxHeight: string;
   setBoxHeight: React.Dispatch<React.SetStateAction<string>>
 }
 
-const NftList: FC<INftList> = ({ tokenList, boxHeight }) => {
+const FungibleCollectablesList: FC<IFungibleCollectablesList> = ({ tokenList, boxHeight }) => {
   const theme = useTheme()
 
   return (
@@ -27,7 +28,7 @@ const NftList: FC<INftList> = ({ tokenList, boxHeight }) => {
         <Grid xs>
           <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
             <Typography variant="h6" sx={{ mr: 2 }}>
-              NFTs
+              Fungible Collectibles
             </Typography>
             <IconButton
               sx={{
@@ -102,4 +103,4 @@ const NftList: FC<INftList> = ({ tokenList, boxHeight }) => {
   );
 };
 
-export default NftList;
+export default FungibleCollectablesList;

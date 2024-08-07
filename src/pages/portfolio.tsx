@@ -2,30 +2,35 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Paper,
-  Divider,
-  CircularProgress,
+  // Divider,
+  // CircularProgress,
   Button,
   useMediaQuery,
   useTheme,
-  TextField
+  TextField,
+  Typography,
+  Container
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import Balance from "@components/portfolio/Balance";
+// import Balance from "@components/portfolio/Balance";
 import { IPieToken } from "@components/charts/PieChart";
 import TokenSummary from "@components/portfolio/TokenSummary";
-import NftList from "@components/portfolio/NftList";
+// import NftList from "@components/portfolio/NftList";
 import { tokenListInfo } from "../lib/utils/assetsNew";
-import { INftItem } from "@components/portfolio/NftList";
-import ValueLocked from "@components/portfolio/ValueLocked";
-import { Currencies } from "../lib/utils/currencies";
+// import ValueLocked from "@components/portfolio/ValueLocked";
 import { adjustDecimals } from "../lib/utils/general";
 import HistoricValues from "@components/portfolio/HistoricValues";
 import StakedPositions from "@components/portfolio/positions/StakedPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";
-import { useSession } from "next-auth/react";
+// import { useSession } from "next-auth/react";
 import Positions from "@components/portfolio/positions/Positions";
 import { WalletProvider, useWallet } from "@lib/contexts/WalletContext";
-import { useScrollLock } from "@contexts/ScrollLockContext";
+// import { useScrollLock } from "@contexts/ScrollLockContext";
+import { currencies, Currencies } from '@lib/utils/currencies';
+// import FungibleCollectablesList from "@components/portfolio/FungibleCollectablesList";
+import Collectibles from "@components/portfolio/Collectibles";
+import CurrencyButton from "@components/CurrencyButton";
+
 
 export interface IExtendedToken extends IPieToken {
   tokenId: string;
@@ -59,12 +64,13 @@ const Portfolio = () => {
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
   const { sessionStatus, sessionData } = useWallet()
-  const [boxHeight, setBoxHeight] = useState("auto");
+  const [boxHeight, setBoxHeight] = useState("500px");
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({
     tokenSummary: true,
   });
   const [currency, setCurrency] = useState<Currencies>("ERG");
   const [filteredNfts, setFilteredNfts] = useState<INftItem[]>([]);
+  const [filteredFts, setFilteredFts] = useState<INftItem[]>([]);
   const [totalValue, setTotalValue] = useState<number>(0);
   const [sortedFilteredTokensList, setSortedFilteredTokensList] = useState<
     IReducedToken[]
@@ -199,6 +205,10 @@ const Portfolio = () => {
       (item) => calculateWrappedTokensValue(item) > 0
     );
 
+    const collectablesList = data.filter(
+      (item) => calculateWrappedTokensValue(item) === 0
+    );
+
     // This is meant to adjust token amounts with correct decimals
     // It also gathers the over-all value of any tokens which contained locked value in wrapped tokens
     const transformAmounts: IReducedToken[] = mainList.map((item, i) => {
@@ -305,21 +315,21 @@ const Portfolio = () => {
     );
     setSortedFilteredTokensList(sortedTokens);
 
+    const assetInfo = await fetchAssetInfo(collectablesList.map(item => item.token_id))
+
     // filter NFTs out for their processing
-    const list = data
-      .filter((item) => item.minted === 1)
-      .map((item, i) => {
-        return {
-          name: item.token_name,
-          link: "/tokens/" + item.token_id,
-          tokenId: item.token_id,
-          qty:
-            item.decimals !== 0
-              ? item.token_amount / Math.pow(10, item.decimals)
-              : item.token_amount,
-          loading: true,
-        };
-      });
+    const list = collectablesList.map((item, i) => {
+      return {
+        name: item.token_name,
+        link: "/tokens/" + item.token_id,
+        tokenId: item.token_id,
+        qty:
+          item.decimals !== 0
+            ? item.token_amount / Math.pow(10, item.decimals)
+            : item.token_amount,
+        loading: true,
+      };
+    });
     setFilteredNfts(list);
 
     const fetchDataChunk = async (chunk: any) => {
@@ -341,10 +351,32 @@ const Portfolio = () => {
       await fetchDataChunk(chunk);
     }
 
+
     localStorage.setItem(
       "crux_portfolio_address_list",
       JSON.stringify(thisAddressList)
     );
+  };
+
+  const fetchAssetInfo = async (
+    tokenIds: string[]
+  ): Promise<AssetInfoV2Item[]> => {
+    try {
+      const endpoint = `${process.env.CRUX_API}/crux/asset_info_v2`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify(tokenIds),
+      });
+
+      const data: AssetInfoV2Item[] = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching token data:", error);
+      return [];
+    }
   };
 
   const [isLoading, setIsLoading] = useState(true)
@@ -360,27 +392,131 @@ const Portfolio = () => {
     setAddressList(addresses);
   };
 
+  const [apy, setApy] = useState(0)
+
   return (
-    <>
-      <Box sx={{ mx: 2, position: 'relative' }}>
-        <Grid container sx={{ mb: 2 }} spacing={2} alignItems="center">
-          <Grid xs>
-            <TextField
-              id="wallet-addresses"
-              variant="filled"
-              value={addressList}
-              onChange={handleChangeAddressList}
-              fullWidth
-              placeholder="Any number of wallet addresses, separated by commas"
-            />
-          </Grid>
-          <Grid xs="auto">
-            <Button variant="contained" onClick={() => fetchData(addressList.split(",").map((address) => address.trim()))}>
-              Submit
-            </Button>
-          </Grid>
+    <Container>
+      <Grid
+        container
+        sx={{ mb: 1 }}
+        spacing={2}
+        alignItems="center"
+      >
+        <Grid xs>
+          <TextField
+            id="wallet-addresses"
+            variant="filled"
+            value={addressList}
+            onChange={handleChangeAddressList}
+            fullWidth
+            placeholder="Any number of wallet addresses, separated by commas"
+          />
         </Grid>
-        <Grid
+        <Grid xs="auto">
+          <Button variant="contained" onClick={() => fetchData(addressList.split(",").map((address) => address.trim()))}>
+            Submit
+          </Button>
+        </Grid>
+        <Grid>
+          <CurrencyButton currency={currency} setCurrency={setCurrency} />
+        </Grid>
+      </Grid>
+      <Grid
+        container
+        alignItems="stretch"
+        spacing={2}
+        sx={{ position: "relative", mb: 1 }}
+      >
+        <Grid xs={6} sm={3}>
+          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", flexDirection: "column", display: "flex", alignItems: "center" }}>
+            <Typography>
+              Value
+            </Typography>
+            <Typography variant="h5">
+              {currencies[currency]}{Number((currency === 'ERG' ? totalValue : totalValue * exchangeRate).toFixed(2)).toLocaleString()}
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid xs={6} sm={3}>
+          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
+            <Typography>
+              P+L Total
+            </Typography>
+            <Typography variant="h5">
+              -
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid xs={6} sm={3}>
+          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
+            <Typography>
+              24 Hour Change
+            </Typography>
+            <Typography variant="h5">
+              -
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid xs={6} sm={3}>
+          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
+            <Typography>
+              TVL
+            </Typography>
+            <Typography variant="h5">
+              {currencies[currency]}{Number((currency === 'ERG' ? totalValueLocked : totalValueLocked * exchangeRate).toFixed(2)).toLocaleString()}
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", height: "100%" }}>
+            <TokenSummary
+              totalValue={totalValue}
+              tokenList={sortedFilteredTokensList}
+              currency={currency}
+              boxHeight={boxHeight}
+              setBoxHeight={setBoxHeight}
+              setLoading={setLoading}
+              exchangeRate={exchangeRate}
+            />
+          </Paper>
+        </Grid>
+        <Grid xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative" }}>
+            <HistoricValues
+              tokenList={sortedFilteredTokensList}
+              totalValue={totalValue}
+              currency={currency}
+              exchangeRate={exchangeRate}
+            />
+          </Paper>
+        </Grid>
+        <Grid xs={12}>
+          <Collectibles
+            tokenList={filteredNfts}
+          />
+        </Grid>
+        {/* <Grid xs={12} md={4}>
+          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative" }}>
+            <ValueLocked
+              currency={currency}
+              exchangeRate={exchangeRate}
+              tokenList={sortedFilteredTokensList}
+              boxHeight={boxHeight}
+            />
+          </Paper>
+        </Grid>
+        <Grid xs={12} md={4}>
+          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative" }}>
+            <FungibleCollectablesList
+              tokenList={filteredFts}
+              boxHeight={boxHeight}
+              setBoxHeight={setBoxHeight}
+            />
+          </Paper>
+        </Grid> */}
+      </Grid>
+
+      {/* <Grid
           container
           alignItems="stretch"
           spacing={3}
@@ -463,30 +599,30 @@ const Portfolio = () => {
               />
             </Paper>
           </Grid>
-        </Grid>
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <Positions
-          currency={currency}
-          setCurrency={setCurrency}
-          addressList={submittedAddressList}
-        />
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <StakedPositions
-          currency={currency}
-          setCurrency={setCurrency}
-          addressList={submittedAddressList}
-        />
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <LiquidityPositions
-          currency={currency}
-          setCurrency={setCurrency}
-          addressList={submittedAddressList}
-        />
-      </Box>
-    </>
+        </Grid> */}
+
+
+      <Positions
+        currency={currency}
+        setCurrency={setCurrency}
+        addressList={submittedAddressList}
+      />
+
+
+      <StakedPositions
+        currency={currency}
+        setCurrency={setCurrency}
+        addressList={submittedAddressList}
+      />
+
+
+      <LiquidityPositions
+        currency={currency}
+        setCurrency={setCurrency}
+        addressList={submittedAddressList}
+      />
+
+    </Container>
   );
 };
 
@@ -545,3 +681,19 @@ const flattenTokenAmountsFromWrappedTokens = (
   }
   return amounts;
 };
+
+const testPortfolios = [
+  {
+    name: 'portfolio 1',
+    addresses: [
+      '9hgTSczegZZ6uyeGPJjTutG75E5H2uZ3RK6FYJZEYV1L41woeA5',
+      '9gDRYMhFwz2FjAcyYxgSqbwTmRzbkkx6vMujcRPLJWuxWd57q1S'
+    ]
+  },
+  {
+    name: 'Only Dry',
+    addresses: [
+      '9gDRYMhFwz2FjAcyYxgSqbwTmRzbkkx6vMujcRPLJWuxWd57q1S'
+    ]
+  }
+]

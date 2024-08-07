@@ -47,18 +47,18 @@ const TokenSummary: FC<ITokenSummary> = ({
   const pieChartRef = useRef<HTMLElement | null>(null);
   const currencySymbol = currencies[currency];
 
-  useEffect(() => {
-    if (pieChartRef.current) {
-      const height = pieChartRef.current.offsetHeight;
-      setBoxHeight(`${height}px`);
-      setLoading((prev) => {
-        return {
-          ...prev,
-          tokenSummary: false,
-        };
-      });
-    }
-  }, [pieChartRef]);
+  // useEffect(() => {
+  //   if (pieChartRef.current) {
+  //     const height = pieChartRef.current.offsetHeight;
+  //     setBoxHeight(`${height}px`);
+  //     setLoading((prev) => {
+  //       return {
+  //         ...prev,
+  //         tokenSummary: false,
+  //       };
+  //     });
+  //   }
+  // }, [pieChartRef]);
 
   useEffect(() => {
     const aggregatedTokens: IReducedToken[] = tokenList.reduce(
@@ -123,7 +123,7 @@ const TokenSummary: FC<ITokenSummary> = ({
         <Grid>{tokenList.length + " "} Currencies</Grid>
       </Grid>
 
-      <Grid container spacing={4} direction={{ xs: "column", md: "row" }}>
+      <Grid container spacing={4} alignItems="center" direction={{ xs: "column", md: "row" }}>
         <Grid>
           <Box ref={pieChartRef} sx={{ textAlign: "center" }}>
             <PieChart
@@ -139,14 +139,14 @@ const TokenSummary: FC<ITokenSummary> = ({
           </Box>
         </Grid>
         <Grid xs>
-          <Box sx={{ overflowY: "auto", height: boxHeight, mr: -2, pr: 2 }}>
+          <Box sx={{ overflowY: "auto", height: "400px", mr: -2, pr: 2 }}>
             {combinedTokensList.map((item, i) => {
               const thisName =
                 item.amount *
                   (currency === "ERG"
                     ? item.value
                     : item.value * exchangeRate) <
-                (currency === "ERG" ? totalValue : totalValue * exchangeRate) *
+                  (currency === "ERG" ? totalValue : totalValue * exchangeRate) *
                   0.01
                   ? "small values"
                   : item.name;
@@ -184,7 +184,7 @@ const TokenSummary: FC<ITokenSummary> = ({
                       src={
                         "icons/tokens/" +
                         (item.wrappedTokenIds &&
-                        (item.wrappedTokenIds as string[]).length > 0
+                          (item.wrappedTokenIds as string[]).length > 0
                           ? item.wrappedTokenIds[0]
                           : item.tokenId) +
                         ".svg"
@@ -198,12 +198,12 @@ const TokenSummary: FC<ITokenSummary> = ({
                         fontWeight: 700,
                         color:
                           thisActive &&
-                          colors[i] !== undefined &&
-                          thisName !== "small values"
+                            colors[i] !== undefined &&
+                            thisName !== "small values"
                             ? colors[i]
                             : thisName === "small values" && thisActive
-                            ? colors[colors.length - 1]
-                            : theme.palette.text.primary,
+                              ? colors[colors.length - 1]
+                              : theme.palette.text.primary,
                       }}
                     >
                       {item.name}
@@ -236,8 +236,8 @@ const TokenSummary: FC<ITokenSummary> = ({
                               item.pctChange < 0
                                 ? theme.palette.down.main
                                 : item.pctChange > 0
-                                ? theme.palette.up.main
-                                : theme.palette.text.secondary,
+                                  ? theme.palette.up.main
+                                  : theme.palette.text.secondary,
                             fontSize: "14px !important",
                           }}
                         >
