@@ -178,3 +178,62 @@ interface AllowedToken {
   icon: string | null;
   decimals: number;
 }
+
+interface AssetInfoV2Item {
+  name: string;
+  description: string;
+  decimals: number;
+  minted: number;
+  hash: string;
+  link: string;
+  royalties: Royalty[];
+  properties?: {
+    Edition?: string;
+    Rarity?: string;
+    Bracket?: string;
+    Artist?: string;
+    "Card Number"?: string;
+    Faction?: string;
+    Set?: string;
+    "OG Burn Value"?: string;
+    [key: string]: string | undefined;
+  };
+  levels?: Record<string, unknown>;
+  stats?: Record<string, unknown>;
+  collection?: string;
+  additional_info?: {
+    explicit: string;
+    [key: string]: unknown;
+  };
+}
+
+interface Royalty {
+  address: string;
+  percentage: number;
+}
+
+interface INftItem {
+  imgUrl?: string;
+  link: string;
+  name: string;
+  tokenId: string;
+  qty?: number;
+  price?: number;
+  currency?: string;
+  rarity?: string;
+  artist?: string;
+  artistLink?: string;
+  collection?: string;
+  collectionLink?: string;
+  explicit?: boolean;
+  type?: string;
+  loading?: boolean;
+  remainingVest?: number;
+}
+
+type IActiveToken = {
+  symbol: string;
+  amount: number;
+  value: number;
+  color: string;
+} | null

@@ -73,11 +73,11 @@ const HistoricValues: FC<IHistoricValues> = ({ currency, exchangeRate, tokenList
           </ToggleButtonGroup>
         </Grid>
       </Grid>
-      <Box sx={{ height: '600px', width: upSm ? '100%' : '100vw', ml: upSm ? 0 : -1, position: 'relative' }}>
+      <Box sx={{ height: '400px', width: upSm ? '100%' : '100vw', ml: upSm ? 0 : -1, position: 'relative' }}>
         <XyChart
           currency={currency}
           exchangeRate={exchangeRate}
-          height={600}
+          height={400}
           tokenList={tokenList}
           areaChart={areaChart === 'area' ? true : false} // false for line chart
           totalValue={totalValue}

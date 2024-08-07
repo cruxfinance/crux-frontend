@@ -145,7 +145,7 @@ const CruxTableScroll = <T extends Record<string, any>>({
         onMouseDown={onMouseDown}
         sx={{
           mb: 2,
-          mx: '16px',
+          // mx: '16px',
           // width: 'auto',
           boxSizing: 'border-box',
           minWidth: 'max-content',
@@ -237,10 +237,10 @@ const CruxTableScroll = <T extends Record<string, any>>({
                 '& > tr:last-child > td': {
                   borderBottom: 'none',
                   '&:first-of-type': {
-                    borderRadius: '0 0 0 16px',
+                    borderRadius: '0 0 0 8px',
                   },
                   '&:last-child': {
-                    borderRadius: '0 0 16px 0',
+                    borderRadius: '0 0 8px 0',
                   }
                 }
               }}>

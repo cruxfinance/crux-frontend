@@ -12,48 +12,14 @@ import Grid from '@mui/system/Unstable_Grid/Grid';
 import { resolveIpfs } from '@lib/utils/assetsNew';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 
-export interface INftItem {
-  imgUrl?: string;
-  link: string;
-  name: string;
-  tokenId: string;
-  qty?: number;
-  price?: number;
-  currency?: string;
-  rarity?: string;
-  artist?: string;
-  artistLink?: string;
-  collection?: string;
-  collectionLink?: string;
-  explicit?: boolean;
-  type?: string;
-  loading?: boolean;
-  remainingVest?: number;
-}
-
-export type IActiveToken = {
-  symbol: string;
-  amount: number;
-  value: number;
-  color: string;
-} | null
-
 interface INftList {
   tokenList: INftItem[];
   boxHeight: string;
   setBoxHeight: React.Dispatch<React.SetStateAction<string>>
 }
 
-const NftList: FC<INftList> = ({ tokenList, boxHeight, setBoxHeight }) => {
+const NftList: FC<INftList> = ({ tokenList, boxHeight }) => {
   const theme = useTheme()
-  const pieChartRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (pieChartRef.current) {
-      const height = pieChartRef.current.offsetHeight;
-      setBoxHeight(`${height}px`);
-    }
-  }, [pieChartRef]);
 
   return (
     <>
@@ -85,7 +51,7 @@ const NftList: FC<INftList> = ({ tokenList, boxHeight, setBoxHeight }) => {
           {tokenList.length + ' '} Tokens
         </Grid>
       </Grid>
-      <Box sx={{ overflowY: 'auto', height: boxHeight, mr: -2, pr: 2 }}>
+      <Box sx={{ overflowY: 'auto', height: { xs: '100%', lg: '400px' }, maxHeight: "400px", mr: -2, pr: 2 }}>
         {tokenList.map((item, i) => {
           return (
             <Box

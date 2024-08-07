@@ -104,7 +104,7 @@ const ValueLocked: FC<IValueLocked> = ({ currency, exchangeRate, tokenList, boxH
 
         </Grid>
       </Grid>
-      <Box sx={{ overflowY: 'auto', height: { xs: boxHeight, lg: '600px' }, mr: -2, pr: 2 }}>
+      <Box sx={{ overflowY: 'auto', height: { xs: '100%', lg: '400px' }, maxHeight: "400px", mr: -2, pr: 2 }}>
         {reducedTvlList.map((item, i) => {
           return (
             <Box key={`${i}-${item.name}-${item.type}`} sx={{ mb: 1 }}>
