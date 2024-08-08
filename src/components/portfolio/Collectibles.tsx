@@ -135,7 +135,7 @@ const Collectibles: FC<ICollectibles> = ({ tokenList }) => {
         <Box sx={{ overflowY: 'auto', height: { xs: '100%', lg: '400px' }, maxHeight: "400px", mr: -2, pr: 2 }}>
           <Grid container spacing={2}>
             {tokenList.map((item, i) => {
-              console.log(item)
+              // console.log(item)
               return (
                 <Grid
                   xs={view === 'small' ? 6 : view === 'large' ? 12 : 12}

@@ -120,66 +120,67 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
     const results = [];
 
     for (const token of tokens) {
-      if (token.wrappedTokenNames && token.wrappedTokenNames.length > 0) {
-        const fetchHistory = async (wrappedTokenName: string) => {
-          const tokenName = wrappedTokenName === 'erg' ? 'SigUSD' : wrappedTokenName;
+      console.log(`Processing token: ${token.name}, Amount: ${token.amount}`);
+
+      try {
+        const fetchTokenHistory = async (tokenName: string) => {
           const url = `${process.env.CRUX_API}/trading_view/history?symbol=${tokenName.toLowerCase()}&from=${from}&to=${Math.floor(new Date().getTime() / 1000)}&resolution=${resolution}&countback=${countback}`;
           const response = await fetch(url);
-          const data: TradingViewHistoryResponse = await response.json();
-
-          if (wrappedTokenName === 'erg') {
-            const transformedData = {
-              ...data,
-              c: data.c.map(item => {
-                return currency === 'ERG' ? 1 : 1 * exchangeRate
-              })
-            }
-            return transformedData
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-
-          if (currency !== 'ERG') {
-            const transformedData = {
-              ...data,
-              c: data.c.map(item => {
-                return item * exchangeRate
-              })
-            }
-            return transformedData
-          }
-
-          return data;
+          return await response.json() as TradingViewHistoryResponse;
         };
 
-        const wrappedHistories = await Promise.all(token.wrappedTokenNames.map((wrappedTokenName, idx) => {
-          return fetchHistory(wrappedTokenName);
-        }));
+        let tokenHistory: TradingViewHistoryResponse;
 
-        // const filterNoData = wrappedHistories.filter((item) => item.s !== "no_data")
-        // Once we have all wrapped histories, combine them to get one for the parent token
-        // combinedHistory = combineTradingViewResponsesWithWeights(wrappedHistories, token.wrappedTokenAmounts!);
+        if (token.wrappedTokenNames && token.wrappedTokenNames.length > 0) {
+          console.log(`${token.name} has wrapped tokens: ${token.wrappedTokenNames.join(', ')}`);
+          const wrappedHistories = await Promise.all(token.wrappedTokenNames.map(fetchTokenHistory));
+          const validHistories = wrappedHistories.filter(history => history && history.s !== 'no_data');
+          const validWeights = token.wrappedTokenAmounts!.filter((_, index) => wrappedHistories[index] && wrappedHistories[index].s !== 'no_data');
 
-        const pairs = wrappedHistories.map((history, index) => ({ history, weight: token.wrappedTokenAmounts![index] }));
-        const filteredPairs = pairs.filter(pair => pair.history.s !== "no_data");
-        const filteredHistories = filteredPairs.map(pair => pair.history);
-        const filteredWeights = filteredPairs.map(pair => pair.weight);
-        const combinedHistory = combineTradingViewResponsesWithWeights(filteredHistories, filteredWeights);
+          if (validHistories.length > 0) {
+            tokenHistory = combineTradingViewResponsesWithWeights(validHistories, validWeights);
+          } else {
+            console.log(`No valid wrapped histories for ${token.name}`);
+            continue;
+          }
+        } else {
+          tokenHistory = await fetchTokenHistory(token.name);
+        }
 
-        results.push({
-          ...token,
-          history: combinedHistory
-        });
-      } else {
-        const url = `${process.env.CRUX_API}/trading_view/history?symbol=${token.name.toLowerCase()}&from=${from}&to=${Math.floor(new Date().getTime() / 1000)}&resolution=${resolution}&countback=${countback}`;
-        const response = await fetch(url);
-        const tokenHistory: TradingViewHistoryResponse = await response.json();
+        console.log(`Token history for ${token.name}:`, tokenHistory);
 
-        results.push({
-          ...token,
-          history: tokenHistory
-        });
+        const isRelevant = isTokenValueRelevant(tokenHistory, token.amount, token.name);
+        console.log(`Is ${token.name} relevant? ${isRelevant}`);
+
+
+        if (isRelevant) {
+          results.push({
+            ...token,
+            history: tokenHistory
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to fetch history for ${token.name}:`, error);
       }
     }
     return results;
+  };
+
+  const isTokenValueRelevant = (history: TradingViewHistoryResponse, tokenAmount: number, tokenName: string): boolean => {
+    if (!history || !history.c || history.c.length === 0) {
+      console.log(`Invalid history data for ${tokenName}`);
+      return false;
+    }
+
+    const values = history.c.map(price => price * tokenAmount);
+
+    // Check if the token was ever worth more than 1 ERG
+    const maxValue = Math.max(...values);
+    console.log(`${tokenName} - Max value: ${maxValue} ERG, Token Amount: ${tokenAmount}, Max Price: ${Math.max(...history.c)}`);
+    return maxValue > 1;
   };
 
   // This function will combine histories with weights
@@ -233,33 +234,18 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true)
-        const aggregatedTokens: IReducedToken[] = tokenList.reduce((acc: IReducedToken[], token) => {
-          const existingToken = acc.find(t => t.name === token.name);
-          if (existingToken) {
-            existingToken.amount += token.amount;
-            const newWrapped = existingToken.wrappedTokenAmounts?.map((item, i) => {
-              return item += token.wrappedTokenAmounts![i]
-            })
-            existingToken.wrappedTokenAmounts = newWrapped
-          } else {
-            acc.push({ ...token });
-          }
+        setLoading(true);
+        const historyData = await getHistory(tokenList, from, resolution, 100);
+        console.log('Processed history data:', historyData);  // Log 8
 
-          return acc;
-        }, []);
-
-        const sortedAggregateTokens = aggregatedTokens.sort((a, b) =>
-          b.amount * b.value - a.amount * a.value
-        )
-        const historyData = await getHistory(sortedAggregateTokens, from, resolution, 100);
         const transformedData = transformedTokensData(historyData);
+        console.log('Transformed data:', transformedData);  // Log 9
 
         // Get all unique dates and fill missing values
         const allDates = getAllUniqueDates(transformedData);
         const filledData = fillMissingValues(transformedData, allDates);
+        console.log('Filled data:', filledData);  // Log 10
 
-        // Filter out series with max value less than 1% of total portfolio value
         const relevantData = filterRelevantSeries(filledData, totalValue);
 
         setTokenData(relevantData);
@@ -279,7 +265,7 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
     fetchData();
   }, [tokenList]);
 
-  if (error) return <div>Error: unable to load chart. Please contact support via Discord or Telegram. </div>;
+  if (error) return <div>{error}</div>;
 
   //config
   const dateScaleConfig = {

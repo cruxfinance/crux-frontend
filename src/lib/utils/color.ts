@@ -1,3 +1,5 @@
+import { Theme } from "@mui/material";
+
 type RGB = [number, number, number];
 
 function interpolateColor(color1: RGB, color2: RGB, factor: number): RGB {
@@ -41,3 +43,10 @@ export function generateGradient(steps: number): string[] {
   return gradientColors;
 }
 
+export const colorSwitch = (number: number, theme: Theme) => {
+  return number > 0
+    ? theme.palette.up.main
+    : number < 0
+      ? theme.palette.down.main
+      : theme.palette.text.secondary;
+};

@@ -9,7 +9,8 @@ import {
   useTheme,
   TextField,
   Typography,
-  Container
+  Container,
+  CircularProgress
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 // import Balance from "@components/portfolio/Balance";
@@ -18,7 +19,7 @@ import TokenSummary from "@components/portfolio/TokenSummary";
 // import NftList from "@components/portfolio/NftList";
 import { tokenListInfo } from "../lib/utils/assetsNew";
 // import ValueLocked from "@components/portfolio/ValueLocked";
-import { adjustDecimals } from "../lib/utils/general";
+import { adjustDecimals, formatNumber } from "../lib/utils/general";
 import HistoricValues from "@components/portfolio/HistoricValues";
 import StakedPositions from "@components/portfolio/positions/StakedPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";
@@ -30,6 +31,8 @@ import { currencies, Currencies } from '@lib/utils/currencies';
 // import FungibleCollectablesList from "@components/portfolio/FungibleCollectablesList";
 import Collectibles from "@components/portfolio/Collectibles";
 import CurrencyButton from "@components/CurrencyButton";
+import { trpc } from "@lib/trpc";
+import { colorSwitch } from "@lib/utils/color";
 
 
 export interface IExtendedToken extends IPieToken {
@@ -70,7 +73,6 @@ const Portfolio = () => {
   });
   const [currency, setCurrency] = useState<Currencies>("ERG");
   const [filteredNfts, setFilteredNfts] = useState<INftItem[]>([]);
-  const [filteredFts, setFilteredFts] = useState<INftItem[]>([]);
   const [totalValue, setTotalValue] = useState<number>(0);
   const [sortedFilteredTokensList, setSortedFilteredTokensList] = useState<
     IReducedToken[]
@@ -80,6 +82,28 @@ const Portfolio = () => {
   const [submittedAddressList, setSubmittedAddressList] = useState<string[]>([]);
   const [totalValueLocked, setTotalValueLocked] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState(1);
+  const [totalPLOpen, setTotalPLOpen] = useState<number>(0);
+
+  const positions = trpc.portfolio.getPositions.useQuery(
+    { addresses: submittedAddressList },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  useEffect(() => {
+    if (positions.data) {
+      const currentCurrency = currency.toLowerCase();
+
+      // Calculate total P/L Open
+      const total = positions.data.reduce((sum, item) => {
+        return sum + item.pnlOpen[currentCurrency as keyof PriceInfo];
+      }, 0);
+
+      setTotalPLOpen(total);
+    }
+  }, [positions.data, currency])
 
   useEffect(() => {
     const getAddresses = localStorage.getItem("crux_portfolio_address_list");
@@ -440,11 +464,19 @@ const Portfolio = () => {
         <Grid xs={6} sm={3}>
           <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
             <Typography>
-              P+L Total
+              Total P/L
             </Typography>
-            <Typography variant="h5">
-              -
-            </Typography>
+            {totalPLOpen === 0 && !positions.data
+              ? <Typography variant="h5" sx={{ color: theme.palette.background.hover }}>Loading...</Typography>
+              : totalPLOpen === 0 && positions.data
+                ? <Typography variant="h5">-</Typography>
+                : <Typography variant="h5" sx={{ color: colorSwitch(totalPLOpen, theme) }}>
+                  {`${totalPLOpen < 0 ? "-" : ''}${currencies[currency]}${Math.abs(totalPLOpen).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                  })} (${((totalPLOpen / (totalValue - totalPLOpen)) * 100).toFixed(2)}%)`}
+                </Typography>
+            }
           </Paper>
         </Grid>
         <Grid xs={6} sm={3}>
