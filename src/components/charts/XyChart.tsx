@@ -120,7 +120,7 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
     const results = [];
 
     for (const token of tokens) {
-      console.log(`Processing token: ${token.name}, Amount: ${token.amount}`);
+      // console.log(`Processing token: ${token.name}, Amount: ${token.amount}`);
 
       try {
         const fetchTokenHistory = async (tokenName: string) => {
@@ -135,7 +135,7 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
         let tokenHistory: TradingViewHistoryResponse;
 
         if (token.wrappedTokenNames && token.wrappedTokenNames.length > 0) {
-          console.log(`${token.name} has wrapped tokens: ${token.wrappedTokenNames.join(', ')}`);
+          // console.log(`${token.name} has wrapped tokens: ${token.wrappedTokenNames.join(', ')}`);
           const wrappedHistories = await Promise.all(token.wrappedTokenNames.map(fetchTokenHistory));
           const validHistories = wrappedHistories.filter(history => history && history.s !== 'no_data');
           const validWeights = token.wrappedTokenAmounts!.filter((_, index) => wrappedHistories[index] && wrappedHistories[index].s !== 'no_data');
@@ -143,17 +143,17 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
           if (validHistories.length > 0) {
             tokenHistory = combineTradingViewResponsesWithWeights(validHistories, validWeights);
           } else {
-            console.log(`No valid wrapped histories for ${token.name}`);
+            // console.log(`No valid wrapped histories for ${token.name}`);
             continue;
           }
         } else {
           tokenHistory = await fetchTokenHistory(token.name);
         }
 
-        console.log(`Token history for ${token.name}:`, tokenHistory);
+        // console.log(`Token history for ${token.name}:`, tokenHistory);
 
         const isRelevant = isTokenValueRelevant(tokenHistory, token.amount, token.name);
-        console.log(`Is ${token.name} relevant? ${isRelevant}`);
+        // console.log(`Is ${token.name} relevant? ${isRelevant}`);
 
 
         if (isRelevant) {
@@ -171,7 +171,7 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
 
   const isTokenValueRelevant = (history: TradingViewHistoryResponse, tokenAmount: number, tokenName: string): boolean => {
     if (!history || !history.c || history.c.length === 0) {
-      console.log(`Invalid history data for ${tokenName}`);
+      // console.log(`Invalid history data for ${tokenName}`);
       return false;
     }
 
@@ -179,7 +179,7 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
 
     // Check if the token was ever worth more than 1 ERG
     const maxValue = Math.max(...values);
-    console.log(`${tokenName} - Max value: ${maxValue} ERG, Token Amount: ${tokenAmount}, Max Price: ${Math.max(...history.c)}`);
+    // console.log(`${tokenName} - Max value: ${maxValue} ERG, Token Amount: ${tokenAmount}, Max Price: ${Math.max(...history.c)}`);
     return maxValue > 1;
   };
 
@@ -236,15 +236,15 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
       try {
         setLoading(true);
         const historyData = await getHistory(tokenList, from, resolution, 100);
-        console.log('Processed history data:', historyData);  // Log 8
+        // console.log('Processed history data:', historyData); 
 
         const transformedData = transformedTokensData(historyData);
-        console.log('Transformed data:', transformedData);  // Log 9
+        // console.log('Transformed data:', transformedData);  
 
         // Get all unique dates and fill missing values
         const allDates = getAllUniqueDates(transformedData);
         const filledData = fillMissingValues(transformedData, allDates);
-        console.log('Filled data:', filledData);  // Log 10
+        // console.log('Filled data:', filledData); 
 
         const relevantData = filterRelevantSeries(filledData, totalValue);
 
