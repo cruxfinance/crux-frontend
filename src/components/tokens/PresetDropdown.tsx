@@ -200,7 +200,14 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({
           <ListItemText primary="Save current settings" />
         </MenuItem>
       </Menu>
-      <Dialog open={editingOpen} onClose={() => setEditingOpen(false)}>
+      <Dialog open={editingOpen} onClose={() => setEditingOpen(false)}
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
+      >
         <DialogTitle>Rename Preset</DialogTitle>
         <DialogContent>
           <TextField
@@ -219,7 +226,14 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({
           <Button onClick={handleRenameSubmit}>Save</Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={deleteConfirmation !== null} onClose={() => setDeleteConfirmation(null)}>
+      <Dialog open={deleteConfirmation !== null} onClose={() => setDeleteConfirmation(null)}
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
+      >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           Are you sure you want to delete this preset?

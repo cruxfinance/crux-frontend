@@ -85,6 +85,12 @@ type PriceInfo = {
   usd: number;
 };
 
+
+type PriceInfoUppercase = {
+  ERG: number;
+  USD: number;
+};
+
 interface Signature {
   signedMessage: string;
   proof: string;

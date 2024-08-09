@@ -115,7 +115,13 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
         open={open}
         onClose={handleClose}
         fullScreen={fullScreen}
-        sx={{ zIndex: 12000 }}
+        sx={{
+          zIndex: 12000,
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
       >
         <DialogTitle
           sx={{

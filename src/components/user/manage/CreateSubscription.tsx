@@ -150,6 +150,12 @@ const CreateSubscription = () => {
         onClose={() => setSelectedPlan(null)}
         aria-labelledby="create-subscription-dialog-title"
         aria-describedby="create-subscription-dialog-description"
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
       >
         <DialogTitle id="create-subscription-dialog-title">
           Sign Up for a Subscription -{" "}

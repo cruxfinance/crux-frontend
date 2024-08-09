@@ -38,7 +38,14 @@ const NotSubscribedNotifyDialog: React.FC<NotSubscribedNotifyDialogProps> = () =
   // }
 
   return (
-    <Dialog open={notSubscribedNotifyDialogOpen} onClose={onClose}>
+    <Dialog open={notSubscribedNotifyDialogOpen} onClose={onClose}
+      sx={{
+        '& .MuiBackdrop-root': {
+          backdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      }}
+    >
       <DialogTitle>Premium Feature</DialogTitle>
       <DialogContent>
         <Typography>

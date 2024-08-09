@@ -335,6 +335,12 @@ const Header: FC<IHeaderProps> = ({ }) => {
         open={navbarOpen}
         onClose={handleNavbarDialogClose}
         fullScreen
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
       >
         <DialogContent>
           <IconButton

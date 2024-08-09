@@ -177,7 +177,7 @@ const XyChart: FC<XYChartProps> = ({ currency, exchangeRate, height, tokenList, 
 
     const values = history.c.map(price => price * tokenAmount);
 
-    // Check if the token was ever worth more than 1 ERG
+    // Check if their holdings were ever worth more than 1 ERG
     const maxValue = Math.max(...values);
     // console.log(`${tokenName} - Max value: ${maxValue} ERG, Token Amount: ${tokenAmount}, Max Price: ${Math.max(...history.c)}`);
     return maxValue > 1;
