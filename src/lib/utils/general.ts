@@ -108,8 +108,8 @@ export const getShortAddress = (address: string): string => {
     shortAddress.length < 10
       ? shortAddress
       : shortAddress.substring(0, 6) +
-        "..." +
-        shortAddress.substring(shortAddress.length - 4, shortAddress.length);
+      "..." +
+      shortAddress.substring(shortAddress.length - 4, shortAddress.length);
 
   return shortAddress;
 };
@@ -122,11 +122,11 @@ export const getShorterAddress = (
     shortAddress.length < 5
       ? shortAddress
       : shortAddress.substring(0, substring ? substring : 3) +
-        ".." +
-        shortAddress.substring(
-          shortAddress.length - (substring ? substring : 3),
-          shortAddress.length
-        );
+      ".." +
+      shortAddress.substring(
+        shortAddress.length - (substring ? substring : 3),
+        shortAddress.length
+      );
 
   return shortAddress;
 };
@@ -143,4 +143,8 @@ export const isErgoMainnetAddress = (value: string): boolean => {
 
 export const adjustDecimals = (amount: number, decimals: number): number => {
   return amount / Math.pow(10, decimals);
+};
+
+export const adjustDecimalsBigInt = (amount: bigint, decimals: bigint): bigint => {
+  return amount / (BigInt(10) ** decimals);
 };

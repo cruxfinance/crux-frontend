@@ -93,9 +93,9 @@ const TokenInfo: FC<{
     setLoading(true)
     const fetchedInfo = await getAssetInfo(id);
     const data = fetchedInfo.data
-    console.log(fetchedInfo)
+    // console.log(fetchedInfo)
     const metaData = parseDescription(data.description)
-    console.log(metaData)
+    // console.log(metaData)
     const filteredMetaData: any = {};
     for (let key in metaData) {
       if (key.toLowerCase() !== 'description') {
@@ -131,7 +131,7 @@ const TokenInfo: FC<{
         const value = explicitValue.value;
         if (value === "\x01") setExplicit(true)
       }
-      console.log(flatTraits)
+      // console.log(flatTraits)
       setV2MetaData({
         ...flatTraits
       })

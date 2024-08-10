@@ -82,6 +82,12 @@ const UploadFileDialog: FC<UploadFileDialogProps> = ({
       onClose={() => onClose()}
       aria-labelledby="Dialog-Dialog-title"
       aria-describedby="Dialog-Dialog-description"
+      sx={{
+        '& .MuiBackdrop-root': {
+          backdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      }}
     >
       <DialogTitle>Upload File</DialogTitle>
       <DialogContent>

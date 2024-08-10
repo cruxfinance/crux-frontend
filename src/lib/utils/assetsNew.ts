@@ -50,7 +50,7 @@ export function resolveIpfs(url: string) {
   if (!url.startsWith(ipfsPrefix) && url.startsWith("http://"))
     return "https://" + url.substring(7);
   else if (!url.startsWith(ipfsPrefix)) return url;
-  else return url.replace(ipfsPrefix, `https://cloudflare-ipfs.com/ipfs/`);
+  else return url.replace(ipfsPrefix, `https://ipfs.io/ipfs/`);
 }
 
 const reduceBalances = (balances: IBalances) => {

@@ -81,7 +81,14 @@ const TokenFilterOptions: FC<ITokenFilterProps> = ({ filters, setFilters, open, 
   }, [filters])
 
   return (
-    <Dialog open={open} onClose={() => setOpen(false)}>
+    <Dialog open={open} onClose={() => setOpen(false)}
+      sx={{
+        '& .MuiBackdrop-root': {
+          backdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      }}
+    >
       <DialogContent>
         <Typography variant="h5" sx={{ mb: 0 }}>Filter</Typography>
         <Divider sx={{ mb: 2 }} />

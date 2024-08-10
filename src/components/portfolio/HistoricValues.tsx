@@ -16,6 +16,7 @@ import { Currencies } from '@lib/utils/currencies';
 import { IReducedToken } from '@pages/portfolio';
 import XyChart from '@components/charts/XyChart';
 import SsidChartIcon from '@mui/icons-material/SsidChart';
+import InfoDialogButton from '@components/dialogs/InfoDialogButton';
 
 interface IHistoricValues {
   currency: Currencies;
@@ -51,9 +52,32 @@ const HistoricValues: FC<IHistoricValues> = ({ currency, exchangeRate, tokenList
     <Box>
       <Grid container alignItems="flex-start" sx={{ mb: 2 }}>
         <Grid xs>
-          <Typography variant="h6">
-            Portfolio History (ERG)
-          </Typography>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <Typography variant="h6">
+              Portfolio History (ERG)
+            </Typography>
+            <InfoDialogButton
+              title={"How portfolio history is calculated"}
+              contentAsReactNode={
+                <>
+                  <Typography sx={{ mb: 2 }}>
+                    This chart is getting historic price data for the tokens you hold.
+                  </Typography>
+                  <Typography sx={{ mb: 2 }}>
+                    It doesn&apos;t take into account when you opened and closed positions over time. It doesn&apos;t know if your LP positions and other wrapped tokens changed over time.
+                  </Typography>
+                  <Typography>Please use it as an estimate only.
+                  </Typography>
+                </>
+              }
+            />
+          </Box>
+
         </Grid>
         <Grid>
           <ToggleButtonGroup

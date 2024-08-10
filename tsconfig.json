@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2015",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "es2016",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,19 +24,49 @@
       }
     ],
     "paths": {
-      "@components/*": ["./src/components/*"],
-      "@styles/*": ["./src/styles/*"],
-      "@theme/*": ["./src/theme/*"],
-      "@public/*": ["./public/*"],
-      "@pages/*": ["./src/pages/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@hooks/*": ["./src/lib/hooks/*"],
-      "@contexts/*": ["./src/lib/contexts/*"],
-      "@server/*": ["./src/server/*"],
-      "@lib/*": ["./src/lib/*"]
+      "@components/*": [
+        "./src/components/*"
+      ],
+      "@styles/*": [
+        "./src/styles/*"
+      ],
+      "@theme/*": [
+        "./src/theme/*"
+      ],
+      "@public/*": [
+        "./public/*"
+      ],
+      "@pages/*": [
+        "./src/pages/*"
+      ],
+      "@utils/*": [
+        "./src/utils/*"
+      ],
+      "@hooks/*": [
+        "./src/lib/hooks/*"
+      ],
+      "@contexts/*": [
+        "./src/lib/contexts/*"
+      ],
+      "@server/*": [
+        "./src/server/*"
+      ],
+      "@lib/*": [
+        "./src/lib/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"],
-  "typeRoots": ["./types", "./node_modules/@types"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "typeRoots": [
+    "./types",
+    "./node_modules/@types"
+  ]
 }

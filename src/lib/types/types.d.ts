@@ -85,6 +85,12 @@ type PriceInfo = {
   usd: number;
 };
 
+
+type PriceInfoUppercase = {
+  ERG: number;
+  USD: number;
+};
+
 interface Signature {
   signedMessage: string;
   proof: string;
@@ -181,6 +187,7 @@ interface AllowedToken {
 
 interface AssetInfoV2Item {
   name: string;
+  tokenId?: string;
   description: string;
   decimals: number;
   minted: number;
@@ -188,14 +195,6 @@ interface AssetInfoV2Item {
   link: string;
   royalties: Royalty[];
   properties?: {
-    Edition?: string;
-    Rarity?: string;
-    Bracket?: string;
-    Artist?: string;
-    "Card Number"?: string;
-    Faction?: string;
-    Set?: string;
-    "OG Burn Value"?: string;
     [key: string]: string | undefined;
   };
   levels?: Record<string, unknown>;

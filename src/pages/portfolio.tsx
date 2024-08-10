@@ -9,7 +9,8 @@ import {
   useTheme,
   TextField,
   Typography,
-  Container
+  Container,
+  CircularProgress
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 // import Balance from "@components/portfolio/Balance";
@@ -18,7 +19,7 @@ import TokenSummary from "@components/portfolio/TokenSummary";
 // import NftList from "@components/portfolio/NftList";
 import { tokenListInfo } from "../lib/utils/assetsNew";
 // import ValueLocked from "@components/portfolio/ValueLocked";
-import { adjustDecimals } from "../lib/utils/general";
+import { adjustDecimals, formatNumber } from "../lib/utils/general";
 import HistoricValues from "@components/portfolio/HistoricValues";
 import StakedPositions from "@components/portfolio/positions/StakedPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";
@@ -30,6 +31,9 @@ import { currencies, Currencies } from '@lib/utils/currencies';
 // import FungibleCollectablesList from "@components/portfolio/FungibleCollectablesList";
 import Collectibles from "@components/portfolio/Collectibles";
 import CurrencyButton from "@components/CurrencyButton";
+import { trpc } from "@lib/trpc";
+import { colorSwitch } from "@lib/utils/color";
+import InfoDialogButton from "@components/dialogs/InfoDialogButton";
 
 
 export interface IExtendedToken extends IPieToken {
@@ -70,7 +74,6 @@ const Portfolio = () => {
   });
   const [currency, setCurrency] = useState<Currencies>("ERG");
   const [filteredNfts, setFilteredNfts] = useState<INftItem[]>([]);
-  const [filteredFts, setFilteredFts] = useState<INftItem[]>([]);
   const [totalValue, setTotalValue] = useState<number>(0);
   const [sortedFilteredTokensList, setSortedFilteredTokensList] = useState<
     IReducedToken[]
@@ -80,6 +83,54 @@ const Portfolio = () => {
   const [submittedAddressList, setSubmittedAddressList] = useState<string[]>([]);
   const [totalValueLocked, setTotalValueLocked] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState(1);
+  const [totalPLOpen, setTotalPLOpen] = useState<PriceInfoUppercase>({ ERG: 0, USD: 0 });
+  const [totalPLDay, setTotalPLDay] = useState<PriceInfoUppercase>({ ERG: 0, USD: 0 });
+
+  const positions = trpc.portfolio.getPositions.useQuery(
+    { addresses: submittedAddressList },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
+  );
+  const stakedPositions = trpc.portfolio.getStakedPositions.useQuery(
+    { addresses: submittedAddressList },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
+  );
+  const lpPositions = trpc.portfolio.getLpPositions.useQuery(
+    { addresses: submittedAddressList },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  useEffect(() => {
+    if (positions.data && stakedPositions.data && lpPositions.data) {
+      const currentCurrency = currency.toLowerCase();
+
+      // // Calculate total P/L Open
+      // const totalPLOpenConst = positions.data.reduce((sum, item) => {
+      //   return sum + item.pnlOpen[currentCurrency as keyof PriceInfo];
+      // }, 0);
+
+      // setTotalPLOpen(totalPLOpenConst);
+
+      // // Calculate total P/L Day
+      // const totalPLDayConst = positions.data.reduce((sum, item) => {
+      //   return sum + item.pnlDay[currentCurrency as keyof PriceInfo];
+      // }, 0);
+
+      // setTotalPLDay(totalPLDayConst);
+
+      const { pl24h, plAllTime } = calculatePortfolioPL(positions.data, stakedPositions.data, lpPositions.data)
+      setTotalPLOpen(plAllTime);
+      setTotalPLDay(pl24h);
+    }
+  }, [positions.data, stakedPositions.data, lpPositions.data, currency])
 
   useEffect(() => {
     const getAddresses = localStorage.getItem("crux_portfolio_address_list");
@@ -206,7 +257,7 @@ const Portfolio = () => {
     );
 
     const collectablesList = data.filter(
-      (item) => calculateWrappedTokensValue(item) === 0
+      (item) => calculateWrappedTokensValue(item) === 0 && item.decimals === 0
     );
 
     // This is meant to adjust token amounts with correct decimals
@@ -318,7 +369,7 @@ const Portfolio = () => {
     const assetInfo = await fetchAssetInfo(collectablesList.map(item => item.token_id))
 
     // filter NFTs out for their processing
-    const list = collectablesList.map((item, i) => {
+    const list = collectablesList.filter(collectible => !collectible.token_name.includes("whitelist token")).map((item, i) => {
       return {
         name: item.token_name,
         link: "/tokens/" + item.token_id,
@@ -339,7 +390,19 @@ const Portfolio = () => {
           const apiItem = additionalData.find(
             (apiItem) => apiItem.tokenId === item.tokenId
           );
-          return apiItem ? { ...item, ...apiItem } : item;
+          const newItem = apiItem ? { ...item, ...apiItem } : item;
+
+          const additionalInfo = assetInfo.find(asset => asset.tokenId === item.tokenId)
+
+          const mutatedItem = {
+            ...newItem,
+            type: additionalInfo?.minted && additionalInfo?.minted > 1 ? 'collectible' : newItem.type
+          }
+
+          if (additionalInfo) {
+            return mutatedItem
+          }
+          else return newItem
         });
         return newList;
       });
@@ -372,7 +435,14 @@ const Portfolio = () => {
       });
 
       const data: AssetInfoV2Item[] = await response.json();
-      return data;
+
+      // Combine the response data with the original tokenIds
+      const combinedData = data.map((item, index) => ({
+        ...item,
+        tokenId: tokenIds[index],
+      }));
+
+      return combinedData;
     } catch (error) {
       console.error("Error fetching token data:", error);
       return [];
@@ -391,8 +461,6 @@ const Portfolio = () => {
     const addresses = event.target.value
     setAddressList(addresses);
   };
-
-  const [apy, setApy] = useState(0)
 
   return (
     <Container>
@@ -439,22 +507,72 @@ const Portfolio = () => {
         </Grid>
         <Grid xs={6} sm={3}>
           <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
+            <Box sx={{ position: 'absolute', top: '6px', right: '8px' }}>
+              <InfoDialogButton
+                title="How we calculate Total P/L"
+                contentAsReactNode={
+                  <>
+                    <Typography sx={{ mb: 2 }}>
+                      We make some assumptions for this. Liquidity and Staked positions may not have full open data, especially if they were transfered to this wallet already opened.
+                    </Typography>
+                    <Typography sx={{ mb: 2 }}>
+                      We take the open price those tokens if you have them in your portfolio unwrapped, and apply that to the staked or LP positions. If you never had those tokens in your portfolio unwrapped, we won&apos;t have any open data.
+                    </Typography>
+                    <Typography>It&apos;s not going to be perfect so please use it as an estimation only.
+                    </Typography>
+                  </>
+                }
+              />
+            </Box>
             <Typography>
-              P+L Total
+              Total P/L
             </Typography>
-            <Typography variant="h5">
-              -
-            </Typography>
+            {totalPLOpen[currency] === 0 && !positions.data
+              ? <Typography variant="h5" sx={{ color: theme.palette.background.hover }}>Loading...</Typography>
+              : totalPLOpen[currency] === 0 && positions.data
+                ? <Typography variant="h5">-</Typography>
+                : <Typography variant="h5" sx={{ color: colorSwitch(totalPLOpen[currency], theme) }}>
+                  {`${totalPLOpen[currency] < 0 ? "-" : ''}${currencies[currency]}${Math.abs(totalPLOpen[currency]).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                  })} (${((totalPLOpen[currency] / (totalValue - totalPLOpen[currency])) * 100).toFixed(2)}%)`}
+                </Typography>
+            }
           </Paper>
         </Grid>
         <Grid xs={6} sm={3}>
           <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
+            <Box sx={{ position: 'absolute', top: '6px', right: '8px' }}>
+              <InfoDialogButton
+                title="How we calculate 24 hour change"
+                contentAsReactNode={
+                  <>
+                    <Typography sx={{ mb: 2 }}>
+                      We make some assumptions for this.
+                    </Typography>
+                    <Typography sx={{ mb: 2 }}>
+                      We take the 24 hour change of tokens if you have them in your portfolio unwrapped, and apply that to the staked or LP positions. If you don&apos;t have any of the tokens unwrapped in your portfolio, we don&apos;t have the data in here.
+                    </Typography>
+                    <Typography>Please use it as an estimation only.
+                    </Typography>
+                  </>
+                }
+              />
+            </Box>
             <Typography>
               24 Hour Change
             </Typography>
-            <Typography variant="h5">
-              -
-            </Typography>
+            {totalPLDay[currency] === 0 && !positions.data
+              ? <Typography variant="h5" sx={{ color: theme.palette.background.hover }}>Loading...</Typography>
+              : totalPLDay[currency] === 0 && positions.data
+                ? <Typography variant="h5">-</Typography>
+                : <Typography variant="h5" sx={{ color: colorSwitch(totalPLDay[currency], theme) }}>
+                  {`${totalPLDay[currency] < 0 ? "-" : ''}${currencies[currency]}${Math.abs(totalPLDay[currency]).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                  })} (${((totalPLDay[currency] / (totalValue - totalPLDay[currency])) * 100).toFixed(2)}%)`}
+                </Typography>
+            }
           </Paper>
         </Grid>
         <Grid xs={6} sm={3}>
@@ -681,3 +799,54 @@ const flattenTokenAmountsFromWrappedTokens = (
   }
   return amounts;
 };
+
+function calculatePortfolioPL(
+  positions: TTokensData,
+  stakedPositions: TStakedTokensData,
+  lpPositions: TLpTokensData
+): { pl24h: PriceInfoUppercase; plAllTime: PriceInfoUppercase } {
+  const pl24h: PriceInfoUppercase = { ERG: 0, USD: 0 };
+  const plAllTime: PriceInfoUppercase = { ERG: 0, USD: 0 };
+
+  // Calculate P/L for regular positions
+  positions.forEach((position) => {
+    pl24h.ERG += position.pnlDay.erg;
+    pl24h.USD += position.pnlDay.usd;
+    plAllTime.ERG += position.pnlOpen.erg;
+    plAllTime.USD += position.pnlOpen.usd;
+  });
+
+  // Calculate P/L for staked positions
+  stakedPositions.forEach((stakedPosition) => {
+    const regularPosition = positions.find(p => p.tokenId === stakedPosition.tokenId);
+    if (regularPosition) {
+      const totalStakedAmount = stakedPosition.stakedAmount + stakedPosition.rewardAmount - stakedPosition.unstakedAmount;
+
+      // 24h P/L
+      pl24h.ERG += totalStakedAmount * (regularPosition.pnlDay.erg / regularPosition.tokenAmount);
+      pl24h.USD += totalStakedAmount * (regularPosition.pnlDay.usd / regularPosition.tokenAmount);
+
+      // All-time P/L
+      plAllTime.ERG += totalStakedAmount * (regularPosition.pnlOpen.erg / regularPosition.tokenAmount);
+      plAllTime.USD += totalStakedAmount * (regularPosition.pnlOpen.usd / regularPosition.tokenAmount);
+    }
+  });
+
+  // Calculate P/L for liquidity positions
+  lpPositions.forEach((lpPosition) => {
+    const baseRegularPosition = positions.find(p => p.tokenId === lpPosition.baseTokenId);
+    const quoteRegularPosition = positions.find(p => p.tokenId === lpPosition.quoteTokenId);
+
+    if (baseRegularPosition && quoteRegularPosition) {
+      const baseFactor = lpPosition.baseCurrentAmount / baseRegularPosition.tokenAmount;
+      const quoteFactor = lpPosition.quoteCurrentAmount / quoteRegularPosition.tokenAmount;
+
+      pl24h.ERG += (baseRegularPosition.pnlDay.erg * baseFactor) + (quoteRegularPosition.pnlDay.erg * quoteFactor);
+      pl24h.USD += (baseRegularPosition.pnlDay.usd * baseFactor) + (quoteRegularPosition.pnlDay.usd * quoteFactor);
+      plAllTime.ERG += (baseRegularPosition.pnlOpen.erg * baseFactor) + (quoteRegularPosition.pnlOpen.erg * quoteFactor);
+      plAllTime.USD += (baseRegularPosition.pnlOpen.usd * baseFactor) + (quoteRegularPosition.pnlOpen.usd * quoteFactor);
+    }
+  });
+
+  return { pl24h, plAllTime };
+}

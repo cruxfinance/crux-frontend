@@ -14,6 +14,7 @@ import { trpc } from '@lib/trpc';
 import CruxTableScroll from '@components/CruxTableScroll';
 import CurrencyButton from '@components/CurrencyButton';
 import dayjs from 'dayjs';
+import { colorSwitch } from '@lib/utils/color';
 
 type PositionsProps = {
   currency: Currencies;
@@ -36,14 +37,6 @@ const Positions: FC<PositionsProps> = ({ currency, addressList, setCurrency }) =
 
   const [tableData, setTableData] = useState<{ [key: string]: string | React.ReactNode }[]>([])
   const [closedPositionsToggle, setClosedPositionsToggle] = useState(false);
-
-  const colorSwitch = (number: number) => {
-    return number > 0
-      ? theme.palette.up.main
-      : number < 0
-        ? theme.palette.down.main
-        : theme.palette.text.secondary;
-  };
 
   const headers = [
     ["Name"],
@@ -85,7 +78,7 @@ const Positions: FC<PositionsProps> = ({ currency, addressList, setCurrency }) =
 
   const formatPL = (value: number, currencySymbol: string, isPercentage = false) => {
     return (
-      <Typography sx={{ color: colorSwitch(value) }}>
+      <Typography sx={{ color: colorSwitch(value, theme) }}>
         {`${value < 0 ? "-" : ''}${currencySymbol}${formatNumber(value, 2, undefined, true)}${isPercentage ? '%' : ''}`}
       </Typography>
     );
@@ -146,6 +139,7 @@ const Positions: FC<PositionsProps> = ({ currency, addressList, setCurrency }) =
           size="small"
           checked={closedPositionsToggle}
           onChange={(e) => setClosedPositionsToggle(e.target.checked)}
+          sx={{ mr: 1 }}
         />
       }
       label="Show closed positions"

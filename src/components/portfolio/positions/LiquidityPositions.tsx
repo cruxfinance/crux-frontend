@@ -123,6 +123,17 @@ const LiquidityPositions: FC<LiquidityPositionsProps> = ({ currency, addressList
         headers={headers}
         data={tableData}
         loading={lpPositions.isLoading}
+        infoTitle="LP Details"
+        infoBodyReactNode={
+          <>
+            <Typography sx={{ mb: 2 }}>
+              The initial pair quantites will not show anything if these LP tokens were transfered into the wallet after they were minted.
+            </Typography>
+            <Typography>
+              Otherwise, the values should reflect the number of tokens you initially used to open this LP position.
+            </Typography>
+          </>
+        }
       />
     </Box>
   );

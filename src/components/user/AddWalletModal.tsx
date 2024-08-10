@@ -27,7 +27,14 @@ const AddWalletModal: FC<AddWalletProps> = ({
 }) => {
   const [expanded, setExpanded] = useState<AddWalletExpanded>(undefined);
   return (
-    <Dialog open={open}>
+    <Dialog open={open}
+      sx={{
+        '& .MuiBackdrop-root': {
+          backdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      }}
+    >
       <DialogTitle>
         {customTitle ? customTitle : "Add a wallet to your account"}
       </DialogTitle>

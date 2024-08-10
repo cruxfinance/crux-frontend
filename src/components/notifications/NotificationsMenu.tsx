@@ -171,7 +171,14 @@ const NotificationsMenu: FC<INotificationsProps> = ({
           <NotificationsIcon />
         </Badge>
       </IconButton>
-      <Dialog open={dialogOpen} onClose={() => handleDialogClose()} fullScreen>
+      <Dialog open={dialogOpen} onClose={() => handleDialogClose()} fullScreen
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
+      >
         <DialogContent>
           <IconButton
             sx={{

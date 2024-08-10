@@ -3,6 +3,7 @@ import {
   Box, Paper, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography, IconButton, useTheme, CircularProgress
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import InfoDialogButton from './dialogs/InfoDialogButton';
 
 type CruxTableHeaderTooltip = {
   index: number;
@@ -16,6 +17,8 @@ interface ICruxTableScrollProps<T> {
   tooltips?: CruxTableHeaderTooltip[];
   actions?: React.ReactNode;
   loading: boolean;
+  infoTitle?: string;
+  infoBodyReactNode?: React.ReactNode;
 }
 
 const CruxTableScroll = <T extends Record<string, any>>({
@@ -24,7 +27,9 @@ const CruxTableScroll = <T extends Record<string, any>>({
   headers,
   tooltips,
   actions,
-  loading
+  loading,
+  infoTitle,
+  infoBodyReactNode
 }: ICruxTableScrollProps<T>) => {
   const boxRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
@@ -166,10 +171,21 @@ const CruxTableScroll = <T extends Record<string, any>>({
           }}
         >
           {title &&
-            <Box>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
               <Typography variant="h5">
                 {title}
               </Typography>
+              {infoTitle && infoBodyReactNode &&
+                <InfoDialogButton
+                  title={infoTitle}
+                  contentAsReactNode={infoBodyReactNode}
+                />
+              }
             </Box>
           }
           {actions &&

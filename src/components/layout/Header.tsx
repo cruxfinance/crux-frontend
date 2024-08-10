@@ -41,16 +41,16 @@ const pages = [
     name: "Portfolio",
     link: "/portfolio",
   },
-  {
-    name: "Alerts",
-    link: "/alerts",
-    disabled: true,
-  },
-  {
-    name: "Trading Floor",
-    link: "/trading-floor",
-    disabled: true,
-  },
+  // {
+  //   name: "Alerts",
+  //   link: "/alerts",
+  //   disabled: true,
+  // },
+  // {
+  //   name: "Trading Floor",
+  //   link: "/trading-floor",
+  //   disabled: true,
+  // },
   {
     name: "Accounting",
     link: "/accounting"
@@ -335,6 +335,12 @@ const Header: FC<IHeaderProps> = ({ }) => {
         open={navbarOpen}
         onClose={handleNavbarDialogClose}
         fullScreen
+        sx={{
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }}
       >
         <DialogContent>
           <IconButton
