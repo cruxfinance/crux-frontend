@@ -41,16 +41,16 @@ const pages = [
     name: "Portfolio",
     link: "/portfolio",
   },
-  {
-    name: "Alerts",
-    link: "/alerts",
-    disabled: true,
-  },
-  {
-    name: "Trading Floor",
-    link: "/trading-floor",
-    disabled: true,
-  },
+  // {
+  //   name: "Alerts",
+  //   link: "/alerts",
+  //   disabled: true,
+  // },
+  // {
+  //   name: "Trading Floor",
+  //   link: "/trading-floor",
+  //   disabled: true,
+  // },
   {
     name: "Accounting",
     link: "/accounting"

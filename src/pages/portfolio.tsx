@@ -257,7 +257,7 @@ const Portfolio = () => {
     );
 
     const collectablesList = data.filter(
-      (item) => calculateWrappedTokensValue(item) === 0
+      (item) => calculateWrappedTokensValue(item) === 0 && item.decimals === 0
     );
 
     // This is meant to adjust token amounts with correct decimals
@@ -366,10 +366,10 @@ const Portfolio = () => {
     );
     setSortedFilteredTokensList(sortedTokens);
 
-    // const assetInfo = await fetchAssetInfo(collectablesList.map(item => item.token_id))
+    const assetInfo = await fetchAssetInfo(collectablesList.map(item => item.token_id))
 
     // filter NFTs out for their processing
-    const list = collectablesList.map((item, i) => {
+    const list = collectablesList.filter(collectible => !collectible.token_name.includes("whitelist token")).map((item, i) => {
       return {
         name: item.token_name,
         link: "/tokens/" + item.token_id,
@@ -390,7 +390,19 @@ const Portfolio = () => {
           const apiItem = additionalData.find(
             (apiItem) => apiItem.tokenId === item.tokenId
           );
-          return apiItem ? { ...item, ...apiItem } : item;
+          const newItem = apiItem ? { ...item, ...apiItem } : item;
+
+          const additionalInfo = assetInfo.find(asset => asset.tokenId === item.tokenId)
+
+          const mutatedItem = {
+            ...newItem,
+            type: additionalInfo?.minted && additionalInfo?.minted > 1 ? 'collectible' : newItem.type
+          }
+
+          if (additionalInfo) {
+            return mutatedItem
+          }
+          else return newItem
         });
         return newList;
       });
@@ -423,7 +435,14 @@ const Portfolio = () => {
       });
 
       const data: AssetInfoV2Item[] = await response.json();
-      return data;
+
+      // Combine the response data with the original tokenIds
+      const combinedData = data.map((item, index) => ({
+        ...item,
+        tokenId: tokenIds[index],
+      }));
+
+      return combinedData;
     } catch (error) {
       console.error("Error fetching token data:", error);
       return [];
@@ -499,7 +518,7 @@ const Portfolio = () => {
                     <Typography sx={{ mb: 2 }}>
                       We take the open price those tokens if you have them in your portfolio unwrapped, and apply that to the staked or LP positions. If you never had those tokens in your portfolio unwrapped, we won&apos;t have any open data.
                     </Typography>
-                    <Typography sx={{ mb: 2 }}>It&apos;s not going to be perfect so please use it as an estimation only.
+                    <Typography>It&apos;s not going to be perfect so please use it as an estimation only.
                     </Typography>
                   </>
                 }
@@ -534,7 +553,7 @@ const Portfolio = () => {
                     <Typography sx={{ mb: 2 }}>
                       We take the 24 hour change of tokens if you have them in your portfolio unwrapped, and apply that to the staked or LP positions. If you don&apos;t have any of the tokens unwrapped in your portfolio, we don&apos;t have the data in here.
                     </Typography>
-                    <Typography sx={{ mb: 2 }}>Please use it as an estimation only.
+                    <Typography>Please use it as an estimation only.
                     </Typography>
                   </>
                 }
@@ -543,19 +562,17 @@ const Portfolio = () => {
             <Typography>
               24 Hour Change
             </Typography>
-            <Typography variant="h5">
-              {totalPLDay[currency] === 0 && !positions.data
-                ? <Typography variant="h5" sx={{ color: theme.palette.background.hover }}>Loading...</Typography>
-                : totalPLDay[currency] === 0 && positions.data
-                  ? <Typography variant="h5">-</Typography>
-                  : <Typography variant="h5" sx={{ color: colorSwitch(totalPLDay[currency], theme) }}>
-                    {`${totalPLDay[currency] < 0 ? "-" : ''}${currencies[currency]}${Math.abs(totalPLDay[currency]).toLocaleString(undefined, {
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 2
-                    })} (${((totalPLDay[currency] / (totalValue - totalPLDay[currency])) * 100).toFixed(2)}%)`}
-                  </Typography>
-              }
-            </Typography>
+            {totalPLDay[currency] === 0 && !positions.data
+              ? <Typography variant="h5" sx={{ color: theme.palette.background.hover }}>Loading...</Typography>
+              : totalPLDay[currency] === 0 && positions.data
+                ? <Typography variant="h5">-</Typography>
+                : <Typography variant="h5" sx={{ color: colorSwitch(totalPLDay[currency], theme) }}>
+                  {`${totalPLDay[currency] < 0 ? "-" : ''}${currencies[currency]}${Math.abs(totalPLDay[currency]).toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                  })} (${((totalPLDay[currency] / (totalValue - totalPLDay[currency])) * 100).toFixed(2)}%)`}
+                </Typography>
+            }
           </Paper>
         </Grid>
         <Grid xs={6} sm={3}>
