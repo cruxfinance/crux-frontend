@@ -1,42 +1,47 @@
-
-
-
-import React, { FC, useState } from 'react';
-import { Box, Card, CardActions, CardContent, Paper, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
-import Grid from '@mui/system/Unstable_Grid/Grid';
-import ReportsTable from './ReportsTable';
-import { Currencies } from '@lib/utils/currencies';
-import { trpc } from '@lib/trpc';
-import { useAlert } from '@lib/contexts/AlertContext';
-import { addressListFlatMap } from '@lib/utils/addresses';
-import { slugify } from '@lib/utils/general';
-import { LoadingButton } from '@mui/lab';
-import { generateDownloadLink } from '@server/utils/s3';
+import React, { FC, useState } from "react";
+import {
+  Box,
+  Card,
+  CardActions,
+  CardContent,
+  Paper,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
+import Grid from "@mui/system/Unstable_Grid/Grid";
+import ReportsTable from "./ReportsTable";
+import { Currencies } from "@lib/utils/currencies";
+import { trpc } from "@lib/trpc";
+import { useAlert } from "@lib/contexts/AlertContext";
+import { addressListFlatMap } from "@lib/utils/addresses";
+import { slugify } from "@lib/utils/general";
+import { LoadingButton } from "@mui/lab";
+import { generateDownloadLink } from "@server/utils/s3";
 
 const getBaseUrl = (): string => {
-  if (typeof window === 'undefined') {
-    return '';
+  if (typeof window === "undefined") {
+    return "";
   }
   return `${window.location.protocol}//${window.location.host}`;
-}
+};
 
 interface IViewReportProps {
   report: TReport;
 }
 
-const ViewReport: FC<IViewReportProps> = ({
-  report
-}) => {
-  const { addAlert } = useAlert()
+const ViewReport: FC<IViewReportProps> = ({ report }) => {
+  const { addAlert } = useAlert();
   const baseUrl = getBaseUrl();
-  const flatAddressList = addressListFlatMap(report.wallets)
+  const flatAddressList = addressListFlatMap(report.wallets);
+  const getDownloadUrl = trpc.accounting.getReportDownloadUrl.useMutation();
 
   const thisReportQuery = trpc.accounting.getReportById.useQuery({
-    reportId: report.id
-  })
+    reportId: report.id,
+  });
 
-  const [currency, setCurrency] = useState<Currencies>('USD')
-  const handleCurrencyChange = (e: any, value: 'USD' | 'ERG') => {
+  const [currency, setCurrency] = useState<Currencies>("USD");
+  const handleCurrencyChange = (e: any, value: "USD" | "ERG") => {
     if (value !== null) {
       setCurrency(value);
     }
@@ -45,9 +50,9 @@ const ViewReport: FC<IViewReportProps> = ({
   const downloadCsv = trpc.accounting.downloadCsv.useMutation();
   const downloadKoinly = trpc.accounting.downloadKoinly.useMutation();
 
-  const [csvDownloading, setCsvDownloading] = useState(false)
-  const [koinlyDownloading, setKoinlyDownloading] = useState(false)
-  const [koinlyGenerating, setKoinlyGenerating] = useState(false)
+  const [csvDownloading, setCsvDownloading] = useState(false);
+  const [koinlyDownloading, setKoinlyDownloading] = useState(false);
+  const [koinlyGenerating, setKoinlyGenerating] = useState(false);
   const handleDownloadCsv = async () => {
     setCsvDownloading(true);
 
@@ -58,19 +63,22 @@ const ViewReport: FC<IViewReportProps> = ({
         reportId: report.id,
       });
 
-      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([data], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `report-${slugify(report.customName ?? report.id)}.csv`);
+      link.setAttribute(
+        "download",
+        `report-${slugify(report.customName ?? report.id)}.csv`
+      );
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
 
-      addAlert('success', 'CSV download successfully generated.');
+      addAlert("success", "CSV download successfully generated.");
     } catch (error) {
-      console.error('Download failed:', error);
-      addAlert('error', 'Unable to generate CSV, please contact support.');
+      console.error("Download failed:", error);
+      addAlert("error", "Unable to generate CSV, please contact support.");
     } finally {
       setCsvDownloading(false);
     }
@@ -83,38 +91,49 @@ const ViewReport: FC<IViewReportProps> = ({
       const koinly = await downloadKoinly.mutateAsync({
         wallets: report.wallets as unknown as WalletListItem[],
         reportId: report.id,
-        baseUrl
+        baseUrl,
       });
       // console.log(koinly)
       if (koinly.job_id) {
-        thisReportQuery.refetch()
-        addAlert('success', 'Your Koinly report is being prepared. You will be notified when it is ready to download.');
+        thisReportQuery.refetch();
+        addAlert(
+          "success",
+          "Your Koinly report is being prepared. You will be notified when it is ready to download."
+        );
       }
     } catch (error) {
-      console.error('Koinly report generation failed:', error);
-      addAlert('error', 'Unable to initiate Koinly report generation, please contact support.');
+      console.error("Koinly report generation failed:", error);
+      addAlert(
+        "error",
+        "Unable to initiate Koinly report generation, please contact support."
+      );
     } finally {
       setKoinlyGenerating(false); // Reset the loading state
     }
-  }
+  };
 
   const handleDownloadKoinly = async () => {
     setKoinlyDownloading(true);
 
     if (thisReportQuery?.data?.reportFilename) {
       try {
-        const url = await generateDownloadLink(thisReportQuery?.data?.reportFilename)
+        const { url } = await getDownloadUrl.mutateAsync({
+          filename: thisReportQuery.data.reportFilename,
+        });
         // console.log(url)
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
 
-        addAlert('success', 'Koinly download starting.');
+        addAlert("success", "Koinly download starting.");
       } catch (error) {
-        console.error('Download failed:', error);
-        addAlert('error', 'Unable to download Koinly file, please contact support.');
+        console.error("Download failed:", error);
+        addAlert(
+          "error",
+          "Unable to download Koinly file, please contact support."
+        );
       } finally {
         setKoinlyDownloading(false);
       }
@@ -123,20 +142,48 @@ const ViewReport: FC<IViewReportProps> = ({
 
   return (
     <Box>
-      <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto' }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 3, mb: 4, maxWidth: "1200px", mx: "auto" }}
+      >
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Download reports</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+            Download reports
+          </Typography>
         </Box>
-        <Grid container spacing={2} alignItems="stretch" direction="row" justifyContent="space-evenly">
-          {[{
-            title: 'CSV',
-            description: 'Get your transaction data in CSV format for easy import into spreadsheets or other tools.'
-          }, {
-            title: 'Koinly',
-            description: 'Export your transaction data in a format compatible with Koinly, a popular cryptocurrency tax software.'
-          }].map((item, i) => (
-            <Grid xs={12} sm={6} key={`${item.title}-${i}`} sx={{ maxWidth: 345 }}>
-              <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Grid
+          container
+          spacing={2}
+          alignItems="stretch"
+          direction="row"
+          justifyContent="space-evenly"
+        >
+          {[
+            {
+              title: "CSV",
+              description:
+                "Get your transaction data in CSV format for easy import into spreadsheets or other tools.",
+            },
+            {
+              title: "Koinly",
+              description:
+                "Export your transaction data in a format compatible with Koinly, a popular cryptocurrency tax software.",
+            },
+          ].map((item, i) => (
+            <Grid
+              xs={12}
+              sm={6}
+              key={`${item.title}-${i}`}
+              sx={{ maxWidth: 345 }}
+            >
+              <Card
+                variant="outlined"
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="h5" component="div" gutterBottom>
                     {item.title} format
@@ -145,8 +192,8 @@ const ViewReport: FC<IViewReportProps> = ({
                     {item.description}
                   </Typography>
                 </CardContent>
-                <CardActions sx={{ p: 2, justifyContent: 'space-between' }}>
-                  {item.title === "CSV" ?
+                <CardActions sx={{ p: 2, justifyContent: "space-between" }}>
+                  {item.title === "CSV" ? (
                     <LoadingButton
                       size="small"
                       variant="contained"
@@ -156,9 +203,10 @@ const ViewReport: FC<IViewReportProps> = ({
                     >
                       Download CSV
                     </LoadingButton>
-                    : <>
-                      {thisReportQuery?.data?.reportFilename
-                        ? <LoadingButton
+                  ) : (
+                    <>
+                      {thisReportQuery?.data?.reportFilename ? (
+                        <LoadingButton
                           size="small"
                           variant="contained"
                           color="primary"
@@ -167,7 +215,8 @@ const ViewReport: FC<IViewReportProps> = ({
                         >
                           Download File
                         </LoadingButton>
-                        : <LoadingButton
+                      ) : (
+                        <LoadingButton
                           size="small"
                           variant="contained"
                           color="primary"
@@ -176,27 +225,35 @@ const ViewReport: FC<IViewReportProps> = ({
                           loading={koinlyGenerating}
                         >
                           {thisReportQuery?.data?.koinlyGenerating
-                            ? 'Generating download'
-                            : 'Generate File'}
-                        </LoadingButton>}
+                            ? "Generating download"
+                            : "Generate File"}
+                        </LoadingButton>
+                      )}
                     </>
-                  }
+                  )}
                 </CardActions>
               </Card>
             </Grid>
           ))}
         </Grid>
       </Paper>
-      <Paper variant="outlined" sx={{ p: 3, mb: 4, maxWidth: '1200px', mx: 'auto' }}>
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2
-        }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 3, mb: 4, maxWidth: "1200px", mx: "auto" }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2,
+          }}
+        >
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Transaction overview</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+              Transaction overview
+            </Typography>
           </Box>
           <Box>
             <ToggleButtonGroup
@@ -212,7 +269,11 @@ const ViewReport: FC<IViewReportProps> = ({
             </ToggleButtonGroup>
           </Box>
         </Box>
-        <ReportsTable currency={currency} reportId={report.id} addresses={flatAddressList} />
+        <ReportsTable
+          currency={currency}
+          reportId={report.id}
+          addresses={flatAddressList}
+        />
       </Paper>
     </Box>
   );

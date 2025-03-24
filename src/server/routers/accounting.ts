@@ -2,6 +2,7 @@ import { getYearTimestamps } from "@lib/utils/daytime";
 import { prisma } from "@server/prisma";
 import { accountingApi } from "@server/services/accountingApi";
 import { checkTransactionStatus } from "@server/utils/checkTransactionStatus";
+import { generateDownloadLink } from "@server/utils/s3";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -11,10 +12,12 @@ export const accountingRouter = createTRPCRouter({
     .input(
       z.object({
         addresses: z.array(z.string()),
-        queries: z.object({
-          offset: z.number().optional(),
-          limit: z.number().optional()
-        }).optional(),
+        queries: z
+          .object({
+            offset: z.number().optional(),
+            limit: z.number().optional(),
+          })
+          .optional(),
         reportId: z.string(),
       })
     )
@@ -26,19 +29,23 @@ export const accountingRouter = createTRPCRouter({
         where: {
           userId: ctx.session.user.id,
           id: reportId,
-          status: 'AVAILABLE',
+          status: "AVAILABLE",
         },
       });
 
       if (!report || !report.taxYear) {
         throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'No paid report available for the specified tax year.',
+          code: "FORBIDDEN",
+          message: "No paid report available for the specified tax year.",
         });
       }
 
-      let dateFrom = report.dateFrom ? report.dateFrom.getTime() : getYearTimestamps(report.taxYear)[0];
-      let dateTo = report.dateTo ? report.dateTo.getTime() : getYearTimestamps(report.taxYear)[1];
+      let dateFrom = report.dateFrom
+        ? report.dateFrom.getTime()
+        : getYearTimestamps(report.taxYear)[0];
+      let dateTo = report.dateTo
+        ? report.dateTo.getTime()
+        : getYearTimestamps(report.taxYear)[1];
 
       const modifiedQueries = {
         ...queries,
@@ -52,10 +59,12 @@ export const accountingRouter = createTRPCRouter({
     .input(
       z.object({
         addresses: z.array(z.string()),
-        queries: z.object({
-          offset: z.number().optional(),
-          limit: z.number().optional()
-        }).optional(),
+        queries: z
+          .object({
+            offset: z.number().optional(),
+            limit: z.number().optional(),
+          })
+          .optional(),
         reportId: z.string(),
       })
     )
@@ -66,37 +75,46 @@ export const accountingRouter = createTRPCRouter({
         where: {
           userId: ctx.session.user.id,
           id: reportId,
-          status: 'AVAILABLE',
+          status: "AVAILABLE",
         },
       });
 
       if (!report || !report.taxYear) {
         throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'No paid report available for the specified tax year.',
+          code: "FORBIDDEN",
+          message: "No paid report available for the specified tax year.",
         });
       }
 
-      let dateFrom = report.dateFrom ? report.dateFrom.getTime() : getYearTimestamps(report.taxYear)[0];
-      let dateTo = report.dateTo ? report.dateTo.getTime() : getYearTimestamps(report.taxYear)[1];
+      let dateFrom = report.dateFrom
+        ? report.dateFrom.getTime()
+        : getYearTimestamps(report.taxYear)[0];
+      let dateTo = report.dateTo
+        ? report.dateTo.getTime()
+        : getYearTimestamps(report.taxYear)[1];
 
       const modifiedQueries = {
         ...queries,
         dateFrom,
         dateTo,
       };
-      const download = await accountingApi.downloadCsv(addresses, modifiedQueries);
-      return download
+      const download = await accountingApi.downloadCsv(
+        addresses,
+        modifiedQueries
+      );
+      return download;
     }),
   downloadKoinly: protectedProcedure
     .input(
       z.object({
-        wallets: z.array(z.object({
-          addresses: z.array(z.string()),
-          name: z.string()
-        })),
+        wallets: z.array(
+          z.object({
+            addresses: z.array(z.string()),
+            name: z.string(),
+          })
+        ),
         reportId: z.string(),
-        baseUrl: z.string() // dynamic for webhook to match the source url
+        baseUrl: z.string(), // dynamic for webhook to match the source url
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -106,19 +124,23 @@ export const accountingRouter = createTRPCRouter({
         where: {
           userId: ctx.session.user.id,
           id: reportId,
-          status: 'AVAILABLE',
+          status: "AVAILABLE",
         },
       });
 
       if (!report || !report.taxYear) {
         throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'No paid report available for the specified tax year.',
+          code: "FORBIDDEN",
+          message: "No paid report available for the specified tax year.",
         });
       }
 
-      let dateFrom = report.dateFrom ? report.dateFrom.getTime() : getYearTimestamps(report.taxYear)[0];
-      let dateTo = report.dateTo ? report.dateTo.getTime() : getYearTimestamps(report.taxYear)[1];
+      let dateFrom = report.dateFrom
+        ? report.dateFrom.getTime()
+        : getYearTimestamps(report.taxYear)[0];
+      let dateTo = report.dateTo
+        ? report.dateTo.getTime()
+        : getYearTimestamps(report.taxYear)[1];
 
       const modifiedQueries = {
         dateFrom,
@@ -138,57 +160,63 @@ export const accountingRouter = createTRPCRouter({
             id: reportId,
           },
           data: {
-            koinlyGenerating: true
-          }
+            koinlyGenerating: true,
+          },
         });
       }
 
-      return download
+      return download;
     }),
   getReportById: protectedProcedure
-    .input(z.object({
-      reportId: z.string(),
-    }))
+    .input(
+      z.object({
+        reportId: z.string(),
+      })
+    )
     .query(async ({ input, ctx }) => {
       const { reportId } = input;
 
       const report = await prisma.report.findFirst({
         where: {
           userId: ctx.session.user.id,
-          id: reportId
+          id: reportId,
         },
       });
 
       return report;
     }),
   fetchAllUserReports: protectedProcedure
-    .input(z.object({
-    }))
+    .input(z.object({}))
     .query(async ({ ctx }) => {
-
       // Fetch reports with either AVAILABLE or PAYMENT_PENDING status
       const reports = await prisma.report.findMany({
         where: {
           userId: ctx.session.user.id,
           status: {
-            in: ['AVAILABLE', 'PAYMENT_PENDING'],
+            in: ["AVAILABLE", "PAYMENT_PENDING"],
           },
         },
       });
 
-      const availableReports = reports.filter(report => report.status === 'AVAILABLE');
-      const pendingPaymentReports = reports.filter(report => report.status === 'PAYMENT_PENDING');
+      const availableReports = reports.filter(
+        (report) => report.status === "AVAILABLE"
+      );
+      const pendingPaymentReports = reports.filter(
+        (report) => report.status === "PAYMENT_PENDING"
+      );
 
       return {
         available: availableReports.length > 0,
         paymentPending: pendingPaymentReports.length > 0,
-        reports
+        reports,
       };
     }),
   checkAvailableReportsByYear: protectedProcedure
-    .input(z.object({
-      taxYear: z.number(),
-    }))
+    .input(
+      z.object({
+        taxYear: z.number(),
+      })
+    )
     .query(async ({ input, ctx }) => {
       const { taxYear } = input;
 
@@ -199,38 +227,43 @@ export const accountingRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           taxYear,
           status: {
-            in: ['AVAILABLE', 'PAYMENT_PENDING'],
+            in: ["AVAILABLE", "PAYMENT_PENDING"],
           },
         },
       });
 
-      const availableReports = reports.filter(report => report.status === 'AVAILABLE');
-      const pendingPaymentReports = reports.filter(report => report.status === 'PAYMENT_PENDING');
+      const availableReports = reports.filter(
+        (report) => report.status === "AVAILABLE"
+      );
+      const pendingPaymentReports = reports.filter(
+        (report) => report.status === "PAYMENT_PENDING"
+      );
 
       return {
         available: availableReports.length > 0,
         paymentPending: pendingPaymentReports.length > 0,
-        reports
+        reports,
       };
     }),
-  checkPrepaidReports: protectedProcedure
-    .query(async ({ ctx }) => {
-      const prepaidReports = await prisma.report.findMany({
-        where: {
-          userId: ctx.session.user.id,
-          status: 'PREPAID',
-        },
-      });
+  checkPrepaidReports: protectedProcedure.query(async ({ ctx }) => {
+    const prepaidReports = await prisma.report.findMany({
+      where: {
+        userId: ctx.session.user.id,
+        status: "PREPAID",
+      },
+    });
 
-      return {
-        hasPrepaidReports: prepaidReports.length > 0,
-        prepaidReports,
-      };
-    }),
+    return {
+      hasPrepaidReports: prepaidReports.length > 0,
+      prepaidReports,
+    };
+  }),
   createPrepaidReportDev: protectedProcedure
-    .input(z.object({
-      taxYear: z.number(),
-    }))
+    .input(
+      z.object({
+        taxYear: z.number(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { taxYear } = input;
 
@@ -238,56 +271,63 @@ export const accountingRouter = createTRPCRouter({
         data: {
           userId: ctx.session.user.id,
           taxYear,
-          status: 'PREPAID',
-          customName: `${taxYear} Report`
+          status: "PREPAID",
+          customName: `${taxYear} Report`,
         },
       });
 
       return report;
     }),
   usePrepaidReport: protectedProcedure
-    .input(z.object({
-      reportId: z.string(),
-      taxYear: z.number(),
-      wallets: z.array(z.object({
-        addresses: z.array(z.string()),
-        name: z.string()
-      }))
-    }))
+    .input(
+      z.object({
+        reportId: z.string(),
+        taxYear: z.number(),
+        wallets: z.array(
+          z.object({
+            addresses: z.array(z.string()),
+            name: z.string(),
+          })
+        ),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { reportId, taxYear, wallets } = input;
 
       const report = await prisma.report.update({
         where: {
           id: reportId,
-          AND: [
-            { userId: ctx.session.user.id },
-            { status: 'PREPAID' },
-          ],
+          AND: [{ userId: ctx.session.user.id }, { status: "PREPAID" }],
         },
         data: {
           taxYear,
-          status: 'AVAILABLE',
+          status: "AVAILABLE",
           wallets,
-          customName: 'New prepaid report'
+          customName: "New prepaid report",
         },
       });
 
       return report;
     }),
   initiateReportPayment: protectedProcedure // use this after the user has made a payment and we have a txId
-    .input(z.object({
-      taxYear: z.number(),
-      txId: z.string(),
-      paymentAmounts: z.array(z.object({
-        amount: z.number(),
-        tokenId: z.string()
-      })),
-      wallets: z.array(z.object({
-        addresses: z.array(z.string()),
-        name: z.string()
-      }))
-    }))
+    .input(
+      z.object({
+        taxYear: z.number(),
+        txId: z.string(),
+        paymentAmounts: z.array(
+          z.object({
+            amount: z.number(),
+            tokenId: z.string(),
+          })
+        ),
+        wallets: z.array(
+          z.object({
+            addresses: z.array(z.string()),
+            name: z.string(),
+          })
+        ),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { taxYear, paymentAmounts, wallets, txId } = input;
 
@@ -295,9 +335,9 @@ export const accountingRouter = createTRPCRouter({
         const currentReportsThisYear = await prisma.report.findMany({
           where: {
             userId: ctx.session.user.id,
-            taxYear
-          }
-        })
+            taxYear,
+          },
+        });
         // Step 1: Create the report
         const newReport = await prisma.report.create({
           data: {
@@ -305,7 +345,9 @@ export const accountingRouter = createTRPCRouter({
             taxYear,
             wallets: wallets,
             status: "PAYMENT_PENDING",
-            customName: `${taxYear} Report ${currentReportsThisYear.length + 1}`
+            customName: `${taxYear} Report ${
+              currentReportsThisYear.length + 1
+            }`,
           },
         });
 
@@ -316,8 +358,8 @@ export const accountingRouter = createTRPCRouter({
             paymentFor: "report",
             itemId: newReport.id,
             amounts: paymentAmounts,
-            status: 'PENDING',
-            txId
+            status: "PENDING",
+            txId,
           },
         });
 
@@ -326,18 +368,20 @@ export const accountingRouter = createTRPCRouter({
           report: newReport,
         };
       } catch (error) {
-        throw new Error('Failed to initiate report payment.');
+        throw new Error("Failed to initiate report payment.");
       }
     }),
   // used to check all transactions the user has initiated for a given report
   checkReportTxStatuses: protectedProcedure
-    .input(z.object({
-      txIds: z.array(z.string()),
-    }))
+    .input(
+      z.object({
+        txIds: z.array(z.string()),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { txIds } = input;
 
-      const statusesPromise = txIds.map(async txId => {
+      const statusesPromise = txIds.map(async (txId) => {
         const status = await checkTransactionStatus(txId);
         return { txId, ...status }; // Ensure txId is part of the returned object
       });
@@ -358,45 +402,55 @@ export const accountingRouter = createTRPCRouter({
       });
 
       // Create a map of current txIds to their statuses for quick lookup
-      const currentStatusMap = new Map(currentTransactions.map(tx => [tx.txId, tx.status]));
+      const currentStatusMap = new Map(
+        currentTransactions.map((tx) => [tx.txId, tx.status])
+      );
 
       // Filter out transactions whose status has changed
-      const transactionsToUpdate = statuses.filter(({ txId, status }) => currentStatusMap.get(txId) !== status);
+      const transactionsToUpdate = statuses.filter(
+        ({ txId, status }) => currentStatusMap.get(txId) !== status
+      );
 
       // Update transactions with new status
-      await Promise.all(transactionsToUpdate.map(({ txId, status }) =>
-        prisma.simpleTransaction.updateMany({
-          where: { txId },
-          data: { status },
-        })
-      ));
+      await Promise.all(
+        transactionsToUpdate.map(({ txId, status }) =>
+          prisma.simpleTransaction.updateMany({
+            where: { txId },
+            data: { status },
+          })
+        )
+      );
 
       // Return the updated transactions for confirmation
       return statuses;
     }),
   listReportTxs: protectedProcedure
-    .input(z.object({
-      reportId: z.string()
-    }))
+    .input(
+      z.object({
+        reportId: z.string(),
+      })
+    )
     .query(async ({ input, ctx }) => {
       const { reportId } = input;
-      const userId = ctx.session.user.id
+      const userId = ctx.session.user.id;
 
       const transactions = await prisma.simpleTransaction.findMany({
         where: {
           itemId: reportId,
           paymentFor: "report",
-          userId
+          userId,
         },
       });
 
       return transactions;
     }),
   verifyReportPurchaseTransaction: protectedProcedure
-    .input(z.object({
-      txId: z.string(),
-      reportId: z.string()
-    }))
+    .input(
+      z.object({
+        txId: z.string(),
+        reportId: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { txId, reportId } = input;
 
@@ -421,25 +475,25 @@ export const accountingRouter = createTRPCRouter({
         return {
           status: "CONFIRMED",
           report: updatedReport,
-          message: "Transaction confirmed and report has been updated"
+          message: "Transaction confirmed and report has been updated",
         };
-      }
-      else if (transactionStatus.status === "PENDING") {
+      } else if (transactionStatus.status === "PENDING") {
         return {
-          status: "PENDING"
-        }
-      }
-      else
+          status: "PENDING",
+        };
+      } else
         return {
           status: "NOT_FOUND",
-          message: "Transaction not yet found on-chain. "
-        }
+          message: "Transaction not yet found on-chain. ",
+        };
     }),
   editReportCustomName: protectedProcedure
-    .input(z.object({
-      reportId: z.string(),
-      customName: z.string(),
-    }))
+    .input(
+      z.object({
+        reportId: z.string(),
+        customName: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { reportId, customName } = input;
 
@@ -452,8 +506,9 @@ export const accountingRouter = createTRPCRouter({
 
       if (!report || report.userId !== ctx.session.user.id) {
         throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: "Report not found or you don't have permission to edit this report",
+          code: "NOT_FOUND",
+          message:
+            "Report not found or you don't have permission to edit this report",
         });
       }
 
@@ -467,6 +522,24 @@ export const accountingRouter = createTRPCRouter({
         },
       });
 
-      return updatedReport
-    })
+      return updatedReport;
+    }),
+  getReportDownloadUrl: protectedProcedure
+    .input(
+      z.object({
+        filename: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const url = await generateDownloadLink(input.filename);
+        return { url };
+      } catch (error: any) {
+        console.error("Error generating download URL:", error.message);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to generate download URL",
+        });
+      }
+    }),
 });
