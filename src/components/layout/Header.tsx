@@ -35,7 +35,7 @@ import { useScrollLock } from "@contexts/ScrollLockContext";
 const pages = [
   {
     name: "Tokens",
-    link: "/tokens",
+    link: "/",
   },
   {
     name: "Portfolio",
@@ -55,6 +55,10 @@ const pages = [
     name: "Accounting",
     link: "/accounting"
   },
+  {
+    name: "About",
+    link: "/about",
+  }
 ];
 
 interface INavItemProps {
