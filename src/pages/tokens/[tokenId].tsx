@@ -245,7 +245,7 @@ const TokenInfo: FC = () => {
             {upMd && (
               <Box sx={{ display: 'flex', flex: '0 0 300px', mb: 2 }}>
                 <Box sx={{ width: '100%', }}>
-                  <Paper variant="outlined" sx={{ p: 2, width: '100%', position: 'sticky', top: '16px', height: { md: '100%', lg: 'calc(100vh - 32px)' }, maxHeight: '100%', mb: { md: 0, lg: -2 } }}>
+                  <Paper variant="outlined" sx={{ p: 2, width: '100%', position: 'sticky', top: '16px', height: 'fit-content', mb: 0 }}>
                     <TokenStats currency={currency} tokenInfo={tokenInfo} />
                   </Paper>
                 </Box>
