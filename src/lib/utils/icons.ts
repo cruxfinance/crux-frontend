@@ -14,11 +14,17 @@ export const getIconUrlFromServer = async (tokenId: string) => {
 };
 
 export const checkLocalIcon = async (tokenId: string) => {
-  const localIconPath = `/icons/tokens/${tokenId}.svg`;
-  try {
-    const response = await fetch(localIconPath, { method: 'HEAD' });
-    return response.ok ? localIconPath : null; // if the head request is ok, the file exists
-  } catch (error) {
-    return null;
+  const extensions = ['svg', 'jpg', 'png'];
+  for (const ext of extensions) {
+    const localIconPath = `/icons/tokens/${tokenId}.${ext}`;
+    try {
+      const response = await fetch(localIconPath, { method: 'HEAD' });
+      if (response.ok) {
+        return localIconPath;
+      }
+    } catch (error) {
+      // Ignore and try next extension
+    }
   }
+  return null;
 };
