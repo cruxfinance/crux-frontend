@@ -67,7 +67,9 @@ const Tokens: FC = () => {
   const [timeframe, setTimeframe] = useState<ITimeframe>({
     filter_window: "Day",
   });
-  const [filters, setFilters] = useState<IFilters>({});
+  const [filters, setFilters] = useState<IFilters>({
+    liquidity_min: 100,
+  });
   const [sorting, setSorting] = useState<ISorting>({
     sort_by: "Volume",
     sort_order: "Desc",
@@ -100,7 +102,7 @@ const Tokens: FC = () => {
       sort_order: sorting.sort_order,
       price_min: filters.price_min || undefined,
       price_max: filters.price_max || undefined,
-      liquidity_min: filters.liquidity_min || 100,
+      liquidity_min: filters.liquidity_min || undefined,
       liquidity_max: filters.liquidity_max || undefined,
       market_cap_min: filters.market_cap_min || undefined,
       market_cap_max: filters.market_cap_max || undefined,
