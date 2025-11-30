@@ -476,8 +476,244 @@ const Tokens: FC = () => {
     )
   }
 
+// State for top boxes
+const [topTrendingTokens, setTopTrendingTokens] = useState<ITokenData[]>([]);
+const [topGainers, setTopGainers] = useState<ITokenData[]>([]);
+const [topLosers, setTopLosers] = useState<ITokenData[]>([]);
+
+// Fetch helper
+const fetchTokensForTimeframe = async (
+  timeframe: ITimeframe,
+  callback: (tokens: ITokenData[]) => void
+) => {
+  try {
+    const endpoint = `${process.env.CRUX_API}/spectrum/token_list`;
+    const payload = {
+      ...timeframe,
+      limit: 100,
+      offset: 0,
+      sort_by: 'Volume',
+      sort_order: 'Desc',
+      name_filter: ''
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const data: IApiTokenData[] = await response.json();
+    const awaitedData = await Promise.all(data.map(mapApiDataToTokenData));
+    callback(awaitedData);
+  } catch (error) {
+    console.error('Error fetching hardcoded timeframe tokens:', error);
+  }
+};
+
+// One-time fetch on load
+useEffect(() => {
+  // Trending (Daily)
+  fetchTokensForTimeframe({ filter_window: 'Day' }, (tokens) => {
+    const trending = tokens.slice(0, 3);
+    
+    setTopTrendingTokens(trending);
+  });
+
+  // Gainers & Losers (Daily)
+  fetchTokensForTimeframe({ filter_window: 'Day' }, (tokens) => {
+    const gainers = [...tokens]
+      .filter(token => token.pctChange1d > 0)
+      .sort((a, b) => b.pctChange1d - a.pctChange1d)
+      .slice(0, 3);
+
+    const losers = [...tokens]
+      .filter(token => token.pctChange1d < 0)
+      .sort((a, b) => a.pctChange1d - b.pctChange1d)
+      .slice(0, 3);
+
+    setTopGainers(gainers);
+    setTopLosers(losers);
+  });
+}, []);
+
   return (
     <Container>
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+        
+        {/* 🔥 Trending */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: '250px',
+            backgroundColor: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: '8px',
+            padding: 2,
+            color: theme.palette.text.primary,
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+            🔥 Trending
+          </Typography>
+
+          {topTrendingTokens.map((token, index) => (
+            <Box
+              key={token.tokenId}
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                py: 0.5,
+                px: 1,
+                borderRadius: 1,
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: theme.palette.action.hover,
+                },
+              }}
+              onClick={() => router.push(`/tokens/${token.tokenId}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  router.push(`/tokens/${token.tokenId}`);
+                }
+              }}
+            >
+              <Typography variant="body1" sx={{ width: 20 }}>{index + 1}.</Typography>
+              <Avatar src={token.icon} alt={token.name} sx={{ width: 24, height: 24, mr: 1 }} />
+              <Typography
+                variant="body1"
+                sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+              >
+                {token.name}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {/* 📈 Top Gainers */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: '250px',
+            backgroundColor: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: '8px',
+            padding: 2,
+            color: theme.palette.text.primary,
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+            📈 Top Gainers
+          </Typography>
+
+          {topGainers.map((token, index) => (
+            <Box
+              key={token.tokenId}
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                py: 0.5,
+                px: 1,
+                borderRadius: 1,
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: theme.palette.action.hover,
+                },
+              }}
+              onClick={() => router.push(`/tokens/${token.tokenId}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  router.push(`/tokens/${token.tokenId}`);
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body1" sx={{ width: 20 }}>{index + 1}.</Typography>
+                <Avatar src={token.icon} alt={token.name} sx={{ width: 24, height: 24 }} />
+                <Typography
+                  variant="body1"
+                  sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                >
+                  {token.name}
+                </Typography>
+              </Box>
+              <Typography variant="body1" sx={{ color: theme.palette.up.main }}>
+                {formatPercent(token.pctChange1d * 100)}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {/* 📉 Top Losers */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: '250px',
+            backgroundColor: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: '8px',
+            padding: 2,
+            color: theme.palette.text.primary,
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+            📉 Top Losers
+          </Typography>
+
+          {topLosers.map((token, index) => (
+            <Box
+              key={token.tokenId}
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                py: 0.5,
+                px: 1,
+                borderRadius: 1,
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: theme.palette.action.hover,
+                },
+              }}
+              onClick={() => router.push(`/tokens/${token.tokenId}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  router.push(`/tokens/${token.tokenId}`);
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body1" sx={{ width: 20 }}>{index + 1}.</Typography>
+                <Avatar src={token.icon} alt={token.name} sx={{ width: 24, height: 24 }} />
+                <Typography
+                  variant="body1"
+                  sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                >
+                  {token.name}
+                </Typography>
+              </Box>
+              <Typography variant="body1" sx={{ color: theme.palette.down.main }}>
+                {formatPercent(token.pctChange1d * 100)}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+      
       <Box sx={{ mb: 2, display: 'flex', flexDirection: upLg ? 'row' : 'column', gap: 2 }}>
         <Box>
           <Grid container alignItems="center" spacing={2} justifyContent={{ xs: "center", md: "space-between" }}>
