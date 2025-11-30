@@ -505,6 +505,9 @@ const fetchTokensForTimeframe = async (
       body: JSON.stringify(payload)
     });
 
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
     const data: IApiTokenData[] = await response.json();
     const awaitedData = await Promise.all(data.map(mapApiDataToTokenData));
     callback(awaitedData);
@@ -517,9 +520,8 @@ const fetchTokensForTimeframe = async (
 useEffect(() => {
   // Trending (Daily)
   fetchTokensForTimeframe({ filter_window: 'Day' }, (tokens) => {
-    const trending = [...tokens]
-      .sort((a, b) => b.vol - a.vol)
-      .slice(0, 3);
+    const trending = tokens.slice(0, 3);
+    
     setTopTrendingTokens(trending);
   });
 
@@ -580,6 +582,7 @@ useEffect(() => {
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
                   router.push(`/tokens/${token.tokenId}`);
                 }
               }}
