@@ -37,6 +37,7 @@ import StarIcon from "@mui/icons-material/Star";
 import StarToggle from "@components/StarToggle";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { useWallet } from "@contexts/WalletContext";
+import SkeletonTrending from "@components/skeleton/SkeletonTrending";
 
 const Tokens: FC = () => {
   const theme = useTheme();
@@ -450,14 +451,14 @@ const Tokens: FC = () => {
       );
   };
 
-  // // page-load
-  // useEffect(() => {
-  //   if (initialLoading) {
-  //     fetchData();
-  //     console.log('init')
-  //     setInitialLoading(false)
-  //   }
-  // }, []);
+   // page-load
+  useEffect(() => {
+    if (initialLoading) {
+      fetchData();
+      console.log('init')
+      setInitialLoading(false)
+    }
+  }, []);
 
   // Reset the query to 0 and load the new list with appropriate filters and sorting
   useEffect(() => {
@@ -626,6 +627,7 @@ const Tokens: FC = () => {
           sx={{
             flex: 1,
             minWidth: "250px",
+            height: "165px",
             backgroundColor: theme.palette.background.paper,
             border: `1px solid ${theme.palette.divider}`,
             borderRadius: "8px",
@@ -637,12 +639,15 @@ const Tokens: FC = () => {
             🔥 Trending
           </Typography>
 
-          {topTrendingTokens.map((token, index) => (
+        {loading ? (
+          <SkeletonTrending />
+        ) : (
+          topTrendingTokens.map((token: any, index: number) => (
             <Box
               key={token.tokenId}
               sx={{
                 display: "flex",
-                justifyContent: "flex-start",
+                justifyContent: "space-between",
                 alignItems: "center",
                 py: 0.5,
                 px: 1,
@@ -662,26 +667,22 @@ const Tokens: FC = () => {
                 }
               }}
             >
-              <Typography variant="body1" sx={{ width: 20 }}>
-                {index + 1}.
-              </Typography>
-              <Avatar
-                src={token.icon}
-                alt={token.name}
-                sx={{ width: 24, height: 24, mr: 1 }}
-              />
-              <Typography
-                variant="body1"
-                sx={{
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {token.name}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="body1" sx={{ width: 20 }}>{index + 1}.</Typography>
+                <Avatar src={token.icon} alt={token.name} sx={{ width: 24, height: 24 }} />
+                <Typography
+                  variant="body1"
+                  sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                >
+                  {token.name}
+                </Typography>
+              </Box>
+              <Typography variant="body1">
+                Vol: {formatNumber(token.vol)} {currencies.ERG}
               </Typography>
             </Box>
-          ))}
+          ))
+        )}
         </Box>
 
         {/* 📈 Top Gainers */}
@@ -689,6 +690,7 @@ const Tokens: FC = () => {
           sx={{
             flex: 1,
             minWidth: "250px",
+            height: "165px",
             backgroundColor: theme.palette.background.paper,
             border: `1px solid ${theme.palette.divider}`,
             borderRadius: "8px",
@@ -699,8 +701,11 @@ const Tokens: FC = () => {
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
             📈 Top Gainers
           </Typography>
-
-          {topGainers.map((token, index) => (
+        
+          {loading ? (
+            <SkeletonTrending />
+          ) : (
+            topGainers.map((token, index) => (
             <Box
               key={token.tokenId}
               sx={{
@@ -748,7 +753,8 @@ const Tokens: FC = () => {
                 {formatPercent(token.pctChange1d * 100)}
               </Typography>
             </Box>
-          ))}
+          ))
+        )}
         </Box>
 
         {/* 📉 Top Losers */}
@@ -756,6 +762,7 @@ const Tokens: FC = () => {
           sx={{
             flex: 1,
             minWidth: "250px",
+            height: "165px",
             backgroundColor: theme.palette.background.paper,
             border: `1px solid ${theme.palette.divider}`,
             borderRadius: "8px",
@@ -767,7 +774,10 @@ const Tokens: FC = () => {
             📉 Top Losers
           </Typography>
 
-          {topLosers.map((token, index) => (
+        {loading ? (
+          <SkeletonTrending />
+        ) : (
+          topLosers.map((token, index) => (
             <Box
               key={token.tokenId}
               sx={{
@@ -818,7 +828,8 @@ const Tokens: FC = () => {
                 {formatPercent(token.pctChange1d * 100)}
               </Typography>
             </Box>
-          ))}
+          ))
+        )}
         </Box>
       </Box>
 
