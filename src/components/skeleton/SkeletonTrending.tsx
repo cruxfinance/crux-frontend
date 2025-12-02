@@ -1,53 +1,48 @@
+import Box from '@mui/material/Box';
+import Skeleton from '@mui/material/Skeleton';
+
 export default function SkeletonTrending() {
   return (
-    <div>
+    <Box>
       {[1, 2, 3].map((i) => (
-        <div
+        <Box
           key={i}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            marginBottom: "4px",
-          }}
+          display="flex"
+          alignItems="center"
+          gap={1}
+          px={1}
+          py={0.5}
+          borderRadius={1}
+          mb={0.5}
         >
           {/* index number */}
-          <div
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              backgroundColor: "#666",
-              flexShrink: 0,
-            }}
-          ></div>
+          <Skeleton
+            variant="circular"
+            width={20}
+            height={20}
+            animation="wave"
+          />
 
           {/* avatar */}
-          <div
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              backgroundColor: "#666",
-              flexShrink: 0,
-            }}
-          ></div>
+          <Skeleton
+            variant="circular"
+            width={24}
+            height={24}
+            animation="wave"
+          />
 
           {/* single line name placeholder */}
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                width: "80%",
-                height: 12,
-                backgroundColor: "#666",
-                borderRadius: 2,
-              }}
-            ></div>
-          </div>
-        </div>
+          <Box flex={1}>
+            <Skeleton
+              variant="rectangular"
+              width="80%"
+              height={12}
+              animation="wave"
+              sx={{ borderRadius: 1 }}
+            />
+          </Box>
+        </Box>
       ))}
-    </div>
+    </Box>
   );
 }
