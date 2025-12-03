@@ -37,7 +37,6 @@ import StarIcon from "@mui/icons-material/Star";
 import StarToggle from "@components/StarToggle";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { useWallet } from "@contexts/WalletContext";
-import SkeletonTrending from "@components/skeleton/SkeletonTrending";
 
 const Tokens: FC = () => {
   const theme = useTheme();
@@ -639,50 +638,65 @@ const Tokens: FC = () => {
             🔥 Trending
           </Typography>
 
-        {loading ? (
-          <SkeletonTrending />
-        ) : (
-          topTrendingTokens.map((token: any, index: number) => (
+          {topTrendingTokens.length === 0 ? (
             <Box
-              key={token.tokenId}
               sx={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "center",
                 alignItems: "center",
-                py: 0.5,
-                px: 1,
-                borderRadius: 1,
-                cursor: "pointer",
-                "&:hover": {
-                  backgroundColor: theme.palette.action.hover,
-                },
-              }}
-              onClick={() => router.push(`/tokens/${token.tokenId}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  router.push(`/tokens/${token.tokenId}`);
-                }
+                height: "100px",
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="body1" sx={{ width: 20 }}>{index + 1}.</Typography>
-                <Avatar src={token.icon} alt={token.name} sx={{ width: 24, height: 24 }} />
-                <Typography
-                  variant="body1"
-                  sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                >
-                  {token.name}
+              <BouncingDotsLoader />
+            </Box>
+          ) : (
+            topTrendingTokens.map((token: any, index: number) => (
+              <Box
+                key={token.tokenId}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: 1,
+                  cursor: "pointer",
+                  "&:hover": {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                }}
+                onClick={() => router.push(`/tokens/${token.tokenId}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/tokens/${token.tokenId}`);
+                  }
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="body1" sx={{ width: 20 }}>
+                    {index + 1}.
+                  </Typography>
+                  <Avatar src={token.icon} alt={token.name} sx={{ width: 24, height: 24 }} />
+                  <Typography
+                    variant="body1"
+                   sx={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {token.name}
+                  </Typography>
+                </Box>
+                <Typography variant="body1">
+                  Vol: {formatNumber(token.vol)} {currencies.ERG}
                 </Typography>
               </Box>
-              <Typography variant="body1">
-                Vol: {formatNumber(token.vol)} {currencies.ERG}
-              </Typography>
-            </Box>
-          ))
-        )}
+            ))
+         )}
         </Box>
 
         {/* 📈 Top Gainers */}
@@ -701,60 +715,69 @@ const Tokens: FC = () => {
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
             📈 Top Gainers
           </Typography>
-        
-          {loading ? (
-            <SkeletonTrending />
-          ) : (
-            topGainers.map((token, index) => (
+
+          {topGainers.length === 0 ? (
             <Box
-              key={token.tokenId}
               sx={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "center",
                 alignItems: "center",
-                py: 0.5,
-                px: 1,
-                borderRadius: 1,
-                cursor: "pointer",
-                "&:hover": {
-                  backgroundColor: theme.palette.action.hover,
-                },
-              }}
-              onClick={() => router.push(`/tokens/${token.tokenId}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  router.push(`/tokens/${token.tokenId}`);
-                }
+                height: "100px",
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="body1" sx={{ width: 20 }}>
-                  {index + 1}.
-                </Typography>
-                <Avatar
-                  src={token.icon}
-                  alt={token.name}
-                  sx={{ width: 24, height: 24 }}
-                />
-                <Typography
-                  variant="body1"
-                  sx={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {token.name}
+              <BouncingDotsLoader />
+            </Box>
+          ) : (
+            topGainers.map((token, index) => (
+              <Box
+                key={token.tokenId}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: 1,
+                  cursor: "pointer",
+                  "&:hover": {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                }}
+                onClick={() => router.push(`/tokens/${token.tokenId}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    router.push(`/tokens/${token.tokenId}`);
+                  }
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="body1" sx={{ width: 20 }}>
+                    {index + 1}.
+                  </Typography>
+                  <Avatar
+                    src={token.icon}
+                    alt={token.name}
+                    sx={{ width: 24, height: 24 }}
+                  />
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {token.name}
+                  </Typography>
+                </Box>
+                <Typography variant="body1" sx={{ color: theme.palette.up.main }}>
+                  {formatPercent(token.pctChange1d * 100)}
                 </Typography>
               </Box>
-              <Typography variant="body1" sx={{ color: theme.palette.up.main }}>
-                {formatPercent(token.pctChange1d * 100)}
-              </Typography>
-            </Box>
-          ))
-        )}
+            ))
+          )}
         </Box>
 
         {/* 📉 Top Losers */}
@@ -774,62 +797,68 @@ const Tokens: FC = () => {
             📉 Top Losers
           </Typography>
 
-        {loading ? (
-          <SkeletonTrending />
-        ) : (
-          topLosers.map((token, index) => (
+          {topLosers.length === 0 ? (
             <Box
-              key={token.tokenId}
               sx={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "center",
                 alignItems: "center",
-                py: 0.5,
-                px: 1,
-                borderRadius: 1,
-                cursor: "pointer",
-                "&:hover": {
-                  backgroundColor: theme.palette.action.hover,
-                },
-              }}
-              onClick={() => router.push(`/tokens/${token.tokenId}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  router.push(`/tokens/${token.tokenId}`);
-                }
+                height: "100px",
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="body1" sx={{ width: 20 }}>
-                  {index + 1}.
-                </Typography>
-                <Avatar
-                  src={token.icon}
-                  alt={token.name}
-                  sx={{ width: 24, height: 24 }}
-                />
-                <Typography
-                  variant="body1"
-                  sx={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {token.name}
+              <BouncingDotsLoader />
+            </Box>
+          ) : (
+            topLosers.map((token, index) => (
+              <Box
+                key={token.tokenId}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: 1,
+                  cursor: "pointer",
+                  "&:hover": {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                }}
+                onClick={() => router.push(`/tokens/${token.tokenId}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    router.push(`/tokens/${token.tokenId}`);
+                  }
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="body1" sx={{ width: 20 }}>
+                    {index + 1}.
+                  </Typography>
+                  <Avatar
+                    src={token.icon}
+                    alt={token.name}
+                    sx={{ width: 24, height: 24 }}
+                  />
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {token.name}
+                  </Typography>
+                </Box>
+                <Typography variant="body1" sx={{ color: theme.palette.down.main }}>
+                  {formatPercent(token.pctChange1d * 100)}
                 </Typography>
               </Box>
-              <Typography
-                variant="body1"
-                sx={{ color: theme.palette.down.main }}
-              >
-                {formatPercent(token.pctChange1d * 100)}
-              </Typography>
-            </Box>
-          ))
-        )}
+            ))
+          )}
         </Box>
       </Box>
 
