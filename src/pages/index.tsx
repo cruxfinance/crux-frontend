@@ -556,7 +556,8 @@ const Tokens: FC = () => {
   const [topTrendingTokens, setTopTrendingTokens] = useState<ITokenData[]>([]);
   const [topGainers, setTopGainers] = useState<ITokenData[]>([]);
   const [topLosers, setTopLosers] = useState<ITokenData[]>([]);
-
+  const [boxesLoaded, setBoxesLoaded] = useState(false);
+  
   // Fetch helper
   const fetchTokensForTimeframe = async (
     timeframe: ITimeframe,
@@ -594,29 +595,31 @@ const Tokens: FC = () => {
 
   // One-time fetch on load
   useEffect(() => {
-    // Trending (Daily)
-    fetchTokensForTimeframe({ filter_window: "Day" }, (tokens) => {
-      const trending = tokens.slice(0, 3);
+    if (!boxesLoaded) {
+      // Trending (Daily)
+      fetchTokensForTimeframe({ filter_window: "Day" }, (tokens) => {
+        const trending = tokens.slice(0, 3);
+        setTopTrendingTokens(trending);
+      });
 
-      setTopTrendingTokens(trending);
-    });
+      // Gainers & Losers (Daily)
+      fetchTokensForTimeframe({ filter_window: "Day" }, (tokens) => {
+        const gainers = [...tokens]
+          .filter((token) => token.pctChange1d > 0)
+          .sort((a, b) => b.pctChange1d - a.pctChange1d)
+          .slice(0, 3);
+        const losers = [...tokens]
+          .filter((token) => token.pctChange1d < 0)
+          .sort((a, b) => a.pctChange1d - b.pctChange1d)
+          .slice(0, 3);
 
-    // Gainers & Losers (Daily)
-    fetchTokensForTimeframe({ filter_window: "Day" }, (tokens) => {
-      const gainers = [...tokens]
-        .filter((token) => token.pctChange1d > 0)
-        .sort((a, b) => b.pctChange1d - a.pctChange1d)
-        .slice(0, 3);
+        setTopGainers(gainers);
+        setTopLosers(losers);
+      });
 
-      const losers = [...tokens]
-        .filter((token) => token.pctChange1d < 0)
-        .sort((a, b) => a.pctChange1d - b.pctChange1d)
-        .slice(0, 3);
-
-      setTopGainers(gainers);
-      setTopLosers(losers);
-    });
-  }, []);
+      setBoxesLoaded(true);
+    }
+  }, [boxesLoaded]);
 
   return (
     <Container>
@@ -635,9 +638,11 @@ const Tokens: FC = () => {
           }}
         >
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-            🔥 Trending
+            🔥 Trending{" "}
+            <Typography component="span" variant="caption" sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>
+              (1d)
+            </Typography>
           </Typography>
-
           {topTrendingTokens.length === 0 ? (
             <Box
               sx={{
@@ -713,9 +718,11 @@ const Tokens: FC = () => {
           }}
         >
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-            📈 Top Gainers
+            📈 Top Gainers{" "}
+            <Typography component="span" variant="caption" sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>
+              (1d)
+            </Typography>
           </Typography>
-
           {topGainers.length === 0 ? (
             <Box
               sx={{
@@ -794,9 +801,11 @@ const Tokens: FC = () => {
           }}
         >
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-            📉 Top Losers
+            📉 Top Losers{" "}
+            <Typography component="span" variant="caption" sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>
+              (1d)
+            </Typography>
           </Typography>
-
           {topLosers.length === 0 ? (
             <Box
               sx={{
