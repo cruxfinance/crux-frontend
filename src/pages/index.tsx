@@ -316,6 +316,7 @@ const Tokens: FC = () => {
     timeframe: ITimeframe,
     inputtedSearchString: string,
     starredOnly: boolean,
+    isBoxesFetch: boolean = false,
   ) {
     setLoading(true);
     try {
@@ -350,6 +351,10 @@ const Tokens: FC = () => {
             return tokenData;
           }),
         );
+        if (isBoxesFetch) {
+          setBoxesBaseData(awaitedData);
+        }
+
         if (queries.offset === 0) {
           setFilteredTokens(awaitedData);
           setErgExchange(data[0].erg_price_usd);
@@ -422,7 +427,7 @@ const Tokens: FC = () => {
     };
   };
 
-  const fetchData = async (reset?: boolean) => {
+  const fetchData = async (reset?: boolean, isInitialBoxesFetch?: boolean) => {
     if (reset) {
       setQueries((prevQueries) => {
         return {
@@ -432,12 +437,13 @@ const Tokens: FC = () => {
       });
       setFilteredTokens([]);
       await fetchTokenData(
-        filters,
-        sorting,
+        isInitialBoxesFetch ? { liquidity_min: 100 } : filters,
+        isInitialBoxesFetch ? { sort_by: "Volume", sort_order: "Desc" } : sorting,
         { ...queries, offset: 0 },
-        timeframe,
-        searchString,
-        showOnlyStarred,
+        { filter_window: "Day" },
+        isInitialBoxesFetch ? "" : searchString,
+        false,
+        isInitialBoxesFetch,
       );
     } else
       fetchTokenData(
@@ -447,15 +453,16 @@ const Tokens: FC = () => {
         timeframe,
         searchString,
         showOnlyStarred,
+        false,
       );
   };
 
    // page-load
   useEffect(() => {
     if (initialLoading) {
-      fetchData();
-      console.log('init')
-      setInitialLoading(false)
+      fetchData(true, true);
+      console.log("init - boxes data");
+      setInitialLoading(false);
     }
   }, []);
 
@@ -552,74 +559,33 @@ const Tokens: FC = () => {
     );
   };
 
-  // State for top boxes
+  // State for boxes base data and top boxes
+  const [boxesBaseData, setBoxesBaseData] = useState<ITokenData[]>([]);
   const [topTrendingTokens, setTopTrendingTokens] = useState<ITokenData[]>([]);
   const [topGainers, setTopGainers] = useState<ITokenData[]>([]);
   const [topLosers, setTopLosers] = useState<ITokenData[]>([]);
-  const [boxesLoaded, setBoxesLoaded] = useState(false);
   
-  // Fetch helper
-  const fetchTokensForTimeframe = async (
-    timeframe: ITimeframe,
-    callback: (tokens: ITokenData[]) => void,
-  ) => {
-    try {
-      const endpoint = `${process.env.CRUX_API}/spectrum/token_list`;
-      const payload = {
-        ...timeframe,
-        limit: 100,
-        offset: 0,
-        sort_by: "Volume",
-        sort_order: "Desc",
-        name_filter: "",
-      };
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      const data: IApiTokenData[] = await response.json();
-      const awaitedData = await Promise.all(data.map(mapApiDataToTokenData));
-      callback(awaitedData);
-    } catch (error) {
-      console.error("Error fetching hardcoded timeframe tokens:", error);
-    }
-  };
-
-  // One-time fetch on load
   useEffect(() => {
-    if (!boxesLoaded) {
-      // Trending (Daily)
-      fetchTokensForTimeframe({ filter_window: "Day" }, (tokens) => {
-        const trending = tokens.slice(0, 3);
-        setTopTrendingTokens(trending);
-      });
+    if (boxesBaseData.length > 0) {
+      // Trending = top 3 by volume
+      const trending = boxesBaseData.slice(0, 3);
+      setTopTrendingTokens(trending);
 
-      // Gainers & Losers (Daily)
-      fetchTokensForTimeframe({ filter_window: "Day" }, (tokens) => {
-        const gainers = [...tokens]
-          .filter((token) => token.pctChange1d > 0)
-          .sort((a, b) => b.pctChange1d - a.pctChange1d)
-          .slice(0, 3);
-        const losers = [...tokens]
-          .filter((token) => token.pctChange1d < 0)
-          .sort((a, b) => a.pctChange1d - b.pctChange1d)
-          .slice(0, 3);
+      // Gainers = top 3 positive daily changes
+      const gainers = [...boxesBaseData]
+        .filter((token) => token.pctChange1d > 0)
+        .sort((a, b) => b.pctChange1d - a.pctChange1d)
+        .slice(0, 3);
+      setTopGainers(gainers);
 
-        setTopGainers(gainers);
-        setTopLosers(losers);
-      });
-
-      setBoxesLoaded(true);
+      // Losers = top 3 negative daily changes
+      const losers = [...boxesBaseData]
+        .filter((token) => token.pctChange1d < 0)
+        .sort((a, b) => a.pctChange1d - b.pctChange1d)
+        .slice(0, 3);
+      setTopLosers(losers);
     }
-  }, [boxesLoaded]);
+  }, [boxesBaseData]);
 
   return (
     <Container>
