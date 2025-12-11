@@ -60,6 +60,11 @@ interface EIP12UnsignedTransaction {
   outputs: any[];
 }
 
+interface TokenPrice {
+  erg_price_usd: number;
+  asset_price_erg: number;
+}
+
 const ERG_TOKEN_ID =
   "0000000000000000000000000000000000000000000000000000000000000000";
 const ERG_DECIMALS = 9;
@@ -81,6 +86,8 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [tokenDecimals, setTokenDecimals] = useState<number | null>(null);
   const [tokenIcon, setTokenIcon] = useState<string>("");
   const [ergIcon, setErgIcon] = useState<string>("");
+  const [tokenPrice, setTokenPrice] = useState<TokenPrice | null>(null);
+  const [ergPrice, setErgPrice] = useState<number | null>(null);
 
   const givenTokenId = fromToken === "token" ? tokenId : ERG_TOKEN_ID;
   const requestedTokenId = fromToken === "token" ? ERG_TOKEN_ID : tokenId;
@@ -132,6 +139,58 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     };
 
     fetchErgIcon();
+  }, []);
+
+  // Fetch token price
+  useEffect(() => {
+    const fetchTokenPrice = async () => {
+      try {
+        const endpoint = `${process.env.CRUX_API}/spectrum/price`;
+        const params = new URLSearchParams({
+          token_id: tokenId,
+        });
+
+        const response = await fetch(`${endpoint}?${params}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          const data: TokenPrice = await response.json();
+          setTokenPrice(data);
+        }
+      } catch (error) {
+        console.error("Error fetching token price:", error);
+      }
+    };
+
+    fetchTokenPrice();
+  }, [tokenId]);
+
+  // Fetch ERG price
+  useEffect(() => {
+    const fetchErgPrice = async () => {
+      try {
+        const endpoint = `${process.env.CRUX_API}/coingecko/erg_price`;
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setErgPrice(data.price);
+        }
+      } catch (error) {
+        console.error("Error fetching ERG price:", error);
+      }
+    };
+
+    fetchErgPrice();
   }, []);
 
   const getGivenTokenDecimals = useCallback((): number => {
@@ -345,6 +404,21 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     return convertFromRawAmount(Math.floor(minAmount), requestedDecimals);
   };
 
+  const getUsdValue = (amount: string, isErgToken: boolean): string => {
+    const numAmount = parseFloat(amount);
+    if (!amount || isNaN(numAmount) || numAmount === 0) return "";
+
+    if (isErgToken) {
+      if (!ergPrice) return "";
+      const usdValue = numAmount * ergPrice;
+      return `~$${usdValue.toFixed(2)}`;
+    } else {
+      if (!tokenPrice || !ergPrice) return "";
+      const usdValue = numAmount * tokenPrice.asset_price_erg * ergPrice;
+      return `~$${usdValue.toFixed(2)}`;
+    }
+  };
+
   if (tokenDecimals === null) {
     return (
       <Paper variant="outlined" sx={{ p: 2, width: "100%" }}>
@@ -406,6 +480,15 @@ const SwapWidget: FC<SwapWidgetProps> = ({
             ),
           }}
         />
+        {fromAmount && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mt: 0.5, display: "block" }}
+          >
+            {getUsdValue(fromAmount, fromToken === "erg")}
+          </Typography>
+        )}
       </Box>
 
       {/* Swap Direction Button */}
@@ -470,6 +553,15 @@ const SwapWidget: FC<SwapWidgetProps> = ({
             ),
           }}
         />
+        {toAmount && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mt: 0.5, display: "block" }}
+          >
+            {getUsdValue(toAmount, fromToken === "token")}
+          </Typography>
+        )}
       </Box>
 
       {/* Price Impact Display */}
