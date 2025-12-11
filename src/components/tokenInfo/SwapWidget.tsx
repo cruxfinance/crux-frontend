@@ -12,6 +12,12 @@ import {
   Avatar,
   Switch,
   FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Checkbox,
+  FormGroup,
 } from "@mui/material";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { useAlert } from "@contexts/AlertContext";
@@ -100,11 +106,24 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [ergBalance, setErgBalance] = useState<string | null>(null);
   const [noPoolFound, setNoPoolFound] = useState<boolean>(false);
   const [feeToken, setFeeToken] = useState<"erg" | "crux">("erg");
+  const [hasAgreedToDisclaimer, setHasAgreedToDisclaimer] =
+    useState<boolean>(false);
+  const [showDisclaimerDialog, setShowDisclaimerDialog] =
+    useState<boolean>(false);
+  const [disclaimerCheckbox, setDisclaimerCheckbox] = useState<boolean>(false);
 
   const givenTokenId = fromToken === "token" ? tokenId : ERG_TOKEN_ID;
   const requestedTokenId = fromToken === "token" ? ERG_TOKEN_ID : tokenId;
   const fromTokenName = fromToken === "token" ? tokenTicker : "ERG";
   const toTokenName = fromToken === "token" ? "ERG" : tokenTicker;
+
+  // Check if user has already agreed to the disclaimer
+  useEffect(() => {
+    const agreed = localStorage.getItem("swapDisclaimerAgreed");
+    if (agreed === "true") {
+      setHasAgreedToDisclaimer(true);
+    }
+  }, []);
 
   // Fetch token decimals and icon
   useEffect(() => {
@@ -371,6 +390,12 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   };
 
   const handleSwap = async () => {
+    // Check if user has agreed to disclaimer
+    if (!hasAgreedToDisclaimer) {
+      setShowDisclaimerDialog(true);
+      return;
+    }
+
     if (!fromAmount || !bestSwap || !window.ergoConnector?.nautilus) {
       addAlert("error", "Please connect Nautilus wallet");
       return;
@@ -455,7 +480,23 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     }
   };
 
-  const getMinimumReceived = (): string => {
+  const handleDisclaimerAgree = () => {
+    if (disclaimerCheckbox) {
+      localStorage.setItem("swapDisclaimerAgreed", "true");
+      setHasAgreedToDisclaimer(true);
+      setShowDisclaimerDialog(false);
+      setDisclaimerCheckbox(false);
+      // Trigger the swap after agreement
+      handleSwap();
+    }
+  };
+
+  const handleDisclaimerClose = () => {
+    setShowDisclaimerDialog(false);
+    setDisclaimerCheckbox(false);
+  };
+
+  const getMinimumReceived = () => {
     if (!bestSwap) return "0";
     const requestedDecimals = getRequestedTokenDecimals();
     // Apply 0.5% slippage tolerance for minimum received
@@ -526,359 +567,444 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   }
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{ p: 2, width: "100%", position: "relative" }}
-    >
-      <Box sx={{ position: "relative" }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
-          <Typography variant="h6">Swap</Typography>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={feeToken === "crux"}
-                onChange={(e) => setFeeToken(e.target.checked ? "crux" : "erg")}
-                size="small"
-              />
-            }
-            label={
-              <Typography variant="caption" color="text.secondary">
-                Pay fee in {feeToken === "crux" ? "CRUX" : "ERG"}
-              </Typography>
-            }
-            labelPlacement="start"
-            sx={{ m: 0 }}
-          />
-        </Box>
-
-        {/* From Input */}
-        <Box sx={{ mb: 1 }}>
+    <>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2, width: "100%", position: "relative" }}
+      >
+        <Box sx={{ position: "relative" }}>
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              mb: 0.5,
+              mb: 2,
             }}
           >
-            <Typography variant="caption" color="text.secondary">
-              From
-            </Typography>
-            {getFormattedBalance() !== null && (
+            <Typography variant="h6">Swap</Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={feeToken === "crux"}
+                  onChange={(e) =>
+                    setFeeToken(e.target.checked ? "crux" : "erg")
+                  }
+                  size="small"
+                />
+              }
+              label={
+                <Typography variant="caption" color="text.secondary">
+                  Pay fee in {feeToken === "crux" ? "CRUX" : "ERG"}
+                </Typography>
+              }
+              labelPlacement="start"
+              sx={{ m: 0 }}
+            />
+          </Box>
+
+          {/* From Input */}
+          <Box sx={{ mb: 1 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 0.5,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                From
+              </Typography>
+              {getFormattedBalance() !== null && (
+                <Typography
+                  variant="caption"
+                  color="primary"
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                  onClick={handleMaxClick}
+                >
+                  Balance: {getFormattedBalance()} {fromTokenName}
+                </Typography>
+              )}
+            </Box>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={fromAmount}
+              onChange={handleFromAmountChange}
+              placeholder="0.0"
+              type="text"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        height: "100%",
+                      }}
+                    >
+                      <Avatar
+                        src={fromToken === "token" ? tokenIcon : ergIcon}
+                        alt={fromTokenName}
+                        sx={{ width: 24, height: 24 }}
+                      />
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 600,
+                          lineHeight: "24px",
+                          height: "24px",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {fromTokenName}
+                      </Typography>
+                    </Box>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            {fromAmount && (
               <Typography
                 variant="caption"
-                color="primary"
-                sx={{
-                  cursor: "pointer",
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
-                }}
-                onClick={handleMaxClick}
+                color="text.secondary"
+                sx={{ mt: 0.5, display: "block" }}
               >
-                Balance: {getFormattedBalance()} {fromTokenName}
+                {getUsdValue(fromAmount, fromToken === "erg")}
               </Typography>
             )}
           </Box>
-          <TextField
-            fullWidth
-            variant="outlined"
-            value={fromAmount}
-            onChange={handleFromAmountChange}
-            placeholder="0.0"
-            type="text"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      height: "100%",
-                    }}
-                  >
-                    <Avatar
-                      src={fromToken === "token" ? tokenIcon : ergIcon}
-                      alt={fromTokenName}
-                      sx={{ width: 24, height: 24 }}
-                    />
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontWeight: 600,
-                        lineHeight: "24px",
-                        height: "24px",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {fromTokenName}
-                    </Typography>
-                  </Box>
-                </InputAdornment>
-              ),
-            }}
-          />
-          {fromAmount && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mt: 0.5, display: "block" }}
+
+          {/* Swap Direction Button */}
+          <Box sx={{ display: "flex", justifyContent: "center", my: 1 }}>
+            <IconButton
+              onClick={handleSwapDirection}
+              disabled={loading || swapping}
+              sx={{
+                bgcolor: theme.palette.background.default,
+                border: `1px solid ${theme.palette.divider}`,
+                "&:hover": {
+                  bgcolor: theme.palette.action.hover,
+                },
+              }}
             >
-              {getUsdValue(fromAmount, fromToken === "erg")}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Swap Direction Button */}
-        <Box sx={{ display: "flex", justifyContent: "center", my: 1 }}>
-          <IconButton
-            onClick={handleSwapDirection}
-            disabled={loading || swapping}
-            sx={{
-              bgcolor: theme.palette.background.default,
-              border: `1px solid ${theme.palette.divider}`,
-              "&:hover": {
-                bgcolor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <SwapVertIcon />
-          </IconButton>
-        </Box>
-
-        {/* To Input */}
-        <Box sx={{ mb: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 0.5,
-            }}
-          >
-            <Typography variant="caption" color="text.secondary">
-              To
-            </Typography>
-            {(() => {
-              const balance = fromToken === "token" ? ergBalance : tokenBalance;
-              const decimals =
-                fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
-
-              if (!balance || decimals === null) {
-                return null;
-              }
-
-              const balanceNum = parseInt(balance, 10);
-              const formatted = convertFromRawAmount(balanceNum, decimals);
-              const numFormatted = parseFloat(formatted);
-
-              let formattedBalance;
-              if (numFormatted === 0) {
-                formattedBalance = "0";
-              } else if (numFormatted < 0.01) {
-                formattedBalance = numFormatted.toFixed(6);
-              } else if (numFormatted < 1) {
-                formattedBalance = numFormatted.toFixed(4);
-              } else {
-                formattedBalance = numFormatted.toFixed(2);
-              }
-
-              return (
-                <Typography variant="caption" color="text.secondary">
-                  Balance: {formattedBalance} {toTokenName}
-                </Typography>
-              );
-            })()}
+              <SwapVertIcon />
+            </IconButton>
           </Box>
-          <TextField
-            fullWidth
-            variant="outlined"
-            value={toAmount}
-            placeholder="0.0"
-            type="text"
-            disabled
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      height: "100%",
-                    }}
-                  >
-                    <Avatar
-                      src={fromToken === "token" ? ergIcon : tokenIcon}
-                      alt={toTokenName}
-                      sx={{ width: 24, height: 24 }}
-                    />
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontWeight: 600,
-                        lineHeight: "24px",
-                        height: "24px",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {toTokenName}
-                    </Typography>
-                  </Box>
-                </InputAdornment>
-              ),
-            }}
-          />
-          {toAmount && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mt: 0.5, display: "block" }}
-            >
-              {getUsdValue(toAmount, fromToken === "token")}
-            </Typography>
-          )}
-        </Box>
 
-        {/* Price Impact and Fee Display */}
-        {bestSwap && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 1,
-              bgcolor: theme.palette.background.default,
-              borderRadius: 1,
-            }}
-          >
+          {/* To Input */}
+          <Box sx={{ mb: 2 }}>
             <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 0.5,
+              }}
             >
               <Typography variant="caption" color="text.secondary">
-                Price Impact
+                To
               </Typography>
+              {(() => {
+                const balance =
+                  fromToken === "token" ? ergBalance : tokenBalance;
+                const decimals =
+                  fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
+
+                if (!balance || decimals === null) {
+                  return null;
+                }
+
+                const balanceNum = parseInt(balance, 10);
+                const formatted = convertFromRawAmount(balanceNum, decimals);
+                const numFormatted = parseFloat(formatted);
+
+                let formattedBalance;
+                if (numFormatted === 0) {
+                  formattedBalance = "0";
+                } else if (numFormatted < 0.01) {
+                  formattedBalance = numFormatted.toFixed(6);
+                } else if (numFormatted < 1) {
+                  formattedBalance = numFormatted.toFixed(4);
+                } else {
+                  formattedBalance = numFormatted.toFixed(2);
+                }
+
+                return (
+                  <Typography variant="caption" color="text.secondary">
+                    Balance: {formattedBalance} {toTokenName}
+                  </Typography>
+                );
+              })()}
+            </Box>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={toAmount}
+              placeholder="0.0"
+              type="text"
+              disabled
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        height: "100%",
+                      }}
+                    >
+                      <Avatar
+                        src={fromToken === "token" ? ergIcon : tokenIcon}
+                        alt={toTokenName}
+                        sx={{ width: 24, height: 24 }}
+                      />
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 600,
+                          lineHeight: "24px",
+                          height: "24px",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {toTokenName}
+                      </Typography>
+                    </Box>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            {toAmount && (
               <Typography
                 variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, display: "block" }}
+              >
+                {getUsdValue(toAmount, fromToken === "token")}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Price Impact and Fee Display */}
+          {bestSwap && (
+            <Box
+              sx={{
+                mb: 2,
+                p: 1,
+                bgcolor: theme.palette.background.default,
+                borderRadius: 1,
+              }}
+            >
+              <Box
                 sx={{
-                  color:
-                    bestSwap.swap_result.price_impact > 5
-                      ? theme.palette.error.main
-                      : bestSwap.swap_result.price_impact > 2
-                        ? theme.palette.warning.main
-                        : theme.palette.success.main,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mb: 0.5,
                 }}
               >
-                {bestSwap.swap_result.price_impact.toFixed(2)}%
-              </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Price Impact
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color:
+                      bestSwap.swap_result.price_impact > 5
+                        ? theme.palette.error.main
+                        : bestSwap.swap_result.price_impact > 2
+                          ? theme.palette.warning.main
+                          : theme.palette.success.main,
+                  }}
+                >
+                  {bestSwap.swap_result.price_impact.toFixed(2)}%
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mb: 0.5,
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  Minimum Received
+                </Typography>
+                <Typography variant="caption">
+                  {getMinimumReceived()} {toTokenName}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mb: 0.5,
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  Transaction Fee
+                </Typography>
+                <Typography variant="caption">
+                  {convertFromRawAmount(
+                    bestSwap.swap_result.fee_amount,
+                    bestSwap.swap_result.fee_token === "erg"
+                      ? ERG_DECIMALS
+                      : CRUX_DECIMALS,
+                  )}{" "}
+                  {bestSwap.swap_result.fee_token.toUpperCase()}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography variant="caption" color="text.secondary">
+                  Fee (USD)
+                </Typography>
+                <Typography variant="caption">
+                  ${bestSwap.swap_result.fee_usd.toFixed(4)}
+                </Typography>
+              </Box>
             </Box>
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                Minimum Received
-              </Typography>
-              <Typography variant="caption">
-                {getMinimumReceived()} {toTokenName}
-              </Typography>
-            </Box>
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                Transaction Fee
-              </Typography>
-              <Typography variant="caption">
-                {convertFromRawAmount(
-                  bestSwap.swap_result.fee_amount,
-                  bestSwap.swap_result.fee_token === "erg"
-                    ? ERG_DECIMALS
-                    : CRUX_DECIMALS,
-                )}{" "}
-                {bestSwap.swap_result.fee_token.toUpperCase()}
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography variant="caption" color="text.secondary">
-                Fee (USD)
-              </Typography>
-              <Typography variant="caption">
-                ${bestSwap.swap_result.fee_usd.toFixed(4)}
-              </Typography>
-            </Box>
-          </Box>
-        )}
+          )}
 
-        {/* No Pool Found Overlay */}
-        {noPoolFound && fromAmount && (
-          <Box
+          {/* No Pool Found Overlay */}
+          {noPoolFound && fromAmount && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                bgcolor: "rgba(0, 0, 0, 0.7)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 1,
+                zIndex: 10,
+              }}
+            >
+              <Typography
+                variant="h6"
+                color="text.secondary"
+                sx={{ textAlign: "center", px: 3 }}
+              >
+                No pool found for this token pair
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Swap Button */}
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleSwap}
+          disabled={
+            !fromAmount || !bestSwap || loading || swapping || noPoolFound
+          }
+          sx={{ height: 48 }}
+        >
+          {swapping ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : loading ? (
+            "Loading..."
+          ) : !fromAmount ? (
+            "Enter Amount"
+          ) : !bestSwap ? (
+            "No Route Found"
+          ) : (
+            "Swap"
+          )}
+        </Button>
+
+        {/* Warning for high price impact */}
+        {bestSwap && bestSwap.swap_result.price_impact > 5 && (
+          <Typography
+            variant="caption"
+            color="error"
+            sx={{ display: "block", mt: 1, textAlign: "center" }}
+          >
+            Warning: High price impact!
+          </Typography>
+        )}
+      </Paper>
+
+      {/* Disclaimer Dialog */}
+      <Dialog
+        open={showDisclaimerDialog}
+        onClose={handleDisclaimerClose}
+        maxWidth="sm"
+        fullWidth
+        sx={{
+          "& .MuiBackdrop-root": {
+            backdropFilter: "blur(3px)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 600,
+            color: theme.palette.warning.main,
+          }}
+        >
+          ⚠️ Important Notice
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            This functionality is new and can contain bugs. Whenever performing
+            a swap verify the transaction details before signing the
+            transaction!
+          </Typography>
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={disclaimerCheckbox}
+                  onChange={(e) => setDisclaimerCheckbox(e.target.checked)}
+                  sx={{
+                    color: theme.palette.warning.main,
+                    "&.Mui-checked": {
+                      color: theme.palette.warning.main,
+                    },
+                  }}
+                />
+              }
+              label="I understand and agree to proceed with caution"
+            />
+          </FormGroup>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 2, gap: 1 }}>
+          <Button
+            onClick={handleDisclaimerAgree}
+            variant="contained"
+            disabled={!disclaimerCheckbox}
             sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              bgcolor: "rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 1,
-              zIndex: 10,
+              minWidth: 120,
             }}
           >
-            <Typography
-              variant="h6"
-              color="text.secondary"
-              sx={{ textAlign: "center", px: 3 }}
-            >
-              No pool found for this token pair
-            </Typography>
-          </Box>
-        )}
-      </Box>
-
-      {/* Swap Button */}
-      <Button
-        fullWidth
-        variant="contained"
-        onClick={handleSwap}
-        disabled={
-          !fromAmount || !bestSwap || loading || swapping || noPoolFound
-        }
-        sx={{ height: 48 }}
-      >
-        {swapping ? (
-          <CircularProgress size={24} color="inherit" />
-        ) : loading ? (
-          "Loading..."
-        ) : !fromAmount ? (
-          "Enter Amount"
-        ) : !bestSwap ? (
-          "No Route Found"
-        ) : (
-          "Swap"
-        )}
-      </Button>
-
-      {/* Warning for high price impact */}
-      {bestSwap && bestSwap.swap_result.price_impact > 5 && (
-        <Typography
-          variant="caption"
-          color="error"
-          sx={{ display: "block", mt: 1, textAlign: "center" }}
-        >
-          Warning: High price impact!
-        </Typography>
-      )}
-    </Paper>
+            Agree & Continue
+          </Button>
+          <Button
+            onClick={handleDisclaimerClose}
+            variant="outlined"
+            sx={{
+              minWidth: 120,
+            }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
