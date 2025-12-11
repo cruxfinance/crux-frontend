@@ -88,6 +88,8 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [ergIcon, setErgIcon] = useState<string>("");
   const [tokenPrice, setTokenPrice] = useState<TokenPrice | null>(null);
   const [ergPrice, setErgPrice] = useState<number | null>(null);
+  const [tokenBalance, setTokenBalance] = useState<string | null>(null);
+  const [ergBalance, setErgBalance] = useState<string | null>(null);
 
   const givenTokenId = fromToken === "token" ? tokenId : ERG_TOKEN_ID;
   const requestedTokenId = fromToken === "token" ? ERG_TOKEN_ID : tokenId;
@@ -192,6 +194,43 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
     fetchErgPrice();
   }, []);
+
+  // Fetch wallet balances
+  useEffect(() => {
+    const fetchBalances = async () => {
+      try {
+        if (!window.ergoConnector?.nautilus) {
+          return;
+        }
+
+        const ergoCnct = window.ergoConnector.nautilus;
+        const connected = await ergoCnct.connect();
+
+        if (!connected) {
+          return;
+        }
+
+        const context = await ergoCnct.getContext();
+
+        // Fetch ERG balance
+        const ergBal = await context.get_balance(ERG_TOKEN_ID);
+        setErgBalance(ergBal);
+
+        // Fetch token balance
+        const tokenBal = await context.get_balance(tokenId);
+        setTokenBalance(tokenBal);
+      } catch (error) {
+        console.error("Error fetching wallet balances:", error);
+      }
+    };
+
+    fetchBalances();
+
+    // Refresh balances periodically
+    const interval = setInterval(fetchBalances, 10000); // every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [tokenId]);
 
   const getGivenTokenDecimals = useCallback((): number => {
     if (fromToken === "erg") return ERG_DECIMALS;
@@ -419,6 +458,43 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     }
   };
 
+  // Handle clicking on balance to set max amount
+  const handleMaxClick = () => {
+    const balance = fromToken === "token" ? tokenBalance : ergBalance;
+    const decimals = fromToken === "token" ? tokenDecimals : ERG_DECIMALS;
+
+    if (balance && decimals !== null) {
+      const balanceNum = parseInt(balance, 10);
+      const formattedBalance = convertFromRawAmount(balanceNum, decimals);
+      setFromAmount(formattedBalance);
+    }
+  };
+
+  // Format balance for display
+  const getFormattedBalance = () => {
+    const balance = fromToken === "token" ? tokenBalance : ergBalance;
+    const decimals = fromToken === "token" ? tokenDecimals : ERG_DECIMALS;
+
+    if (!balance || decimals === null) {
+      return null;
+    }
+
+    const balanceNum = parseInt(balance, 10);
+    const formatted = convertFromRawAmount(balanceNum, decimals);
+    const numFormatted = parseFloat(formatted);
+
+    // Format with appropriate precision
+    if (numFormatted === 0) {
+      return "0";
+    } else if (numFormatted < 0.01) {
+      return numFormatted.toFixed(6);
+    } else if (numFormatted < 1) {
+      return numFormatted.toFixed(4);
+    } else {
+      return numFormatted.toFixed(2);
+    }
+  };
+
   if (tokenDecimals === null) {
     return (
       <Paper variant="outlined" sx={{ p: 2, width: "100%" }}>
@@ -437,9 +513,33 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
       {/* From Input */}
       <Box sx={{ mb: 1 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
-          From
-        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 0.5,
+          }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            From
+          </Typography>
+          {getFormattedBalance() !== null && (
+            <Typography
+              variant="caption"
+              color="primary"
+              sx={{
+                cursor: "pointer",
+                "&:hover": {
+                  textDecoration: "underline",
+                },
+              }}
+              onClick={handleMaxClick}
+            >
+              Balance: {getFormattedBalance()} {fromTokenName}
+            </Typography>
+          )}
+        </Box>
         <TextField
           fullWidth
           variant="outlined"
@@ -510,9 +610,48 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
       {/* To Input */}
       <Box sx={{ mb: 2 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
-          To
-        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 0.5,
+          }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            To
+          </Typography>
+          {(() => {
+            const balance = fromToken === "token" ? ergBalance : tokenBalance;
+            const decimals =
+              fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
+
+            if (!balance || decimals === null) {
+              return null;
+            }
+
+            const balanceNum = parseInt(balance, 10);
+            const formatted = convertFromRawAmount(balanceNum, decimals);
+            const numFormatted = parseFloat(formatted);
+
+            let formattedBalance;
+            if (numFormatted === 0) {
+              formattedBalance = "0";
+            } else if (numFormatted < 0.01) {
+              formattedBalance = numFormatted.toFixed(6);
+            } else if (numFormatted < 1) {
+              formattedBalance = numFormatted.toFixed(4);
+            } else {
+              formattedBalance = numFormatted.toFixed(2);
+            }
+
+            return (
+              <Typography variant="caption" color="text.secondary">
+                Balance: {formattedBalance} {toTokenName}
+              </Typography>
+            );
+          })()}
+        </Box>
         <TextField
           fullWidth
           variant="outlined"
