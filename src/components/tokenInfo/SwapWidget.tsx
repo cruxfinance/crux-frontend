@@ -551,14 +551,32 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     const balance = fromToken === "token" ? tokenBalance : ergBalance;
     const decimals = fromToken === "token" ? tokenDecimals : ERG_DECIMALS;
 
-    if (balance && decimals !== null) {
-      const balanceNum = parseInt(balance, 10);
-      const formattedBalance = convertFromRawAmount(balanceNum, decimals);
-      setFromAmount(formattedBalance);
+    if (!balance || decimals === null) return;
+
+    const balanceNum = parseInt(balance, 10);
+    const formattedBalance = convertFromRawAmount(balanceNum, decimals);
+    setFromAmount(formattedBalance);
+  };
+
+  /**
+   * Formats a balance number with appropriate precision based on value ranges:
+   * - 0: "0"
+   * - < 0.01: 6 decimal places
+   * - < 1: 4 decimal places
+   * - >= 1: 2 decimal places
+   */
+  const formatBalanceByValue = (num: number): string => {
+    if (num === 0) {
+      return "0";
+    } else if (num < 0.01) {
+      return num.toFixed(6);
+    } else if (num < 1) {
+      return num.toFixed(4);
+    } else {
+      return num.toFixed(2);
     }
   };
 
-  // Format balance for display
   const getFormattedBalance = () => {
     const balance = fromToken === "token" ? tokenBalance : ergBalance;
     const decimals = fromToken === "token" ? tokenDecimals : ERG_DECIMALS;
@@ -571,16 +589,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     const formatted = convertFromRawAmount(balanceNum, decimals);
     const numFormatted = parseFloat(formatted);
 
-    // Format with appropriate precision
-    if (numFormatted === 0) {
-      return "0";
-    } else if (numFormatted < 0.01) {
-      return numFormatted.toFixed(6);
-    } else if (numFormatted < 1) {
-      return numFormatted.toFixed(4);
-    } else {
-      return numFormatted.toFixed(2);
-    }
+    return formatBalanceByValue(numFormatted);
   };
 
   if (tokenDecimals === null) {
@@ -753,16 +762,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 const formatted = convertFromRawAmount(balanceNum, decimals);
                 const numFormatted = parseFloat(formatted);
 
-                let formattedBalance;
-                if (numFormatted === 0) {
-                  formattedBalance = "0";
-                } else if (numFormatted < 0.01) {
-                  formattedBalance = numFormatted.toFixed(6);
-                } else if (numFormatted < 1) {
-                  formattedBalance = numFormatted.toFixed(4);
-                } else {
-                  formattedBalance = numFormatted.toFixed(2);
-                }
+                const formattedBalance = formatBalanceByValue(numFormatted);
 
                 return (
                   <Typography variant="caption" color="text.secondary">
