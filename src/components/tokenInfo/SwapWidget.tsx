@@ -9,9 +9,11 @@ import {
   CircularProgress,
   useTheme,
   InputAdornment,
+  Avatar,
 } from "@mui/material";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { useAlert } from "@contexts/AlertContext";
+import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
 
 declare global {
   interface Window {
@@ -77,15 +79,17 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [swapping, setSwapping] = useState(false);
   const [bestSwap, setBestSwap] = useState<BestSwapResponse | null>(null);
   const [tokenDecimals, setTokenDecimals] = useState<number | null>(null);
+  const [tokenIcon, setTokenIcon] = useState<string>("");
+  const [ergIcon, setErgIcon] = useState<string>("");
 
   const givenTokenId = fromToken === "token" ? tokenId : ERG_TOKEN_ID;
   const requestedTokenId = fromToken === "token" ? ERG_TOKEN_ID : tokenId;
   const fromTokenName = fromToken === "token" ? tokenTicker : "ERG";
   const toTokenName = fromToken === "token" ? "ERG" : tokenTicker;
 
-  // Fetch token decimals
+  // Fetch token decimals and icon
   useEffect(() => {
-    const fetchTokenDecimals = async () => {
+    const fetchTokenData = async () => {
       try {
         const endpoint = `${process.env.CRUX_API}/crux/token_info/${tokenId}`;
         const response = await fetch(endpoint, {
@@ -104,10 +108,31 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         // Default to 0 decimals if fetch fails
         setTokenDecimals(0);
       }
+
+      // Fetch token icon
+      let icon = await checkLocalIcon(tokenId);
+      if (!icon) {
+        icon = await getIconUrlFromServer(tokenId);
+      }
+      if (icon) {
+        setTokenIcon(icon);
+      }
     };
 
-    fetchTokenDecimals();
+    fetchTokenData();
   }, [tokenId]);
+
+  // Fetch ERG icon
+  useEffect(() => {
+    const fetchErgIcon = async () => {
+      const icon = await checkLocalIcon(ERG_TOKEN_ID);
+      if (icon) {
+        setErgIcon(icon);
+      }
+    };
+
+    fetchErgIcon();
+  }, []);
 
   const getGivenTokenDecimals = useCallback((): number => {
     if (fromToken === "erg") return ERG_DECIMALS;
@@ -350,10 +375,33 @@ const SwapWidget: FC<SwapWidgetProps> = ({
           type="text"
           InputProps={{
             endAdornment: (
-              <InputAdornment position="end">
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {fromTokenName}
-                </Typography>
+              <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    height: "100%",
+                  }}
+                >
+                  <Avatar
+                    src={fromToken === "token" ? tokenIcon : ergIcon}
+                    alt={fromTokenName}
+                    sx={{ width: 24, height: 24 }}
+                  />
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 600,
+                      lineHeight: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {fromTokenName}
+                  </Typography>
+                </Box>
               </InputAdornment>
             ),
           }}
@@ -391,10 +439,33 @@ const SwapWidget: FC<SwapWidgetProps> = ({
           disabled
           InputProps={{
             endAdornment: (
-              <InputAdornment position="end">
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {toTokenName}
-                </Typography>
+              <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    height: "100%",
+                  }}
+                >
+                  <Avatar
+                    src={fromToken === "token" ? ergIcon : tokenIcon}
+                    alt={toTokenName}
+                    sx={{ width: 24, height: 24 }}
+                  />
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 600,
+                      lineHeight: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {toTokenName}
+                  </Typography>
+                </Box>
               </InputAdornment>
             ),
           }}
