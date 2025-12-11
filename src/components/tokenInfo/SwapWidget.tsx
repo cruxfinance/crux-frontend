@@ -10,6 +10,8 @@ import {
   useTheme,
   InputAdornment,
   Avatar,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { useAlert } from "@contexts/AlertContext";
@@ -47,6 +49,9 @@ interface SwapResult {
   output_amount: number;
   price_impact: number;
   effective_price: number;
+  fee_amount: number;
+  fee_token: string;
+  fee_usd: number;
 }
 
 interface BestSwapResponse {
@@ -68,6 +73,9 @@ interface TokenPrice {
 const ERG_TOKEN_ID =
   "0000000000000000000000000000000000000000000000000000000000000000";
 const ERG_DECIMALS = 9;
+const CRUX_TOKEN_ID =
+  "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
+const CRUX_DECIMALS = 4;
 
 const SwapWidget: FC<SwapWidgetProps> = ({
   tokenId,
@@ -91,6 +99,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [tokenBalance, setTokenBalance] = useState<string | null>(null);
   const [ergBalance, setErgBalance] = useState<string | null>(null);
   const [noPoolFound, setNoPoolFound] = useState<boolean>(false);
+  const [feeToken, setFeeToken] = useState<"erg" | "crux">("erg");
 
   const givenTokenId = fromToken === "token" ? tokenId : ERG_TOKEN_ID;
   const requestedTokenId = fromToken === "token" ? ERG_TOKEN_ID : tokenId;
@@ -280,6 +289,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
           given_token_id: givenTokenId,
           given_token_amount: rawAmount.toString(),
           requested_token_id: requestedTokenId,
+          fee_token: feeToken,
         });
 
         const response = await fetch(`${endpoint}?${params}`, {
@@ -326,6 +336,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       getRequestedTokenDecimals,
       convertToRawAmount,
       convertFromRawAmount,
+      feeToken,
     ],
   );
 
@@ -401,6 +412,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         given_token_id: givenTokenId,
         given_token_amount: rawAmount.toString(),
         pool_id: bestSwap.pool_state.pool_id,
+        fee_token: feeToken,
       });
 
       const buildResponse = await fetch(`${buildEndpoint}?${params}`, {
@@ -519,9 +531,32 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       sx={{ p: 2, width: "100%", position: "relative" }}
     >
       <Box sx={{ position: "relative" }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Swap
-        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2,
+          }}
+        >
+          <Typography variant="h6">Swap</Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={feeToken === "crux"}
+                onChange={(e) => setFeeToken(e.target.checked ? "crux" : "erg")}
+                size="small"
+              />
+            }
+            label={
+              <Typography variant="caption" color="text.secondary">
+                Pay fee in {feeToken === "crux" ? "CRUX" : "ERG"}
+              </Typography>
+            }
+            labelPlacement="start"
+            sx={{ m: 0 }}
+          />
+        </Box>
 
         {/* From Input */}
         <Box sx={{ mb: 1 }}>
@@ -715,7 +750,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
           )}
         </Box>
 
-        {/* Price Impact Display */}
+        {/* Price Impact and Fee Display */}
         {bestSwap && (
           <Box
             sx={{
@@ -745,12 +780,38 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 {bestSwap.swap_result.price_impact.toFixed(2)}%
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+            >
               <Typography variant="caption" color="text.secondary">
                 Minimum Received
               </Typography>
               <Typography variant="caption">
                 {getMinimumReceived()} {toTokenName}
+              </Typography>
+            </Box>
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                Transaction Fee
+              </Typography>
+              <Typography variant="caption">
+                {convertFromRawAmount(
+                  bestSwap.swap_result.fee_amount,
+                  bestSwap.swap_result.fee_token === "erg"
+                    ? ERG_DECIMALS
+                    : CRUX_DECIMALS,
+                )}{" "}
+                {bestSwap.swap_result.fee_token.toUpperCase()}
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography variant="caption" color="text.secondary">
+                Fee (USD)
+              </Typography>
+              <Typography variant="caption">
+                ${bestSwap.swap_result.fee_usd.toFixed(4)}
               </Typography>
             </Box>
           </Box>
