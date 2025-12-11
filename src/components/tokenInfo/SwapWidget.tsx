@@ -409,8 +409,19 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
   // Extracted swap execution logic without disclaimer check
   const executeSwap = async () => {
-    if (!fromAmount || !bestSwap || !window.ergoConnector?.nautilus) {
+    // Validate all required conditions with specific error messages
+    if (!window.ergoConnector?.nautilus) {
       addAlert("error", "Please connect Nautilus wallet");
+      return;
+    }
+
+    if (!fromAmount || fromAmount === "0") {
+      addAlert("error", "Please enter an amount to swap");
+      return;
+    }
+
+    if (!bestSwap) {
+      addAlert("error", "No swap quote available. Please try again.");
       return;
     }
 
