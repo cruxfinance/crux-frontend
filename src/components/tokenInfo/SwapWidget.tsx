@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { useAlert } from "@contexts/AlertContext";
+import { useWallet } from "@contexts/WalletContext";
 import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
 
 declare global {
@@ -112,6 +113,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 }) => {
   const theme = useTheme();
   const { addAlert } = useAlert();
+  const { dAppWallet } = useWallet();
 
   const [fromToken, setFromToken] = useState<"token" | "erg">("token");
   const [fromAmount, setFromAmount] = useState<string>("");
@@ -262,17 +264,16 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   // Fetch wallet balances - extracted to useCallback to prevent stale closure
   const fetchBalances = useCallback(async () => {
     try {
+      // Only fetch balances if wallet is already connected
+      if (!dAppWallet.connected) {
+        return;
+      }
+
       if (!window.ergoConnector?.nautilus) {
         return;
       }
 
       const ergoCnct = window.ergoConnector.nautilus;
-      const connected = await ergoCnct.connect();
-
-      if (!connected) {
-        return;
-      }
-
       const context = await ergoCnct.getContext();
 
       // Fetch ERG balance
@@ -285,7 +286,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     } catch (error) {
       console.error("Error fetching wallet balances:", error);
     }
-  }, [tokenId]);
+  }, [tokenId, dAppWallet.connected]);
 
   // Set up balance fetching on mount and interval
   useEffect(() => {
