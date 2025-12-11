@@ -234,42 +234,43 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     fetchErgPrice();
   }, []);
 
-  // Fetch wallet balances
-  useEffect(() => {
-    const fetchBalances = async () => {
-      try {
-        if (!window.ergoConnector?.nautilus) {
-          return;
-        }
-
-        const ergoCnct = window.ergoConnector.nautilus;
-        const connected = await ergoCnct.connect();
-
-        if (!connected) {
-          return;
-        }
-
-        const context = await ergoCnct.getContext();
-
-        // Fetch ERG balance
-        const ergBal = await context.get_balance(ERG_TOKEN_ID);
-        setErgBalance(ergBal);
-
-        // Fetch token balance
-        const tokenBal = await context.get_balance(tokenId);
-        setTokenBalance(tokenBal);
-      } catch (error) {
-        console.error("Error fetching wallet balances:", error);
+  // Fetch wallet balances - extracted to useCallback to prevent stale closure
+  const fetchBalances = useCallback(async () => {
+    try {
+      if (!window.ergoConnector?.nautilus) {
+        return;
       }
-    };
 
+      const ergoCnct = window.ergoConnector.nautilus;
+      const connected = await ergoCnct.connect();
+
+      if (!connected) {
+        return;
+      }
+
+      const context = await ergoCnct.getContext();
+
+      // Fetch ERG balance
+      const ergbal = await context.get_balance(ERG_TOKEN_ID);
+      setErgBalance(ergbal);
+
+      // Fetch token balance
+      const tokenBal = await context.get_balance(tokenId);
+      setTokenBalance(tokenBal);
+    } catch (error) {
+      console.error("Error fetching wallet balances:", error);
+    }
+  }, [tokenId]);
+
+  // Set up balance fetching on mount and interval
+  useEffect(() => {
     fetchBalances();
 
     // Refresh balances periodically
     const interval = setInterval(fetchBalances, 10000); // every 10 seconds
 
     return () => clearInterval(interval);
-  }, [tokenId]);
+  }, [fetchBalances]);
 
   const getGivenTokenDecimals = useCallback((): number => {
     if (fromToken === "erg") return ERG_DECIMALS;
