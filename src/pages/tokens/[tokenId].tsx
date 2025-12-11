@@ -305,7 +305,7 @@ const TokenInfo: FC = () => {
                     >
                       <TokenStats currency={currency} tokenInfo={tokenInfo} />
                     </Paper>
-                    <Box sx={{ mt: 2 }}>
+                    <Box>
                       <SwapWidget
                         tokenId={tokenId}
                         tokenName={tokenInfo.name}
@@ -339,7 +339,7 @@ const TokenInfo: FC = () => {
                   exchangeRate={exchangeRate}
                 />
               </Paper>
-              <Box sx={{ mt: 2 }}>
+              <Box>
                 <SwapWidget
                   tokenId={tokenId}
                   tokenName={tokenInfo.name}

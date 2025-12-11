@@ -298,7 +298,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   );
 
   const fetchBestSwap = useCallback(
-    async (amount: string) => {
+    async (amount: string, signal?: AbortSignal) => {
       if (!amount || parseFloat(amount) <= 0 || tokenDecimals === null) {
         setToAmount("");
         setBestSwap(null);
@@ -326,6 +326,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
           headers: {
             "Content-Type": "application/json",
           },
+          signal,
         });
 
         if (!response.ok) {
@@ -348,8 +349,12 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         );
         setToAmount(outputAmountFormatted);
       } catch (error: any) {
+        // Don't show error if request was aborted
+        if (error.name === "AbortError") {
+          return;
+        }
         console.error("Error fetching best swap:", error);
-        addAlert("error", error.message || "Failed to fetch swap quote");
+        addAlert("error", error.message || "failed to fetch swap quote");
         setToAmount("");
         setBestSwap(null);
       } finally {
@@ -371,12 +376,14 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
   useEffect(() => {
     if (fromAmount && tokenDecimals !== null) {
+      const abortController = new AbortController();
       const timer = setTimeout(() => {
-        fetchBestSwap(fromAmount);
+        fetchBestSwap(fromAmount, abortController.signal);
       }, 500);
 
       return () => {
         clearTimeout(timer);
+        abortController.abort();
       };
     } else {
       setToAmount("");
@@ -399,13 +406,8 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     }
   };
 
-  const handleSwap = async () => {
-    // Check if user has agreed to disclaimer
-    if (!hasAgreedToDisclaimer) {
-      setShowDisclaimerDialog(true);
-      return;
-    }
-
+  // Extracted swap execution logic without disclaimer check
+  const executeSwap = async () => {
     if (!fromAmount || !bestSwap || !window.ergoConnector?.nautilus) {
       addAlert("error", "Please connect Nautilus wallet");
       return;
@@ -490,14 +492,25 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     }
   };
 
-  const handleDisclaimerAgree = () => {
+  // handleSwap checks disclaimer and calls executeSwap
+  const handleSwap = async () => {
+    // Check if user has agreed to disclaimer
+    if (!hasAgreedToDisclaimer) {
+      setShowDisclaimerDialog(true);
+      return;
+    }
+
+    await executeSwap();
+  };
+
+  const handleDisclaimerAgree = async () => {
     if (disclaimerCheckbox) {
       localStorage.setItem("swapDisclaimerAgreed", "true");
       setHasAgreedToDisclaimer(true);
       setShowDisclaimerDialog(false);
       setDisclaimerCheckbox(false);
-      // Trigger the swap after agreement
-      handleSwap();
+      // Execute swap directly without rechecking disclaimer
+      await executeSwap();
     }
   };
 
@@ -509,8 +522,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const getMinimumReceived = () => {
     if (!bestSwap) return "0";
     const requestedDecimals = getRequestedTokenDecimals();
-    // Apply 0.5% slippage tolerance for minimum received
-    const minAmount = bestSwap.swap_result.output_amount * 0.995;
+    const minAmount = bestSwap.swap_result.output_amount;
     return convertFromRawAmount(Math.floor(minAmount), requestedDecimals);
   };
 
