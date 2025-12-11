@@ -81,6 +81,28 @@ const ERG_TOKEN_ID =
 const ERG_DECIMALS = 9;
 const CRUX_TOKEN_ID =
   "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
+
+/**
+ * Counts the number of decimal places in a numeric string.
+ * @param value - The numeric string to check
+ * @returns The number of decimal places, or 0 if no decimal point
+ */
+const getDecimalPlaces = (value: string): number => {
+  const parts = value.split(".");
+  return parts.length > 1 ? parts[1].length : 0;
+};
+
+/**
+ * Gets the minimum meaningful swap amount based on token decimals.
+ * Returns the smallest unit that's at least 0.00000001 in human-readable terms.
+ * @param decimals - The token's decimal places
+ * @returns The minimum amount as a number
+ */
+const getMinimumSwapAmount = (decimals: number): number => {
+  // Minimum is 10 units in raw amount (to avoid dust)
+  // This translates to 10 / 10^decimals in human-readable terms
+  return 10 / Math.pow(10, decimals);
+};
 const CRUX_DECIMALS = 4;
 
 const SwapWidget: FC<SwapWidgetProps> = ({
@@ -105,6 +127,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [tokenBalance, setTokenBalance] = useState<string | null>(null);
   const [ergBalance, setErgBalance] = useState<string | null>(null);
   const [noPoolFound, setNoPoolFound] = useState<boolean>(false);
+  const [inputError, setInputError] = useState<string | null>(null);
   const [feeToken, setFeeToken] = useState<"erg" | "crux">(() => {
     const savedPreference = localStorage.getItem("swapFeeTokenPreference");
     return savedPreference === "crux" || savedPreference === "erg"
@@ -168,6 +191,8 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     };
 
     fetchTokenData();
+    // Clear any input errors when token changes
+    setInputError(null);
   }, [tokenId]);
 
   // Fetch ERG icon
@@ -307,6 +332,23 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         return;
       }
 
+      // Validate minimum amount
+      const givenDecimals = getGivenTokenDecimals();
+      const minAmount = getMinimumSwapAmount(givenDecimals);
+      const numericAmount = parseFloat(amount);
+
+      if (numericAmount < minAmount) {
+        setToAmount("");
+        setBestSwap(null);
+        setNoPoolFound(false);
+        setInputError(
+          `Minimum swap amount is ${minAmount.toFixed(givenDecimals)} ${fromTokenName}`,
+        );
+        return;
+      }
+
+      setInputError(null);
+
       setLoading(true);
       setNoPoolFound(false);
       try {
@@ -372,6 +414,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       convertToRawAmount,
       convertFromRawAmount,
       feeToken,
+      fromTokenName,
     ],
   );
 
@@ -398,13 +441,39 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     setToAmount(fromAmount);
     setBestSwap(null);
     setNoPoolFound(false);
+    setInputError(null);
   };
 
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+
+    // Allow empty string
+    if (value === "") {
       setFromAmount(value);
+      setInputError(null);
+      return;
     }
+
+    // Check basic format (numbers and optional decimal point)
+    if (!/^\d*\.?\d*$/.test(value)) {
+      return;
+    }
+
+    // Validate decimal precision against token decimals
+    const currentDecimals =
+      fromToken === "token" ? tokenDecimals : ERG_DECIMALS;
+    if (currentDecimals !== null) {
+      const decimalPlaces = getDecimalPlaces(value);
+      if (decimalPlaces > currentDecimals) {
+        setInputError(
+          `Maximum ${currentDecimals} decimal place${currentDecimals !== 1 ? "s" : ""} allowed for ${fromTokenName}`,
+        );
+        return;
+      }
+    }
+
+    setFromAmount(value);
+    setInputError(null);
   };
 
   // Extracted swap execution logic without disclaimer check
@@ -417,6 +486,25 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
     if (!fromAmount || fromAmount === "0") {
       addAlert("error", "Please enter an amount to swap");
+      return;
+    }
+
+    // Check for input validation errors
+    if (inputError) {
+      addAlert("error", inputError);
+      return;
+    }
+
+    // Validate minimum amount before swap
+    const givenDecimals = getGivenTokenDecimals();
+    const minAmount = getMinimumSwapAmount(givenDecimals);
+    const numericAmount = parseFloat(fromAmount);
+
+    if (numericAmount < minAmount) {
+      addAlert(
+        "error",
+        `Minimum swap amount is ${minAmount.toFixed(givenDecimals)} ${fromTokenName}`,
+      );
       return;
     }
 
@@ -707,7 +795,16 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 ),
               }}
             />
-            {fromAmount && (
+            {inputError && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ mt: 0.5, display: "block" }}
+              >
+                {inputError}
+              </Typography>
+            )}
+            {fromAmount && !inputError && (
               <Typography
                 variant="caption"
                 color="text.secondary"
