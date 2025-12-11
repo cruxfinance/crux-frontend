@@ -105,7 +105,12 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [tokenBalance, setTokenBalance] = useState<string | null>(null);
   const [ergBalance, setErgBalance] = useState<string | null>(null);
   const [noPoolFound, setNoPoolFound] = useState<boolean>(false);
-  const [feeToken, setFeeToken] = useState<"erg" | "crux">("erg");
+  const [feeToken, setFeeToken] = useState<"erg" | "crux">(() => {
+    const savedPreference = localStorage.getItem("swapFeeTokenPreference");
+    return savedPreference === "crux" || savedPreference === "erg"
+      ? savedPreference
+      : "erg";
+  });
   const [hasAgreedToDisclaimer, setHasAgreedToDisclaimer] =
     useState<boolean>(false);
   const [showDisclaimerDialog, setShowDisclaimerDialog] =
@@ -124,6 +129,11 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       setHasAgreedToDisclaimer(true);
     }
   }, []);
+
+  // Persist fee token preference to localStorage
+  useEffect(() => {
+    localStorage.setItem("swapFeeTokenPreference", feeToken);
+  }, [feeToken]);
 
   // Fetch token decimals and icon
   useEffect(() => {
