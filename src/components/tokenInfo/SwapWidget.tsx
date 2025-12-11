@@ -429,14 +429,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     try {
       const ergoCnct = window.ergoConnector.nautilus;
 
-      // Disconnect and reconnect to ensure fresh connection
-      await ergoCnct.disconnect();
-      const connected = await ergoCnct.connect();
-
-      if (!connected) {
-        throw new Error("Failed to connect to Nautilus");
-      }
-
+      // Get wallet context directly without unnecessary disconnect/reconnect
       const context = await ergoCnct.getContext();
       const changeAddress = await context.get_change_address();
 
