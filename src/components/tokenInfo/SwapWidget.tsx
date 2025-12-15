@@ -102,7 +102,7 @@ const getDecimalPlaces = (value: string): number => {
 const getMinimumSwapAmount = (decimals: number): number => {
   // Minimum is 10 units in raw amount (to avoid dust)
   // This translates to 10 / 10^decimals in human-readable terms
-  return 10 / Math.pow(10, decimals);
+  return 1 / Math.pow(10, decimals);
 };
 const CRUX_DECIMALS = 4;
 
