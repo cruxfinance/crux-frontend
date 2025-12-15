@@ -277,9 +277,9 @@ const Footer: FC = () => {
             }}
           >
             <SocialGrid
+              github="https://github.com/cruxfinance"
               telegram="https://t.me/CruxFinance"
               discord="https://discord.gg/tZEd3PadtD"
-              // github=""
               twitter="https://twitter.com/cruxfinance"
             // medium=""
             />

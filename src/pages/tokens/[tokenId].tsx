@@ -28,6 +28,7 @@ import {
 import CandlestickChartIcon from "@mui/icons-material/CandlestickChart";
 import InfoIcon from "@mui/icons-material/Info";
 import HistoryIcon from "@mui/icons-material/History";
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { scroller } from "react-scroll";
 import TvChart from "@components/tokenInfo/TvChart";
 import { checkLocalIcon } from "@lib/utils/icons";
@@ -305,7 +306,7 @@ const TokenInfo: FC = () => {
                     >
                       <TokenStats currency={currency} tokenInfo={tokenInfo} />
                     </Paper>
-                    <Box>
+                    <Box id="swap">
                       <SwapWidget
                         tokenId={tokenId}
                         tokenName={tokenInfo.name}
@@ -339,7 +340,7 @@ const TokenInfo: FC = () => {
                   exchangeRate={exchangeRate}
                 />
               </Paper>
-              <Box>
+              <Box id="swap">
                 <SwapWidget
                   tokenId={tokenId}
                   tokenName={tokenInfo.name}
@@ -391,7 +392,7 @@ const TokenInfo: FC = () => {
               }
             />
             <BottomNavigationAction
-              label="Trade History"
+              label="Trades"
               icon={<HistoryIcon />}
               onClick={() =>
                 scroller.scrollTo("history", {
@@ -401,6 +402,17 @@ const TokenInfo: FC = () => {
                 })
               }
             />
+            <BottomNavigationAction
+              label="Swap"
+              icon={<SwapHorizIcon />}
+              onClick={() =>
+                scroller.scrollTo("swap", {
+                  duration: 500,
+                  offset: -50,
+                  smooth: true,
+              })
+            }
+          />
           </BottomNavigation>
         </Paper>
       )}

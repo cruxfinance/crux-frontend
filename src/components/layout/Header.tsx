@@ -246,7 +246,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
               //   && upMd
               //   ? "90px"
               //   : '60px',
-              height: "90px",
+              height: "60px",
               transition: "height 400ms",
             }}
           >
@@ -340,10 +340,14 @@ const Header: FC<IHeaderProps> = ({ }) => {
         onClose={handleNavbarDialogClose}
         fullScreen
         sx={{
+          zIndex: 12000,
           '& .MuiBackdrop-root': {
             backdropFilter: 'blur(3px)',
             backgroundColor: 'rgba(0, 0, 0, 0.5)'
-          }
+          },
+          '& .MuiDialog-paper': {
+            zIndex: 12000,
+          },
         }}
       >
         <DialogContent>
@@ -397,11 +401,11 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   ))}
                 </Grid>
               </Box>
-              <Box>
+              {/* <Box>
                 <Grid container direction="column" spacing={4}>
-                  {/* <Grid item>
+                  <Grid item>
                   <Button variant="contained" fullWidth>New transaction</Button>
-                </Grid> */}
+                </Grid>
                   <Grid item>
                     <Divider />
                   </Grid>
@@ -432,14 +436,14 @@ const Header: FC<IHeaderProps> = ({ }) => {
                       <SocialGrid
                         telegram="https://t.me/CruxFinance"
                         discord="https://discord.gg/tZEd3PadtD"
-                        // github=""
+                        github="https://github.com/cruxfinance"
                         twitter="https://twitter.com/cruxfinance"
                       // medium=""
                       />
                     </Grid>
                   </Grid>
                 </Grid>
-              </Box>
+              </Box> */}
             </Box>
           </Box>
         </DialogContent>
