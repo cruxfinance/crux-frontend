@@ -3,6 +3,7 @@ interface ITokenData {
   ticker: string;
   tokenId: string;
   icon: string;
+  pairIcon?: string; // Icon to use in pair breakdown tooltips (for swapped USE/ERG display)
   price: number;
   pctChange1h: number;
   pctChange1d: number;

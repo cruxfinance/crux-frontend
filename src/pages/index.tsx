@@ -40,6 +40,8 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { useWallet } from "@contexts/WalletContext";
 import { ERG_TOKEN_ID_MAP, USE_TOKEN_ID } from "@lib/configs/paymentTokens";
 
+const ERG_MAX_SUPPLY = 97739924;
+
 const Tokens: FC = () => {
   const theme = useTheme();
   const router = useRouter();
@@ -417,6 +419,63 @@ const Tokens: FC = () => {
     erg_price_use,
     ...item
   }: IApiTokenData): Promise<ITokenData> => {
+    // Special handling for USE/ERG pool - swap display based on currency
+    const isUseToken = id === USE_TOKEN_ID;
+
+    if (isUseToken && currency === "USE") {
+      // When viewing in USE currency, show ERG instead
+      // Invert percentage changes properly: if USE went up X%, ERG went down X/(1+X)
+      // API returns percentages as whole numbers (e.g., -13.17 means -13.17%)
+      const invertPctChange = (pct: number) => {
+        const decimal = pct / 100;
+        const factor = 1 + decimal;
+        return (1 / factor - 1) * 100;
+      };
+
+      // Get ERG icon - fetch if not already loaded
+      let ergIconUrl = ergIcon;
+      if (!ergIconUrl) {
+        ergIconUrl =
+          (await checkLocalIcon(ERG_TOKEN_ID_MAP)) ||
+          (await getIconUrlFromServer(ERG_TOKEN_ID_MAP)) ||
+          "";
+      }
+
+      // Get USE icon for pair breakdown tooltips
+      let useIconUrl = useIcon;
+      if (!useIconUrl) {
+        useIconUrl =
+          (await checkLocalIcon(USE_TOKEN_ID)) ||
+          (await getIconUrlFromServer(USE_TOKEN_ID)) ||
+          "";
+      }
+
+      return {
+        name: "Ergo",
+        ticker: "ERG",
+        tokenId: id, // Keep USE token ID for navigation
+        icon: ergIconUrl,
+        pairIcon: useIconUrl, // USE icon for pair breakdown tooltips
+        // Price is set to 1 ERG - the display logic multiplies by ergExchange for USE currency
+        price: 1,
+        // Invert the USE ERG percentage changes to get ERG's USE changes
+        pctChange1h: invertPctChange(item.hour_change_erg),
+        pctChange1d: invertPctChange(item.day_change_erg),
+        pctChange1w: invertPctChange(item.week_change_erg),
+        pctChange1m: invertPctChange(item.month_change_erg),
+        vol: volume,
+        volErg: volume_erg,
+        volUse: volume_use,
+        liquidity,
+        liquidityErg: liquidity_erg,
+        liquidityUse: liquidity_use,
+        buys,
+        sells,
+        mktCap: ERG_MAX_SUPPLY, // ERG market cap in ERG (will be multiplied by ergExchange for USE)
+      };
+    }
+
+    // Normal token handling (including USE when currency === "ERG")
     const hourChangeKey =
       currency === "USE" ? "hour_change_usd" : "hour_change_erg";
     const dayChangeKey =
@@ -1307,7 +1366,7 @@ const Tokens: FC = () => {
                           <Grid xs={1}>
                             <Tooltip
                               title={renderPairBreakdown(
-                                token.icon,
+                                token.pairIcon || token.icon,
                                 token.volErg,
                                 token.volUse,
                                 "Volume",
@@ -1330,7 +1389,7 @@ const Tokens: FC = () => {
                             </Tooltip>
                             <Tooltip
                               title={renderPairBreakdown(
-                                token.icon,
+                                token.pairIcon || token.icon,
                                 token.liquidityErg,
                                 token.liquidityUse,
                                 "Liquidity",
@@ -1542,7 +1601,7 @@ const Tokens: FC = () => {
                           <Grid xs={4} sm={3}>
                             <Tooltip
                               title={renderPairBreakdown(
-                                token.icon,
+                                token.pairIcon || token.icon,
                                 token.volErg,
                                 token.volUse,
                                 "Volume",
