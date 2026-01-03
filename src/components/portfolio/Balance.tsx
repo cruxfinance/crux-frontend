@@ -1,13 +1,7 @@
-import React, { FC } from 'react';
-import {
-  Typography,
-  Container,
-  Box,
-  useTheme,
-  Button
-} from "@mui/material";
-import Grid from '@mui/system/Unstable_Grid/Grid';
-import { currencies, Currencies } from '@lib/utils/currencies';
+import React, { FC } from "react";
+import { Typography, Container, Box, useTheme, Button } from "@mui/material";
+import Grid from "@mui/system/Unstable_Grid/Grid";
+import { currencies, Currencies } from "@lib/utils/currencies";
 
 export interface IBalance {
   balance: number;
@@ -19,29 +13,41 @@ export interface IBalance {
   exchangeRate: number;
 }
 
-const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange, exchangeRate, setCurrency }) => {
-  const theme = useTheme()
+const Balance: FC<IBalance> = ({
+  balance,
+  currency,
+  tvl,
+  apy,
+  pctChange,
+  exchangeRate,
+  setCurrency,
+}) => {
+  const theme = useTheme();
   return (
-    <Grid container spacing={2} alignItems="space-between" sx={{ height: '100%' }}>
+    <Grid
+      container
+      spacing={2}
+      alignItems="space-between"
+      sx={{ height: "100%" }}
+    >
       <Grid xs={12}>
         <Grid container alignItems="center" sx={{ mb: 2 }}>
           <Grid xs>
-            <Typography variant="h6">
-              Balance
-            </Typography>
+            <Typography variant="h6">Balance</Typography>
           </Grid>
           <Grid>
             <Box
               sx={{
-                color: pctChange > 0
-                  ? theme.palette.up.main
-                  : pctChange < 0
-                    ? theme.palette.down.main
-                    : '#9475d8',
-                flexDirection: 'row',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
+                color:
+                  pctChange > 0
+                    ? theme.palette.up.main
+                    : pctChange < 0
+                      ? theme.palette.down.main
+                      : "#9475d8",
+                flexDirection: "row",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
               }}
             >
               {/* {pctChange > 0
@@ -54,31 +60,38 @@ const Balance: FC<IBalance> = ({ balance, currency, tvl, apy, pctChange, exchang
             </Box>
           </Grid>
         </Grid>
-        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, mb: 4 }}>
+        <Box sx={{ display: "flex", flexDirection: "row", gap: 2, mb: 4 }}>
           <Typography variant="h4">
-            {currencies[currency]}{Number((currency === 'ERG' ? balance : balance * exchangeRate).toFixed(2)).toLocaleString()}
+            {currencies[currency]}
+            {Number(
+              (currency === "ERG" ? balance : balance * exchangeRate).toFixed(
+                2,
+              ),
+            ).toLocaleString()}
           </Typography>
-          <Button variant="outlined" onClick={() => { setCurrency(currency === 'ERG' ? 'USD' : 'ERG') }}>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setCurrency(currency === "ERG" ? "USE" : "ERG");
+            }}
+          >
             {currency}
           </Button>
         </Box>
       </Grid>
       <Grid container xs={12}>
         <Grid xs={6}>
+          <Typography>TVL</Typography>
           <Typography>
-            TVL
-          </Typography>
-          <Typography>
-            {currencies[currency]}{Number((currency === 'ERG' ? tvl : tvl * exchangeRate).toFixed(2)).toLocaleString()}
+            {currencies[currency]}
+            {Number(
+              (currency === "ERG" ? tvl : tvl * exchangeRate).toFixed(2),
+            ).toLocaleString()}
           </Typography>
         </Grid>
         <Grid xs={6}>
-          <Typography>
-            Estimated APY
-          </Typography>
-          <Typography>
-            {apy !== 0 ? apy : '-'}%
-          </Typography>
+          <Typography>Estimated APY</Typography>
+          <Typography>{apy !== 0 ? apy : "-"}%</Typography>
         </Grid>
       </Grid>
     </Grid>

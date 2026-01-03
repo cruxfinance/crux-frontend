@@ -26,6 +26,7 @@ interface IApiTokenData {
   exchanges: string[];
   price_erg: number;
   erg_price_usd: number;
+  erg_price_use: number;
   hour_change_erg: number;
   hour_change_usd: number;
   day_change_erg: number;
@@ -91,11 +92,12 @@ interface ITrade {
 type PriceInfo = {
   erg: number;
   usd: number;
+  use: number;
 };
 
 type PriceInfoUppercase = {
   ERG: number;
-  USD: number;
+  USE: number;
 };
 
 interface Signature {

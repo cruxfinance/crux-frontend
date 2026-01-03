@@ -84,7 +84,7 @@ const Tokens: FC = () => {
   /////////////////////////
   // START FILTERS STUFF //
   /////////////////////////
-  const [currency, setCurrency] = useState<Currencies>("USD");
+  const [currency, setCurrency] = useState<Currencies>("USE");
   const [timeframe, setTimeframe] = useState<ITimeframe>({
     filter_window: "Day",
   });
@@ -227,7 +227,7 @@ const Tokens: FC = () => {
           | "Week"
           | "Month",
       });
-      setCurrency((selectedPreset.currency as Currencies) || "USD");
+      setCurrency((selectedPreset.currency as Currencies) || "USE");
       setSearchString(selectedPreset.searchString || "");
     }
   };
@@ -316,7 +316,7 @@ const Tokens: FC = () => {
   // END STARRED TOKENS STUFF //
   //////////////////////////////
 
-  const handleCurrencyChange = (e: any, value: "USD" | "ERG") => {
+  const handleCurrencyChange = (e: any, value: "USE" | "ERG") => {
     if (value !== null) {
       setCurrency(value);
     }
@@ -378,7 +378,7 @@ const Tokens: FC = () => {
 
         if (queries.offset === 0) {
           setFilteredTokens(awaitedData);
-          setErgExchange(data[0].erg_price_usd);
+          setErgExchange(data[0].erg_price_use);
         } else {
           setFilteredTokens((prev) => [...prev, ...awaitedData]);
         }
@@ -414,17 +414,17 @@ const Tokens: FC = () => {
     sells,
     market_cap,
     price_erg,
-    erg_price_usd,
+    erg_price_use,
     ...item
   }: IApiTokenData): Promise<ITokenData> => {
     const hourChangeKey =
-      currency === "USD" ? "hour_change_usd" : "hour_change_erg";
+      currency === "USE" ? "hour_change_usd" : "hour_change_erg";
     const dayChangeKey =
-      currency === "USD" ? "day_change_usd" : "day_change_erg";
+      currency === "USE" ? "day_change_usd" : "day_change_erg";
     const weekChangeKey =
-      currency === "USD" ? "week_change_usd" : "week_change_erg";
+      currency === "USE" ? "week_change_usd" : "week_change_erg";
     const monthChangeKey =
-      currency === "USD" ? "month_change_usd" : "month_change_erg";
+      currency === "USE" ? "month_change_usd" : "month_change_erg";
 
     // Check for the icon locally first
     let url = await checkLocalIcon(id);
@@ -595,7 +595,7 @@ const Tokens: FC = () => {
             <Typography variant="caption">
               {currencies[currency] +
                 formatNumber(
-                  currency === "USD" ? ergValue * ergExchange : ergValue,
+                  currency === "USE" ? ergValue * ergExchange : ergValue,
                   2,
                 )}
             </Typography>
@@ -607,7 +607,7 @@ const Tokens: FC = () => {
             <Typography variant="caption">
               {currencies[currency] +
                 formatNumber(
-                  currency === "USD" ? useValue * ergExchange : useValue,
+                  currency === "USE" ? useValue * ergExchange : useValue,
                   2,
                 )}
             </Typography>
@@ -661,7 +661,7 @@ const Tokens: FC = () => {
         onChange={handleCurrencyChange}
         size="small"
       >
-        <ToggleButton value="USD">USD</ToggleButton>
+        <ToggleButton value="USE">USE</ToggleButton>
         <ToggleButton value="ERG">Erg</ToggleButton>
       </ToggleButtonGroup>
     );
@@ -1286,7 +1286,7 @@ const Tokens: FC = () => {
                           <Grid xs={2}>
                             {currencies[currency] +
                               formatNumber(
-                                currency === "USD"
+                                currency === "USE"
                                   ? token.price * ergExchange
                                   : token.price,
                                 4,
@@ -1321,7 +1321,7 @@ const Tokens: FC = () => {
                                 V{" "}
                                 {currencies[currency] +
                                   formatNumber(
-                                    currency === "USD"
+                                    currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
                                     2,
@@ -1344,7 +1344,7 @@ const Tokens: FC = () => {
                                 L{" "}
                                 {currencies[currency] +
                                   formatNumber(
-                                    currency === "USD"
+                                    currency === "USE"
                                       ? token.liquidity * ergExchange
                                       : token.liquidity,
                                     2,
@@ -1360,7 +1360,7 @@ const Tokens: FC = () => {
                               M{" "}
                               {currencies[currency] +
                                 formatNumber(
-                                  currency === "USD"
+                                  currency === "USE"
                                     ? token.mktCap * ergExchange
                                     : token.mktCap,
                                   2,
@@ -1529,7 +1529,7 @@ const Tokens: FC = () => {
                             <Typography>
                               {currencies[currency] +
                                 formatNumber(
-                                  currency === "USD"
+                                  currency === "USE"
                                     ? token.price * ergExchange
                                     : token.price,
                                   4,
@@ -1556,7 +1556,7 @@ const Tokens: FC = () => {
                                 V{" "}
                                 {currencies[currency] +
                                   formatNumber(
-                                    currency === "USD"
+                                    currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
                                     2,
