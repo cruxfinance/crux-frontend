@@ -9,7 +9,11 @@ interface ITokenData {
   pctChange1w: number;
   pctChange1m: number;
   vol: number;
+  volErg: number;
+  volUse: number;
   liquidity: number;
+  liquidityErg: number;
+  liquidityUse: number;
   buys: number;
   sells: number;
   mktCap: number;
@@ -31,7 +35,11 @@ interface IApiTokenData {
   month_change_erg: number;
   month_change_usd: number;
   volume: number;
+  volume_erg: number;
+  volume_use: number;
   liquidity: number;
+  liquidity_erg: number;
+  liquidity_use: number;
   market_cap: number;
   buys: number;
   sells: number;
@@ -85,7 +93,6 @@ type PriceInfo = {
   usd: number;
 };
 
-
 type PriceInfoUppercase = {
   ERG: number;
   USD: number;
@@ -133,7 +140,7 @@ type WalletButtonProps = {
   icon: string;
   iconDark: string;
   messageSigning: boolean;
-}
+};
 
 interface WalletListItem {
   addresses: string[];
@@ -235,4 +242,4 @@ type IActiveToken = {
   amount: number;
   value: number;
   color: string;
-} | null
+} | null;

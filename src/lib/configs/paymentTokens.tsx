@@ -13,6 +13,9 @@ export const getIcon = async (id: string) => {
 export const ERG_TOKEN_ID_MAP =
   "0000000000000000000000000000000000000000000000000000000000000000";
 
+export const USE_TOKEN_ID =
+  "a55b8735ed1a99e46c2c89f8994aacdf4b1109bdcf682f1e5b34479c6e392669";
+
 export const allowedTokens: AllowedToken[] = [
   {
     id: "0000000000000000000000000000000000000000000000000000000000000000",

@@ -108,7 +108,11 @@ const TokenInfo: FC = () => {
         pctChange1w: 0,
         pctChange1m: 0,
         vol: 0,
+        volErg: 0,
+        volUse: 0,
         liquidity: 0,
+        liquidityErg: 0,
+        liquidityUse: 0,
         buys: 0,
         sells: 0,
         mktCap:
