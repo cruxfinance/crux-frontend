@@ -10,7 +10,7 @@ import {
   TextField,
   Typography,
   Container,
-  CircularProgress
+  CircularProgress,
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 // import Balance from "@components/portfolio/Balance";
@@ -27,14 +27,14 @@ import LiquidityPositions from "@components/portfolio/positions/LiquidityPositio
 import Positions from "@components/portfolio/positions/Positions";
 import { WalletProvider, useWallet } from "@lib/contexts/WalletContext";
 // import { useScrollLock } from "@contexts/ScrollLockContext";
-import { currencies, Currencies } from '@lib/utils/currencies';
+import { currencies, Currencies } from "@lib/utils/currencies";
+import { USE_TOKEN_ID } from "@lib/configs/paymentTokens";
 // import FungibleCollectablesList from "@components/portfolio/FungibleCollectablesList";
 import Collectibles from "@components/portfolio/Collectibles";
 import CurrencyButton from "@components/CurrencyButton";
 import { trpc } from "@lib/trpc";
 import { colorSwitch } from "@lib/utils/color";
 import InfoDialogButton from "@components/dialogs/InfoDialogButton";
-
 
 export interface IExtendedToken extends IPieToken {
   tokenId: string;
@@ -67,7 +67,7 @@ const Portfolio = () => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
-  const { sessionStatus, sessionData } = useWallet()
+  const { sessionStatus, sessionData } = useWallet();
   const [boxHeight, setBoxHeight] = useState("500px");
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({
     tokenSummary: true,
@@ -79,33 +79,41 @@ const Portfolio = () => {
     IReducedToken[]
   >([]);
   // const [tokenList, setTokenList] = useState<IPortfolioToken[]>([])
-  const [addressList, setAddressList] = useState<string>('');
-  const [submittedAddressList, setSubmittedAddressList] = useState<string[]>([]);
+  const [addressList, setAddressList] = useState<string>("");
+  const [submittedAddressList, setSubmittedAddressList] = useState<string[]>(
+    [],
+  );
   const [totalValueLocked, setTotalValueLocked] = useState<number>(0);
   const [exchangeRate, setExchangeRate] = useState(1);
-  const [totalPLOpen, setTotalPLOpen] = useState<PriceInfoUppercase>({ ERG: 0, USD: 0 });
-  const [totalPLDay, setTotalPLDay] = useState<PriceInfoUppercase>({ ERG: 0, USD: 0 });
+  const [totalPLOpen, setTotalPLOpen] = useState<PriceInfoUppercase>({
+    ERG: 0,
+    USE: 0,
+  });
+  const [totalPLDay, setTotalPLDay] = useState<PriceInfoUppercase>({
+    ERG: 0,
+    USE: 0,
+  });
 
   const positions = trpc.portfolio.getPositions.useQuery(
     { addresses: submittedAddressList },
     {
       staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
-    }
+    },
   );
   const stakedPositions = trpc.portfolio.getStakedPositions.useQuery(
     { addresses: submittedAddressList },
     {
       staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
-    }
+    },
   );
   const lpPositions = trpc.portfolio.getLpPositions.useQuery(
     { addresses: submittedAddressList },
     {
       staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 
   useEffect(() => {
@@ -126,21 +134,28 @@ const Portfolio = () => {
 
       // setTotalPLDay(totalPLDayConst);
 
-      const { pl24h, plAllTime } = calculatePortfolioPL(positions.data, stakedPositions.data, lpPositions.data)
+      const { pl24h, plAllTime } = calculatePortfolioPL(
+        positions.data,
+        stakedPositions.data,
+        lpPositions.data,
+      );
       setTotalPLOpen(plAllTime);
       setTotalPLDay(pl24h);
     }
-  }, [positions.data, stakedPositions.data, lpPositions.data, currency])
+  }, [positions.data, stakedPositions.data, lpPositions.data, currency]);
 
   useEffect(() => {
     const getAddresses = localStorage.getItem("crux_portfolio_address_list");
     const parsedAddresses = getAddresses ? JSON.parse(getAddresses) : [];
-    if (parsedAddresses && parsedAddresses.length > 0 && parsedAddresses[0] !== "") {
+    if (
+      parsedAddresses &&
+      parsedAddresses.length > 0 &&
+      parsedAddresses[0] !== ""
+    ) {
       getExchange();
       setAddressList(parsedAddresses);
       fetchData(parsedAddresses);
-    }
-    else if (
+    } else if (
       sessionStatus === "authenticated" &&
       sessionData?.user?.address !== undefined
     ) {
@@ -148,7 +163,7 @@ const Portfolio = () => {
       setAddressList(sessionData.user.address);
       fetchData([sessionData.user.address]);
     }
-  }, [])
+  }, []);
 
   const getExchange = async () => {
     try {
@@ -158,8 +173,11 @@ const Portfolio = () => {
           fetchExchangeRate: true,
         };
       });
-      const endpoint = `${process.env.CRUX_API}/coingecko/erg_price`;
-      const response = await fetch(endpoint, {
+      const endpoint = `${process.env.CRUX_API}/spectrum/price`;
+      const params = new URLSearchParams({
+        token_id: USE_TOKEN_ID,
+      });
+      const response = await fetch(`${endpoint}?${params}`, {
         method: "GET",
         headers: {
           "Content-type": "application/json",
@@ -167,7 +185,7 @@ const Portfolio = () => {
       });
 
       const data = await response.json();
-      setExchangeRate(data.price);
+      setExchangeRate(data.erg_price_use);
       setLoading((prev) => {
         return {
           ...prev,
@@ -186,7 +204,7 @@ const Portfolio = () => {
   };
 
   const fetchTokenData = async (
-    thisAddressList: string[]
+    thisAddressList: string[],
   ): Promise<IPortfolioToken[]> => {
     if (thisAddressList.length > 0) {
       try {
@@ -248,16 +266,16 @@ const Portfolio = () => {
   let fetchAcc = 1;
 
   const fetchData = async (thisAddressList: string[]) => {
-    setSubmittedAddressList(thisAddressList)
+    setSubmittedAddressList(thisAddressList);
     const data = await fetchTokenData(thisAddressList);
 
     // remove NFTs & tokens with no dex value
     const mainList = data.filter(
-      (item) => calculateWrappedTokensValue(item) > 0
+      (item) => calculateWrappedTokensValue(item) > 0,
     );
 
     const collectablesList = data.filter(
-      (item) => calculateWrappedTokensValue(item) === 0 && item.decimals === 0
+      (item) => calculateWrappedTokensValue(item) === 0 && item.decimals === 0,
     );
 
     // This is meant to adjust token amounts with correct decimals
@@ -274,7 +292,7 @@ const Portfolio = () => {
           description: item.token_description,
           amount: adjustDecimals(
             item.wrapped_tokens[0].token_amount,
-            item.wrapped_tokens[0].decimals
+            item.wrapped_tokens[0].decimals,
           ),
           value: item.wrapped_tokens[0].value_in_erg,
           tokenId: item.token_id,
@@ -283,7 +301,7 @@ const Portfolio = () => {
           wrappedTokenAmounts: [
             adjustDecimals(
               item.wrapped_tokens[0].token_amount,
-              item.wrapped_tokens[0].decimals
+              item.wrapped_tokens[0].decimals,
             ),
           ],
         };
@@ -295,8 +313,8 @@ const Portfolio = () => {
           name: `${item.wrapped_tokens[0].token_name
             .split("_")[1]
             .slice(0, 3)}/${item.wrapped_tokens[0].token_name
-              .split("_")[0]
-              .slice(0, 3)} YF (${fetchAcc})`,
+            .split("_")[0]
+            .slice(0, 3)} YF (${fetchAcc})`,
           description: item.token_description,
           amount: adjustDecimals(item.token_amount, item.decimals),
           value:
@@ -338,8 +356,8 @@ const Portfolio = () => {
         wrappedTokenAmounts:
           item.wrapped_tokens.length > 0
             ? item.wrapped_tokens.map((token) =>
-              adjustDecimals(token.token_amount, token.decimals)
-            )
+                adjustDecimals(token.token_amount, token.decimals),
+              )
             : undefined,
       };
       return newItem;
@@ -348,39 +366,45 @@ const Portfolio = () => {
     // get the value of the entire portfolio
     const totalTokensValue = transformAmounts.reduce(
       (acc, token) => acc + token.amount * token.value,
-      0
+      0,
     );
     setTotalValue(totalTokensValue);
 
     const totalValueLocked = transformAmounts
       .filter(
         (item) =>
-          item.wrappedTokenIds?.length && item.wrappedTokenIds?.length > 0
+          item.wrappedTokenIds?.length && item.wrappedTokenIds?.length > 0,
       )
       .reduce((acc, token) => acc + token.amount * token.value, 0);
     setTotalValueLocked(totalValueLocked);
 
     // sort tokens by decending value
     const sortedTokens = transformAmounts.sort(
-      (a, b) => b.amount * b.value - a.amount * a.value
+      (a, b) => b.amount * b.value - a.amount * a.value,
     );
     setSortedFilteredTokensList(sortedTokens);
 
-    const assetInfo = await fetchAssetInfo(collectablesList.map(item => item.token_id))
+    const assetInfo = await fetchAssetInfo(
+      collectablesList.map((item) => item.token_id),
+    );
 
     // filter NFTs out for their processing
-    const list = collectablesList.filter(collectible => !collectible.token_name.includes("whitelist token")).map((item, i) => {
-      return {
-        name: item.token_name,
-        link: "/tokens/" + item.token_id,
-        tokenId: item.token_id,
-        qty:
-          item.decimals !== 0
-            ? item.token_amount / Math.pow(10, item.decimals)
-            : item.token_amount,
-        loading: true,
-      };
-    });
+    const list = collectablesList
+      .filter(
+        (collectible) => !collectible.token_name.includes("whitelist token"),
+      )
+      .map((item, i) => {
+        return {
+          name: item.token_name,
+          link: "/tokens/" + item.token_id,
+          tokenId: item.token_id,
+          qty:
+            item.decimals !== 0
+              ? item.token_amount / Math.pow(10, item.decimals)
+              : item.token_amount,
+          loading: true,
+        };
+      });
     setFilteredNfts(list);
 
     const fetchDataChunk = async (chunk: any) => {
@@ -388,21 +412,25 @@ const Portfolio = () => {
       setFilteredNfts((prevState) => {
         const newList = prevState.map((item) => {
           const apiItem = additionalData.find(
-            (apiItem) => apiItem.tokenId === item.tokenId
+            (apiItem) => apiItem.tokenId === item.tokenId,
           );
           const newItem = apiItem ? { ...item, ...apiItem } : item;
 
-          const additionalInfo = assetInfo.find(asset => asset.tokenId === item.tokenId)
+          const additionalInfo = assetInfo.find(
+            (asset) => asset.tokenId === item.tokenId,
+          );
 
           const mutatedItem = {
             ...newItem,
-            type: additionalInfo?.minted && additionalInfo?.minted > 1 ? 'collectible' : newItem.type
-          }
+            type:
+              additionalInfo?.minted && additionalInfo?.minted > 1
+                ? "collectible"
+                : newItem.type,
+          };
 
           if (additionalInfo) {
-            return mutatedItem
-          }
-          else return newItem
+            return mutatedItem;
+          } else return newItem;
         });
         return newList;
       });
@@ -414,15 +442,14 @@ const Portfolio = () => {
       await fetchDataChunk(chunk);
     }
 
-
     localStorage.setItem(
       "crux_portfolio_address_list",
-      JSON.stringify(thisAddressList)
+      JSON.stringify(thisAddressList),
     );
   };
 
   const fetchAssetInfo = async (
-    tokenIds: string[]
+    tokenIds: string[],
   ): Promise<AssetInfoV2Item[]> => {
     try {
       const endpoint = `${process.env.CRUX_API}/crux/asset_info_v2`;
@@ -449,27 +476,22 @@ const Portfolio = () => {
     }
   };
 
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    const loadingNow = Object.values(loading).some((value) => value === true)
-    setIsLoading(loadingNow)
-  }, [loading])
+    const loadingNow = Object.values(loading).some((value) => value === true);
+    setIsLoading(loadingNow);
+  }, [loading]);
 
   const handleChangeAddressList = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const addresses = event.target.value
+    const addresses = event.target.value;
     setAddressList(addresses);
   };
 
   return (
     <Container>
-      <Grid
-        container
-        sx={{ mb: 1 }}
-        spacing={2}
-        alignItems="center"
-      >
+      <Grid container sx={{ mb: 1 }} spacing={2} alignItems="center">
         <Grid xs>
           <TextField
             id="wallet-addresses"
@@ -481,7 +503,12 @@ const Portfolio = () => {
           />
         </Grid>
         <Grid xs="auto">
-          <Button variant="contained" onClick={() => fetchData(addressList.split(",").map((address) => address.trim()))}>
+          <Button
+            variant="contained"
+            onClick={() =>
+              fetchData(addressList.split(",").map((address) => address.trim()))
+            }
+          >
             Submit
           </Button>
         </Grid>
@@ -496,53 +523,99 @@ const Portfolio = () => {
         sx={{ position: "relative", mb: 1 }}
       >
         <Grid xs={6} sm={3}>
-          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", flexDirection: "column", display: "flex", alignItems: "center" }}>
-            <Typography>
-              Value
-            </Typography>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 3,
+              width: "100%",
+              position: "relative",
+              flexDirection: "column",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <Typography>Value</Typography>
             <Typography variant="h5">
-              {currencies[currency]}{Number((currency === 'ERG' ? totalValue : totalValue * exchangeRate).toFixed(2)).toLocaleString()}
+              {currencies[currency]}
+              {Number(
+                (currency === "ERG"
+                  ? totalValue
+                  : totalValue * exchangeRate
+                ).toFixed(2),
+              ).toLocaleString()}
             </Typography>
           </Paper>
         </Grid>
         <Grid xs={6} sm={3}>
-          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
-            <Box sx={{ position: 'absolute', top: '6px', right: '8px' }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 3,
+              width: "100%",
+              position: "relative",
+              textAlign: "center",
+            }}
+          >
+            <Box sx={{ position: "absolute", top: "6px", right: "8px" }}>
               <InfoDialogButton
                 title="How we calculate Total P/L"
                 contentAsReactNode={
                   <>
                     <Typography sx={{ mb: 2 }}>
-                      We make some assumptions for this. Liquidity and Staked positions may not have full open data, especially if they were transfered to this wallet already opened.
+                      We make some assumptions for this. Liquidity and Staked
+                      positions may not have full open data, especially if they
+                      were transfered to this wallet already opened.
                     </Typography>
                     <Typography sx={{ mb: 2 }}>
-                      We take the open price those tokens if you have them in your portfolio unwrapped, and apply that to the staked or LP positions. If you never had those tokens in your portfolio unwrapped, we won&apos;t have any open data.
+                      We take the open price those tokens if you have them in
+                      your portfolio unwrapped, and apply that to the staked or
+                      LP positions. If you never had those tokens in your
+                      portfolio unwrapped, we won&apos;t have any open data.
                     </Typography>
-                    <Typography>It&apos;s not going to be perfect so please use it as an estimation only.
+                    <Typography>
+                      It&apos;s not going to be perfect so please use it as an
+                      estimation only.
                     </Typography>
                   </>
                 }
               />
             </Box>
-            <Typography>
-              Total P/L
-            </Typography>
-            {totalPLOpen[currency] === 0 && !positions.data
-              ? <Typography variant="h5" sx={{ color: theme.palette.background.hover }}>Loading...</Typography>
-              : totalPLOpen[currency] === 0 && positions.data
-                ? <Typography variant="h5">-</Typography>
-                : <Typography variant="h5" sx={{ color: colorSwitch(totalPLOpen[currency], theme) }}>
-                  {`${totalPLOpen[currency] < 0 ? "-" : ''}${currencies[currency]}${Math.abs(totalPLOpen[currency]).toLocaleString(undefined, {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 2
-                  })} (${((totalPLOpen[currency] / (totalValue - totalPLOpen[currency])) * 100).toFixed(2)}%)`}
-                </Typography>
-            }
+            <Typography>Total P/L</Typography>
+            {totalPLOpen[currency] === 0 && !positions.data ? (
+              <Typography
+                variant="h5"
+                sx={{ color: theme.palette.background.hover }}
+              >
+                Loading...
+              </Typography>
+            ) : totalPLOpen[currency] === 0 && positions.data ? (
+              <Typography variant="h5">-</Typography>
+            ) : (
+              <Typography
+                variant="h5"
+                sx={{ color: colorSwitch(totalPLOpen[currency], theme) }}
+              >
+                {`${totalPLOpen[currency] < 0 ? "-" : ""}${currencies[currency]}${Math.abs(
+                  totalPLOpen[currency],
+                ).toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })} (${((totalPLOpen[currency] / (totalValue - totalPLOpen[currency])) * 100).toFixed(2)}%)`}
+              </Typography>
+            )}
           </Paper>
         </Grid>
         <Grid xs={6} sm={3}>
-          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
-            <Box sx={{ position: 'absolute', top: '6px', right: '8px' }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 3,
+              width: "100%",
+              position: "relative",
+              textAlign: "center",
+            }}
+          >
+            <Box sx={{ position: "absolute", top: "6px", right: "8px" }}>
               <InfoDialogButton
                 title="How we calculate 24 hour change"
                 contentAsReactNode={
@@ -551,42 +624,71 @@ const Portfolio = () => {
                       We make some assumptions for this.
                     </Typography>
                     <Typography sx={{ mb: 2 }}>
-                      We take the 24 hour change of tokens if you have them in your portfolio unwrapped, and apply that to the staked or LP positions. If you don&apos;t have any of the tokens unwrapped in your portfolio, we don&apos;t have the data in here.
+                      We take the 24 hour change of tokens if you have them in
+                      your portfolio unwrapped, and apply that to the staked or
+                      LP positions. If you don&apos;t have any of the tokens
+                      unwrapped in your portfolio, we don&apos;t have the data
+                      in here.
                     </Typography>
-                    <Typography>Please use it as an estimation only.
+                    <Typography>
+                      Please use it as an estimation only.
                     </Typography>
                   </>
                 }
               />
             </Box>
-            <Typography>
-              24 Hour Change
-            </Typography>
-            {totalPLDay[currency] === 0 && !positions.data
-              ? <Typography variant="h5" sx={{ color: theme.palette.background.hover }}>Loading...</Typography>
-              : totalPLDay[currency] === 0 && positions.data
-                ? <Typography variant="h5">-</Typography>
-                : <Typography variant="h5" sx={{ color: colorSwitch(totalPLDay[currency], theme) }}>
-                  {`${totalPLDay[currency] < 0 ? "-" : ''}${currencies[currency]}${Math.abs(totalPLDay[currency]).toLocaleString(undefined, {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 2
-                  })} (${((totalPLDay[currency] / (totalValue - totalPLDay[currency])) * 100).toFixed(2)}%)`}
-                </Typography>
-            }
+            <Typography>24 Hour Change</Typography>
+            {totalPLDay[currency] === 0 && !positions.data ? (
+              <Typography
+                variant="h5"
+                sx={{ color: theme.palette.background.hover }}
+              >
+                Loading...
+              </Typography>
+            ) : totalPLDay[currency] === 0 && positions.data ? (
+              <Typography variant="h5">-</Typography>
+            ) : (
+              <Typography
+                variant="h5"
+                sx={{ color: colorSwitch(totalPLDay[currency], theme) }}
+              >
+                {`${totalPLDay[currency] < 0 ? "-" : ""}${currencies[currency]}${Math.abs(
+                  totalPLDay[currency],
+                ).toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })} (${((totalPLDay[currency] / (totalValue - totalPLDay[currency])) * 100).toFixed(2)}%)`}
+              </Typography>
+            )}
           </Paper>
         </Grid>
         <Grid xs={6} sm={3}>
-          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", textAlign: 'center' }}>
-            <Typography>
-              TVL
-            </Typography>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 3,
+              width: "100%",
+              position: "relative",
+              textAlign: "center",
+            }}
+          >
+            <Typography>TVL</Typography>
             <Typography variant="h5">
-              {currencies[currency]}{Number((currency === 'ERG' ? totalValueLocked : totalValueLocked * exchangeRate).toFixed(2)).toLocaleString()}
+              {currencies[currency]}
+              {Number(
+                (currency === "ERG"
+                  ? totalValueLocked
+                  : totalValueLocked * exchangeRate
+                ).toFixed(2),
+              ).toLocaleString()}
             </Typography>
           </Paper>
         </Grid>
         <Grid xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative", height: "100%" }}>
+          <Paper
+            variant="outlined"
+            sx={{ p: 3, width: "100%", position: "relative", height: "100%" }}
+          >
             <TokenSummary
               totalValue={totalValue}
               tokenList={sortedFilteredTokensList}
@@ -599,7 +701,10 @@ const Portfolio = () => {
           </Paper>
         </Grid>
         <Grid xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative" }}>
+          <Paper
+            variant="outlined"
+            sx={{ p: 3, width: "100%", position: "relative" }}
+          >
             <HistoricValues
               tokenList={sortedFilteredTokensList}
               totalValue={totalValue}
@@ -609,9 +714,7 @@ const Portfolio = () => {
           </Paper>
         </Grid>
         <Grid xs={12}>
-          <Collectibles
-            tokenList={filteredNfts}
-          />
+          <Collectibles tokenList={filteredNfts} />
         </Grid>
         {/* <Grid xs={12} md={4}>
           <Paper variant="outlined" sx={{ p: 3, width: "100%", position: "relative" }}>
@@ -719,13 +822,11 @@ const Portfolio = () => {
           </Grid>
         </Grid> */}
 
-
       <Positions
         currency={currency}
         setCurrency={setCurrency}
         addressList={submittedAddressList}
       />
-
 
       <StakedPositions
         currency={currency}
@@ -733,13 +834,11 @@ const Portfolio = () => {
         addressList={submittedAddressList}
       />
 
-
       <LiquidityPositions
         currency={currency}
         setCurrency={setCurrency}
         addressList={submittedAddressList}
       />
-
     </Container>
   );
 };
@@ -755,7 +854,7 @@ const chunkArray = (array: any[], chunkSize: number) => {
       const start = index * chunkSize;
       const end = start + chunkSize;
       return array.slice(start, end);
-    }
+    },
   );
 };
 
@@ -771,14 +870,14 @@ const flattenTokenIdsFromWrappedTokens = (wrappedTokens: IPortfolioToken[]) => {
 };
 
 const flattenTokenNamesFromWrappedTokens = (
-  wrappedTokens: IPortfolioToken[]
+  wrappedTokens: IPortfolioToken[],
 ) => {
   let names: string[] = [];
   for (const token of wrappedTokens) {
     names.push(token.token_name);
     if (token.wrapped_tokens.length > 0) {
       names = names.concat(
-        flattenTokenNamesFromWrappedTokens(token.wrapped_tokens)
+        flattenTokenNamesFromWrappedTokens(token.wrapped_tokens),
       );
     }
   }
@@ -786,14 +885,14 @@ const flattenTokenNamesFromWrappedTokens = (
 };
 
 const flattenTokenAmountsFromWrappedTokens = (
-  wrappedTokens: IPortfolioToken[]
+  wrappedTokens: IPortfolioToken[],
 ) => {
   let amounts: number[] = [];
   for (const token of wrappedTokens) {
     amounts.push(adjustDecimals(token.token_amount, token.decimals));
     if (token.wrapped_tokens.length > 0) {
       amounts = amounts.concat(
-        flattenTokenAmountsFromWrappedTokens(token.wrapped_tokens)
+        flattenTokenAmountsFromWrappedTokens(token.wrapped_tokens),
       );
     }
   }
@@ -803,48 +902,75 @@ const flattenTokenAmountsFromWrappedTokens = (
 function calculatePortfolioPL(
   positions: TTokensData,
   stakedPositions: TStakedTokensData,
-  lpPositions: TLpTokensData
+  lpPositions: TLpTokensData,
 ): { pl24h: PriceInfoUppercase; plAllTime: PriceInfoUppercase } {
-  const pl24h: PriceInfoUppercase = { ERG: 0, USD: 0 };
-  const plAllTime: PriceInfoUppercase = { ERG: 0, USD: 0 };
+  const pl24h: PriceInfoUppercase = { ERG: 0, USE: 0 };
+  const plAllTime: PriceInfoUppercase = { ERG: 0, USE: 0 };
 
   // Calculate P/L for regular positions
   positions.forEach((position) => {
     pl24h.ERG += position.pnlDay.erg;
-    pl24h.USD += position.pnlDay.usd;
+    pl24h.USE += position.pnlDay.use;
     plAllTime.ERG += position.pnlOpen.erg;
-    plAllTime.USD += position.pnlOpen.usd;
+    plAllTime.USE += position.pnlOpen.use;
   });
 
   // Calculate P/L for staked positions
   stakedPositions.forEach((stakedPosition) => {
-    const regularPosition = positions.find(p => p.tokenId === stakedPosition.tokenId);
+    const regularPosition = positions.find(
+      (p) => p.tokenId === stakedPosition.tokenId,
+    );
     if (regularPosition) {
-      const totalStakedAmount = stakedPosition.stakedAmount + stakedPosition.rewardAmount - stakedPosition.unstakedAmount;
+      const totalStakedAmount =
+        stakedPosition.stakedAmount +
+        stakedPosition.rewardAmount -
+        stakedPosition.unstakedAmount;
 
       // 24h P/L
-      pl24h.ERG += totalStakedAmount * (regularPosition.pnlDay.erg / regularPosition.tokenAmount);
-      pl24h.USD += totalStakedAmount * (regularPosition.pnlDay.usd / regularPosition.tokenAmount);
+      pl24h.ERG +=
+        totalStakedAmount *
+        (regularPosition.pnlDay.erg / regularPosition.tokenAmount);
+      pl24h.USE +=
+        totalStakedAmount *
+        (regularPosition.pnlDay.use / regularPosition.tokenAmount);
 
       // All-time P/L
-      plAllTime.ERG += totalStakedAmount * (regularPosition.pnlOpen.erg / regularPosition.tokenAmount);
-      plAllTime.USD += totalStakedAmount * (regularPosition.pnlOpen.usd / regularPosition.tokenAmount);
+      plAllTime.ERG +=
+        totalStakedAmount *
+        (regularPosition.pnlOpen.erg / regularPosition.tokenAmount);
+      plAllTime.USE +=
+        totalStakedAmount *
+        (regularPosition.pnlOpen.use / regularPosition.tokenAmount);
     }
   });
 
   // Calculate P/L for liquidity positions
   lpPositions.forEach((lpPosition) => {
-    const baseRegularPosition = positions.find(p => p.tokenId === lpPosition.baseTokenId);
-    const quoteRegularPosition = positions.find(p => p.tokenId === lpPosition.quoteTokenId);
+    const baseRegularPosition = positions.find(
+      (p) => p.tokenId === lpPosition.baseTokenId,
+    );
+    const quoteRegularPosition = positions.find(
+      (p) => p.tokenId === lpPosition.quoteTokenId,
+    );
 
     if (baseRegularPosition && quoteRegularPosition) {
-      const baseFactor = lpPosition.baseCurrentAmount / baseRegularPosition.tokenAmount;
-      const quoteFactor = lpPosition.quoteCurrentAmount / quoteRegularPosition.tokenAmount;
+      const baseFactor =
+        lpPosition.baseCurrentAmount / baseRegularPosition.tokenAmount;
+      const quoteFactor =
+        lpPosition.quoteCurrentAmount / quoteRegularPosition.tokenAmount;
 
-      pl24h.ERG += (baseRegularPosition.pnlDay.erg * baseFactor) + (quoteRegularPosition.pnlDay.erg * quoteFactor);
-      pl24h.USD += (baseRegularPosition.pnlDay.usd * baseFactor) + (quoteRegularPosition.pnlDay.usd * quoteFactor);
-      plAllTime.ERG += (baseRegularPosition.pnlOpen.erg * baseFactor) + (quoteRegularPosition.pnlOpen.erg * quoteFactor);
-      plAllTime.USD += (baseRegularPosition.pnlOpen.usd * baseFactor) + (quoteRegularPosition.pnlOpen.usd * quoteFactor);
+      pl24h.ERG +=
+        baseRegularPosition.pnlDay.erg * baseFactor +
+        quoteRegularPosition.pnlDay.erg * quoteFactor;
+      pl24h.USE +=
+        baseRegularPosition.pnlDay.use * baseFactor +
+        quoteRegularPosition.pnlDay.use * quoteFactor;
+      plAllTime.ERG +=
+        baseRegularPosition.pnlOpen.erg * baseFactor +
+        quoteRegularPosition.pnlOpen.erg * quoteFactor;
+      plAllTime.USE +=
+        baseRegularPosition.pnlOpen.use * baseFactor +
+        quoteRegularPosition.pnlOpen.use * quoteFactor;
     }
   });
 

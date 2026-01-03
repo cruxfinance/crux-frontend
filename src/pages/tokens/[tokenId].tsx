@@ -108,7 +108,11 @@ const TokenInfo: FC = () => {
         pctChange1w: 0,
         pctChange1m: 0,
         vol: 0,
+        volErg: 0,
+        volUse: 0,
         liquidity: 0,
+        liquidityErg: 0,
+        liquidityUse: 0,
         buys: 0,
         sells: 0,
         mktCap:
@@ -152,7 +156,7 @@ const TokenInfo: FC = () => {
     }
   }, [tokenId]);
 
-  const handleCurrencyChange = (e: any, value: "USD" | "ERG") => {
+  const handleCurrencyChange = (e: any, value: "USE" | "ERG") => {
     if (value !== null) {
       setCurrency(value);
       setTokenInfo((prev) => {
@@ -228,12 +232,12 @@ const TokenInfo: FC = () => {
                 sx={{ mb: 1 }}
                 size="small"
               >
-                <ToggleButton value="USD">USD</ToggleButton>
+                <ToggleButton value="USE">USE</ToggleButton>
                 <ToggleButton value="ERG">Erg</ToggleButton>
               </ToggleButtonGroup>
               <Typography variant="h4">
                 {currencies[currency]}
-                {currency === "USD"
+                {currency === "USE"
                   ? formatNumber(tokenInfo.price * exchangeRate, 4)
                   : formatNumber(tokenInfo.price, 4)}
               </Typography>

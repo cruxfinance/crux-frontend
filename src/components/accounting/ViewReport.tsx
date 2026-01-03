@@ -40,8 +40,8 @@ const ViewReport: FC<IViewReportProps> = ({ report }) => {
     reportId: report.id,
   });
 
-  const [currency, setCurrency] = useState<Currencies>("USD");
-  const handleCurrencyChange = (e: any, value: "USD" | "ERG") => {
+  const [currency, setCurrency] = useState<Currencies>("USE");
+  const handleCurrencyChange = (e: any, value: "USE" | "ERG") => {
     if (value !== null) {
       setCurrency(value);
     }
@@ -69,7 +69,7 @@ const ViewReport: FC<IViewReportProps> = ({ report }) => {
       link.href = url;
       link.setAttribute(
         "download",
-        `report-${slugify(report.customName ?? report.id)}.csv`
+        `report-${slugify(report.customName ?? report.id)}.csv`,
       );
       document.body.appendChild(link);
       link.click();
@@ -98,14 +98,14 @@ const ViewReport: FC<IViewReportProps> = ({ report }) => {
         thisReportQuery.refetch();
         addAlert(
           "success",
-          "Your Koinly report is being prepared. You will be notified when it is ready to download."
+          "Your Koinly report is being prepared. You will be notified when it is ready to download.",
         );
       }
     } catch (error) {
       console.error("Koinly report generation failed:", error);
       addAlert(
         "error",
-        "Unable to initiate Koinly report generation, please contact support."
+        "Unable to initiate Koinly report generation, please contact support.",
       );
     } finally {
       setKoinlyGenerating(false); // Reset the loading state
@@ -132,7 +132,7 @@ const ViewReport: FC<IViewReportProps> = ({ report }) => {
         console.error("Download failed:", error);
         addAlert(
           "error",
-          "Unable to download Koinly file, please contact support."
+          "Unable to download Koinly file, please contact support.",
         );
       } finally {
         setKoinlyDownloading(false);
@@ -264,7 +264,7 @@ const ViewReport: FC<IViewReportProps> = ({ report }) => {
               sx={{ mb: 1 }}
               size="small"
             >
-              <ToggleButton value="USD">USD</ToggleButton>
+              <ToggleButton value="USE">USE</ToggleButton>
               <ToggleButton value="ERG">Erg</ToggleButton>
             </ToggleButtonGroup>
           </Box>

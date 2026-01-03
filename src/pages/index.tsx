@@ -17,6 +17,7 @@ import {
   Checkbox,
   Switch,
   FormControlLabel,
+  Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
 import TokenSort from "@components/tokens/TokenSort";
@@ -37,6 +38,9 @@ import StarIcon from "@mui/icons-material/Star";
 import StarToggle from "@components/StarToggle";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { useWallet } from "@contexts/WalletContext";
+import { ERG_TOKEN_ID_MAP, USE_TOKEN_ID } from "@lib/configs/paymentTokens";
+
+const ERG_MAX_SUPPLY = 97739924;
 
 const Tokens: FC = () => {
   const theme = useTheme();
@@ -54,6 +58,25 @@ const Tokens: FC = () => {
     threshold: 0,
   });
 
+  // Icons for ERG and USE tokens (for tooltips)
+  const [ergIcon, setErgIcon] = useState<string>("");
+  const [useIcon, setUseIcon] = useState<string>("");
+
+  // Load ERG and USE icons on mount
+  useEffect(() => {
+    const loadIcons = async () => {
+      const ergUrl =
+        (await checkLocalIcon(ERG_TOKEN_ID_MAP)) ||
+        (await getIconUrlFromServer(ERG_TOKEN_ID_MAP));
+      const useUrl =
+        (await checkLocalIcon(USE_TOKEN_ID)) ||
+        (await getIconUrlFromServer(USE_TOKEN_ID));
+      if (ergUrl) setErgIcon(ergUrl);
+      if (useUrl) setUseIcon(useUrl);
+    };
+    loadIcons();
+  }, []);
+
   const { sessionData, setNotSubscribedNotifyDialogOpen } = useWallet();
   const isSubscriber =
     sessionData?.user.privilegeLevel === "BASIC" ||
@@ -63,7 +86,7 @@ const Tokens: FC = () => {
   /////////////////////////
   // START FILTERS STUFF //
   /////////////////////////
-  const [currency, setCurrency] = useState<Currencies>("USD");
+  const [currency, setCurrency] = useState<Currencies>("USE");
   const [timeframe, setTimeframe] = useState<ITimeframe>({
     filter_window: "Day",
   });
@@ -206,7 +229,7 @@ const Tokens: FC = () => {
           | "Week"
           | "Month",
       });
-      setCurrency((selectedPreset.currency as Currencies) || "USD");
+      setCurrency((selectedPreset.currency as Currencies) || "USE");
       setSearchString(selectedPreset.searchString || "");
     }
   };
@@ -295,7 +318,7 @@ const Tokens: FC = () => {
   // END STARRED TOKENS STUFF //
   //////////////////////////////
 
-  const handleCurrencyChange = (e: any, value: "USD" | "ERG") => {
+  const handleCurrencyChange = (e: any, value: "USE" | "ERG") => {
     if (value !== null) {
       setCurrency(value);
     }
@@ -357,7 +380,7 @@ const Tokens: FC = () => {
 
         if (queries.offset === 0) {
           setFilteredTokens(awaitedData);
-          setErgExchange(data[0].erg_price_usd);
+          setErgExchange(data[0].erg_price_use);
         } else {
           setFilteredTokens((prev) => [...prev, ...awaitedData]);
         }
@@ -384,22 +407,83 @@ const Tokens: FC = () => {
     ticker,
     id,
     volume,
+    volume_erg,
+    volume_use,
     liquidity,
+    liquidity_erg,
+    liquidity_use,
     buys,
     sells,
     market_cap,
     price_erg,
-    erg_price_usd,
+    erg_price_use,
     ...item
   }: IApiTokenData): Promise<ITokenData> => {
+    // Special handling for USE/ERG pool - swap display based on currency
+    const isUseToken = id === USE_TOKEN_ID;
+
+    if (isUseToken && currency === "USE") {
+      // When viewing in USE currency, show ERG instead
+      // Invert percentage changes properly: if USE went up X%, ERG went down X/(1+X)
+      // API returns percentages as whole numbers (e.g., -13.17 means -13.17%)
+      const invertPctChange = (pct: number) => {
+        const decimal = pct / 100;
+        const factor = 1 + decimal;
+        return (1 / factor - 1) * 100;
+      };
+
+      // Get ERG icon - fetch if not already loaded
+      let ergIconUrl = ergIcon;
+      if (!ergIconUrl) {
+        ergIconUrl =
+          (await checkLocalIcon(ERG_TOKEN_ID_MAP)) ||
+          (await getIconUrlFromServer(ERG_TOKEN_ID_MAP)) ||
+          "";
+      }
+
+      // Get USE icon for pair breakdown tooltips
+      let useIconUrl = useIcon;
+      if (!useIconUrl) {
+        useIconUrl =
+          (await checkLocalIcon(USE_TOKEN_ID)) ||
+          (await getIconUrlFromServer(USE_TOKEN_ID)) ||
+          "";
+      }
+
+      return {
+        name: "Ergo",
+        ticker: "ERG",
+        tokenId: id, // Keep USE token ID for navigation
+        icon: ergIconUrl,
+        pairIcon: useIconUrl, // USE icon for pair breakdown tooltips
+        // Price is set to 1 ERG - the display logic multiplies by ergExchange for USE currency
+        price: 1,
+        // Invert the USE ERG percentage changes to get ERG's USE changes
+        pctChange1h: invertPctChange(item.hour_change_erg),
+        pctChange1d: invertPctChange(item.day_change_erg),
+        pctChange1w: invertPctChange(item.week_change_erg),
+        pctChange1m: invertPctChange(item.month_change_erg),
+        vol: volume,
+        volErg: volume_erg,
+        volUse: volume_use,
+        liquidity,
+        liquidityErg: liquidity_erg,
+        liquidityUse: liquidity_use,
+        buys,
+        sells,
+        mktCap: ERG_MAX_SUPPLY, // ERG market cap in ERG (will be multiplied by ergExchange for USE)
+      };
+    }
+
+    // Normal token handling (including USE when currency === "ERG")
     const hourChangeKey =
-      currency === "USD" ? "hour_change_usd" : "hour_change_erg";
+      currency === "USE" ? "hour_change_usd" : "hour_change_erg";
     const dayChangeKey =
-      currency === "USD" ? "day_change_usd" : "day_change_erg";
+      currency === "USE" ? "day_change_usd" : "day_change_erg";
     const weekChangeKey =
-      currency === "USD" ? "week_change_usd" : "week_change_erg";
+      currency === "USE" ? "week_change_usd" : "week_change_erg";
     const monthChangeKey =
-      currency === "USD" ? "month_change_usd" : "month_change_erg";
+      currency === "USE" ? "month_change_usd" : "month_change_erg";
 
     // Check for the icon locally first
     let url = await checkLocalIcon(id);
@@ -420,7 +504,11 @@ const Tokens: FC = () => {
       pctChange1w: item[weekChangeKey],
       pctChange1m: item[monthChangeKey],
       vol: volume,
+      volErg: volume_erg,
+      volUse: volume_use,
       liquidity,
+      liquidityErg: liquidity_erg,
+      liquidityUse: liquidity_use,
       buys,
       sells,
       mktCap: market_cap,
@@ -438,7 +526,9 @@ const Tokens: FC = () => {
       setFilteredTokens([]);
       await fetchTokenData(
         isInitialBoxesFetch ? { liquidity_min: 100 } : filters,
-        isInitialBoxesFetch ? { sort_by: "Volume", sort_order: "Desc" } : sorting,
+        isInitialBoxesFetch
+          ? { sort_by: "Volume", sort_order: "Desc" }
+          : sorting,
         { ...queries, offset: 0 },
         { filter_window: "Day" },
         isInitialBoxesFetch ? "" : searchString,
@@ -457,7 +547,7 @@ const Tokens: FC = () => {
       );
   };
 
-   // page-load
+  // page-load
   useEffect(() => {
     if (initialLoading) {
       fetchData(true, true);
@@ -509,6 +599,83 @@ const Tokens: FC = () => {
     );
   };
 
+  const renderPairBreakdown = (
+    tokenIcon: string,
+    ergValue: number,
+    useValue: number,
+    label: string,
+    liquidityErg: number,
+    liquidityUse: number,
+  ) => {
+    const showErg = liquidityErg > 0;
+    const showUse = liquidityUse > 0;
+
+    if (!showErg && !showUse) {
+      return <Typography variant="caption">No liquidity data</Typography>;
+    }
+
+    const PairLogos = ({ baseIcon }: { baseIcon: string }) => (
+      <Box sx={{ position: "relative", width: 24, height: 16, mr: 0.5 }}>
+        <Avatar
+          src={baseIcon}
+          sx={{
+            width: 16,
+            height: 16,
+            position: "absolute",
+            right: 0,
+            top: 0,
+          }}
+        />
+        <Avatar
+          src={tokenIcon}
+          sx={{
+            width: 16,
+            height: 16,
+            position: "absolute",
+            left: 0,
+            top: 0,
+            zIndex: 1,
+          }}
+        />
+      </Box>
+    );
+
+    return (
+      <Box sx={{ p: 0.5 }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 600, display: "block", mb: 0.5 }}
+        >
+          {label}
+        </Typography>
+        {showErg && (
+          <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
+            <PairLogos baseIcon={ergIcon} />
+            <Typography variant="caption">
+              {currencies[currency] +
+                formatNumber(
+                  currency === "USE" ? ergValue * ergExchange : ergValue,
+                  2,
+                )}
+            </Typography>
+          </Box>
+        )}
+        {showUse && (
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <PairLogos baseIcon={useIcon} />
+            <Typography variant="caption">
+              {currencies[currency] +
+                formatNumber(
+                  currency === "USE" ? useValue * ergExchange : useValue,
+                  2,
+                )}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
   const handleSearchStringChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -553,7 +720,7 @@ const Tokens: FC = () => {
         onChange={handleCurrencyChange}
         size="small"
       >
-        <ToggleButton value="USD">USD</ToggleButton>
+        <ToggleButton value="USE">USE</ToggleButton>
         <ToggleButton value="ERG">Erg</ToggleButton>
       </ToggleButtonGroup>
     );
@@ -564,7 +731,7 @@ const Tokens: FC = () => {
   const [topTrendingTokens, setTopTrendingTokens] = useState<ITokenData[]>([]);
   const [topGainers, setTopGainers] = useState<ITokenData[]>([]);
   const [topLosers, setTopLosers] = useState<ITokenData[]>([]);
-  
+
   useEffect(() => {
     if (boxesBaseData.length > 0) {
       // Trending = top 3 by volume
@@ -605,7 +772,11 @@ const Tokens: FC = () => {
         >
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
             🔥 Trending{" "}
-            <Typography component="span" variant="caption" sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>
+            <Typography
+              component="span"
+              variant="caption"
+              sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}
+            >
               (1d)
             </Typography>
           </Typography>
@@ -650,10 +821,14 @@ const Tokens: FC = () => {
                   <Typography variant="body1" sx={{ width: 20 }}>
                     {index + 1}.
                   </Typography>
-                  <Avatar src={token.icon} alt={token.name} sx={{ width: 24, height: 24 }} />
+                  <Avatar
+                    src={token.icon}
+                    alt={token.name}
+                    sx={{ width: 24, height: 24 }}
+                  />
                   <Typography
                     variant="body1"
-                   sx={{
+                    sx={{
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -667,7 +842,7 @@ const Tokens: FC = () => {
                 </Typography>
               </Box>
             ))
-         )}
+          )}
         </Box>
 
         {/* 📈 Top Gainers */}
@@ -685,7 +860,11 @@ const Tokens: FC = () => {
         >
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
             📈 Top Gainers{" "}
-            <Typography component="span" variant="caption" sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>
+            <Typography
+              component="span"
+              variant="caption"
+              sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}
+            >
               (1d)
             </Typography>
           </Typography>
@@ -745,7 +924,10 @@ const Tokens: FC = () => {
                     {token.name}
                   </Typography>
                 </Box>
-                <Typography variant="body1" sx={{ color: theme.palette.up.main }}>
+                <Typography
+                  variant="body1"
+                  sx={{ color: theme.palette.up.main }}
+                >
                   {formatPercent(token.pctChange1d * 100)}
                 </Typography>
               </Box>
@@ -768,7 +950,11 @@ const Tokens: FC = () => {
         >
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
             📉 Top Losers{" "}
-            <Typography component="span" variant="caption" sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>
+            <Typography
+              component="span"
+              variant="caption"
+              sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}
+            >
               (1d)
             </Typography>
           </Typography>
@@ -828,7 +1014,10 @@ const Tokens: FC = () => {
                     {token.name}
                   </Typography>
                 </Box>
-                <Typography variant="body1" sx={{ color: theme.palette.down.main }}>
+                <Typography
+                  variant="body1"
+                  sx={{ color: theme.palette.down.main }}
+                >
                   {formatPercent(token.pctChange1d * 100)}
                 </Typography>
               </Box>
@@ -1156,7 +1345,7 @@ const Tokens: FC = () => {
                           <Grid xs={2}>
                             {currencies[currency] +
                               formatNumber(
-                                currency === "USD"
+                                currency === "USE"
                                   ? token.price * ergExchange
                                   : token.price,
                                 4,
@@ -1175,26 +1364,52 @@ const Tokens: FC = () => {
                             {formatPercent(token.pctChange1m * 100)}
                           </Grid>
                           <Grid xs={1}>
-                            <Typography>
-                              V{" "}
-                              {currencies[currency] +
-                                formatNumber(
-                                  currency === "USD"
-                                    ? token.vol * ergExchange
-                                    : token.vol,
-                                  2,
-                                )}
-                            </Typography>
-                            <Typography>
-                              L{" "}
-                              {currencies[currency] +
-                                formatNumber(
-                                  currency === "USD"
-                                    ? token.liquidity * ergExchange
-                                    : token.liquidity,
-                                  2,
-                                )}
-                            </Typography>
+                            <Tooltip
+                              title={renderPairBreakdown(
+                                token.pairIcon || token.icon,
+                                token.volErg,
+                                token.volUse,
+                                "Volume",
+                                token.liquidityErg,
+                                token.liquidityUse,
+                              )}
+                              arrow
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Typography sx={{ cursor: "help" }}>
+                                V{" "}
+                                {currencies[currency] +
+                                  formatNumber(
+                                    currency === "USE"
+                                      ? token.vol * ergExchange
+                                      : token.vol,
+                                    2,
+                                  )}
+                              </Typography>
+                            </Tooltip>
+                            <Tooltip
+                              title={renderPairBreakdown(
+                                token.pairIcon || token.icon,
+                                token.liquidityErg,
+                                token.liquidityUse,
+                                "Liquidity",
+                                token.liquidityErg,
+                                token.liquidityUse,
+                              )}
+                              arrow
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Typography sx={{ cursor: "help" }}>
+                                L{" "}
+                                {currencies[currency] +
+                                  formatNumber(
+                                    currency === "USE"
+                                      ? token.liquidity * ergExchange
+                                      : token.liquidity,
+                                    2,
+                                  )}
+                              </Typography>
+                            </Tooltip>
                           </Grid>
                           <Grid xs={1}>
                             <Typography>
@@ -1204,7 +1419,7 @@ const Tokens: FC = () => {
                               M{" "}
                               {currencies[currency] +
                                 formatNumber(
-                                  currency === "USD"
+                                  currency === "USE"
                                     ? token.mktCap * ergExchange
                                     : token.mktCap,
                                   2,
@@ -1373,7 +1588,7 @@ const Tokens: FC = () => {
                             <Typography>
                               {currencies[currency] +
                                 formatNumber(
-                                  currency === "USD"
+                                  currency === "USE"
                                     ? token.price * ergExchange
                                     : token.price,
                                   4,
@@ -1384,16 +1599,29 @@ const Tokens: FC = () => {
                             </Typography>
                           </Grid>
                           <Grid xs={4} sm={3}>
-                            <Typography>
-                              V{" "}
-                              {currencies[currency] +
-                                formatNumber(
-                                  currency === "USD"
-                                    ? token.vol * ergExchange
-                                    : token.vol,
-                                  2,
-                                )}
-                            </Typography>
+                            <Tooltip
+                              title={renderPairBreakdown(
+                                token.pairIcon || token.icon,
+                                token.volErg,
+                                token.volUse,
+                                "Volume",
+                                token.liquidityErg,
+                                token.liquidityUse,
+                              )}
+                              arrow
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Typography sx={{ cursor: "help" }}>
+                                V{" "}
+                                {currencies[currency] +
+                                  formatNumber(
+                                    currency === "USE"
+                                      ? token.vol * ergExchange
+                                      : token.vol,
+                                    2,
+                                  )}
+                              </Typography>
+                            </Tooltip>
                             <Typography>
                               T {token.buys + token.sells}
                             </Typography>

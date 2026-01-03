@@ -1,6 +1,12 @@
 import styles from "./index.module.css";
 import { FC, useEffect, useRef } from "react";
-import { ChartingLibraryWidgetOptions, IChartWidgetApi, LanguageCode, ResolutionString, widget } from "@lib/charts/charting_library";
+import {
+  ChartingLibraryWidgetOptions,
+  IChartWidgetApi,
+  LanguageCode,
+  ResolutionString,
+  widget,
+} from "@lib/charts/charting_library";
 import { UDFCompatibleDatafeed } from "@lib/charts/datafeeds/udf/src/udf-compatible-datafeed";
 import { useTheme, useMediaQuery } from "@mui/material";
 
@@ -10,7 +16,11 @@ interface TVProps {
   height?: string;
 }
 
-export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency, height }) => {
+export const TVChartContainer: FC<TVProps> = ({
+  defaultWidgetProps,
+  currency,
+  height,
+}) => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
 
@@ -19,19 +29,24 @@ export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency, he
 
   const disabledFeatures = upSm
     ? ["header_symbol_search"]
-    : ["header_symbol_search", "left_toolbar"]
+    : ["header_symbol_search", "left_toolbar"];
 
   useEffect(() => {
-    const savedSettings = localStorage.getItem('chartSettings');
+    const savedSettings = localStorage.getItem("chartSettings");
     let initialSettings = {};
     if (savedSettings) {
       initialSettings = JSON.parse(savedSettings);
     }
 
     const widgetOptions: ChartingLibraryWidgetOptions = {
-      symbol: currency === 'USD' ? `${defaultWidgetProps.symbol}_usd` : defaultWidgetProps.symbol,
+      symbol:
+        currency === "USE"
+          ? `${defaultWidgetProps.symbol}_usd`
+          : defaultWidgetProps.symbol,
       interval: defaultWidgetProps.interval as ResolutionString,
-      datafeed: new UDFCompatibleDatafeed(`${process.env.CRUX_API}/trading_view`),
+      datafeed: new UDFCompatibleDatafeed(
+        `${process.env.CRUX_API}/trading_view`,
+      ),
       container: chartContainerRef.current,
       library_path: defaultWidgetProps.library_path,
       locale: defaultWidgetProps.locale as LanguageCode,
@@ -43,7 +58,7 @@ export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency, he
       // user_id: defaultWidgetProps.user_id,
       fullscreen: defaultWidgetProps.fullscreen,
       autosize: defaultWidgetProps.autosize,
-      theme: 'dark',
+      theme: "dark",
       // debug: true
     };
 
@@ -59,14 +74,14 @@ export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency, he
 
       // Remove default volume from the main pane
       const studies = chart.getAllStudies();
-      studies.forEach(study => {
+      studies.forEach((study) => {
         if (study.name === "Volume") {
           chart.removeEntity(study.id);
         }
       });
 
       // Add volume to a separate pane
-      chart.createStudy('Volume', false, true);
+      chart.createStudy("Volume", false, true);
 
       // Capture changes in settings
       chart.onIntervalChanged().subscribe(null, () => {
@@ -79,11 +94,11 @@ export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency, he
       function updateChartSettings(chart: IChartWidgetApi) {
         const currentSettings = {
           interval: chart.resolution(),
-          timeframe: chart.getVisibleRange()
+          timeframe: chart.getVisibleRange(),
         };
-        localStorage.setItem('chartSettings', JSON.stringify(currentSettings));
+        localStorage.setItem("chartSettings", JSON.stringify(currentSettings));
       }
-    })
+    });
 
     return () => {
       tvWidget.remove();
@@ -92,7 +107,11 @@ export const TVChartContainer: FC<TVProps> = ({ defaultWidgetProps, currency, he
 
   return (
     <>
-      <div ref={chartContainerRef} className={styles.TVChartContainer} style={{ height: height ? height : '80vh' }} />
+      <div
+        ref={chartContainerRef}
+        className={styles.TVChartContainer}
+        style={{ height: height ? height : "80vh" }}
+      />
     </>
   );
 };
