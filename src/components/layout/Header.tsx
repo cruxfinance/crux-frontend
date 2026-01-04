@@ -53,12 +53,16 @@ const pages = [
   // },
   {
     name: "Accounting",
-    link: "/accounting"
+    link: "/accounting",
+  },
+  {
+    name: "USE Analytics",
+    link: "/use-analytics",
   },
   {
     name: "About",
     link: "/about",
-  }
+  },
 ];
 
 interface INavItemProps {
@@ -71,14 +75,15 @@ interface INavItemProps {
   };
 }
 
-interface IHeaderProps { }
+interface IHeaderProps {}
 
-const Header: FC<IHeaderProps> = ({ }) => {
+const Header: FC<IHeaderProps> = ({}) => {
   // const {
   //   theme,
   //   // setTheme
   // } = useContext(ThemeContext);
-  const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } = useScrollLock();
+  const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } =
+    useScrollLock();
 
   const theme = useTheme();
   const [navbarOpen, setNavbarOpen] = React.useState(false);
@@ -86,7 +91,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
 
   useEffect(() => {
     // console.log('hello')
-  }, [isLocked, scrollBarCompensation])
+  }, [isLocked, scrollBarCompensation]);
 
   const router = useRouter();
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
@@ -117,7 +122,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
   const handleNavbarDialogClose = () => {
     unlockScroll();
     setNavbarOpen(false);
-  }
+  };
 
   // const toggleTheme = () => {
   //   setTheme((prevTheme: Theme) => (prevTheme === LightTheme ? DarkTheme : LightTheme));
@@ -163,14 +168,17 @@ const Header: FC<IHeaderProps> = ({ }) => {
               {page.name}
             </Typography>
           ) : (
-            <Box onClick={() => { if (!upMd) handleNavbarToggle() }}>
+            <Box
+              onClick={() => {
+                if (!upMd) handleNavbarToggle();
+              }}
+            >
               <Link
                 href={page.link}
                 sx={{
-                  color:
-                    router.pathname.includes(page.link)
-                      ? theme.palette.primary.main
-                      : theme.palette.text.primary,
+                  color: router.pathname.includes(page.link)
+                    ? theme.palette.primary.main
+                    : theme.palette.text.primary,
                   "&:hover": {
                     color: theme.palette.primary.main,
                   },
@@ -319,10 +327,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                   <UserMenu />
                 </Grid>
                 <Grid item sx={{ display: { xs: "flex", md: "none" } }}>
-                  <IconButton
-                    sx={{ p: 0 }}
-                    onClick={handleNavbarToggle}
-                  >
+                  <IconButton sx={{ p: 0 }} onClick={handleNavbarToggle}>
                     {!navbarOpen ? (
                       <MenuIcon color="primary" />
                     ) : (
@@ -340,20 +345,18 @@ const Header: FC<IHeaderProps> = ({ }) => {
         onClose={handleNavbarDialogClose}
         fullScreen
         sx={{
-          '& .MuiBackdrop-root': {
-            backdropFilter: 'blur(3px)',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
-          }
+          "& .MuiBackdrop-root": {
+            backdropFilter: "blur(3px)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+          },
         }}
       >
         <DialogContent>
           <IconButton
             sx={{
-              position: 'fixed',
-              top: '25px',
-              right: isLocked
-                ? `${scrollBarCompensation + 8}px`
-                : '8px',
+              position: "fixed",
+              top: "25px",
+              right: isLocked ? `${scrollBarCompensation + 8}px` : "8px",
             }}
             onClick={handleNavbarToggle}
           >
@@ -434,7 +437,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
                         discord="https://discord.gg/tZEd3PadtD"
                         // github=""
                         twitter="https://twitter.com/cruxfinance"
-                      // medium=""
+                        // medium=""
                       />
                     </Grid>
                   </Grid>
