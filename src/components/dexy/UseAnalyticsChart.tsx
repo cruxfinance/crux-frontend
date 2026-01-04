@@ -57,8 +57,8 @@ const metricOptions: MetricOption[] = [
       "$" + v.toLocaleString(undefined, { maximumFractionDigits: 0 }),
   },
   {
-    value: "stablecoin_in_lp",
-    label: "USE in LP",
+    value: "stablecoin_in_core_lp",
+    label: "USE in Core LP",
     formatValue: (v) =>
       "$" + v.toLocaleString(undefined, { maximumFractionDigits: 0 }),
   },

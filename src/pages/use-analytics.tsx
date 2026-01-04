@@ -32,10 +32,9 @@ const UseAnalytics: NextPage = () => {
           variant="body1"
           sx={{ color: theme.palette.text.secondary }}
         >
-          USE is an algorithmic stablecoin on the Ergo blockchain, maintained by
-          the Dexy protocol. The protocol uses an algorithmic reserve bank to
-          maintain price stability through dynamic minting and redemption
-          mechanisms.
+          USE is a 3rd generation, scalable algorithmic stablecoin based on an
+          algorithmic central bank design. The algorithmic central bank is
+          deployed on the Ergo blockchain.
         </Typography>
       </Paper>
 
@@ -84,19 +83,17 @@ const UseAnalytics: NextPage = () => {
           variant="body1"
           sx={{ color: theme.palette.text.secondary, mb: 2 }}
         >
-          USE is designed to maintain a stable value through its algorithmic
-          reserve mechanism. The protocol adjusts the supply of USE tokens based
-          on market demand, using ERG reserves held in the bank contract to back
-          the stablecoin.
+          The Relative Reserve Ratio (R/R) shows how the bank performs against
+          other traders in a live market. The Relative R/R above 100% and rising
+          signals a healthy & solvent protocol in real trading conditions.
         </Typography>
         <Typography
           variant="body1"
           sx={{ color: theme.palette.text.secondary }}
         >
-          The Relative Reserve Ratio indicates the health of the protocol by
-          comparing the ERG reserves to the circulating USE supply. A ratio
-          above 100% indicates the protocol is fully collateralized, while
-          ratios below may trigger protective mechanisms to restore balance.
+          USE in core LP indicates only USE locked in the main liquidity pool
+          that is controlled by the algorithmic bank. No community Liquidity
+          Pools or cross-chain Liquidity is included.
         </Typography>
       </Paper>
     </Container>

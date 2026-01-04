@@ -5,10 +5,10 @@ declare global {
     stablecoinTotalSupply: number;
     stablecoinInBank: number;
     stablecoinInCirculation: number;
-    stablecoinInLp: number;
+    stablecoinInCoreLp: number;
     stablecoinOnHands: number;
     ergInBank: number;
-    ergInLp: number;
+    ergInCoreLp: number;
     ergTvl: number;
     ergPriceUsd: number;
     bankReserveRatio: number;
@@ -26,7 +26,7 @@ declare global {
     | "relative_reserve_ratio"
     | "relative_rr_with_lp"
     | "stablecoin_circulation"
-    | "stablecoin_in_lp"
+    | "stablecoin_in_core_lp"
     | "stablecoin_on_hands"
     | "erg_in_bank"
     | "erg_tvl";

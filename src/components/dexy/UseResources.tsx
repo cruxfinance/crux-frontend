@@ -14,28 +14,46 @@ const UseResources: FC = () => {
   const theme = useTheme();
 
   const documentation: ResourceLink[] = [
-    { label: "GitHub", url: null },
-    { label: "Articles", url: null },
-  ];
-
-  const analyticsPlatforms: ResourceLink[] = [
-    { label: "CoinGecko", url: null, comingSoon: true },
-    { label: "DefiLlama", url: null, comingSoon: true },
+    { label: "GitHub", url: "https://github.com/kushti/dexy-stable" },
+    {
+      label: "Whitepaper",
+      url: "https://github.com/kushti/dexy-stable/blob/master/paper-lipics/dexy.pdf",
+    },
+    {
+      label: "Inspiration",
+      url: "https://medium.com/@manastaking/use-new-algorithmic-stablecoin-8dfcb43172f6",
+    },
   ];
 
   const contractAddresses: ResourceLink[] = [
-    { label: "Bank Contract", url: null },
-    { label: "LP Contract", url: null },
+    {
+      label: "Bank Contract",
+      url: "https://ergexplorer.com/addresses#L7ttnK2Comjkxxhyykdat7cCYLN7yrMJz6jCYmQGd5nu8Ma9mHi1JEiCNsxgmxAvDd5vuDMRkjiwQU11JHsizheespaEu4AaH41a2NzR2JbUsaTWVEg7jCBeMXCUbetnrsSLPCqZUb4PhnvE2sGV21E8LGyZyMjtWQqcauyB297d8d7aUCgKsbgZocqRsKZdeH185yxERavMEsb9R8ifqpbD4FVTNwWV6kixAQrMrwzp1wvheEk9t931iQXH9A2X4SJ4JR3eByqcHbWWAHoNs2gL2tpWa6fkVdCs2Kqgd7LgH7u9VFGEzACibuFzanQfNNZsic6Q1ndG97ebFoGVArfMNdvFMbxo1raYuqg4oFEeTY3aNXhhtgCfZWgt2AKz1mtKdZNLRBsWt83LKTiTQLrqBVNBurD2ojUnTV4r5deV",
+    },
+    {
+      label: "LP Contract",
+      url: "https://ergexplorer.com/addresses#3W5ZTNTWAwgjcNhctkBccWeUVruJJVLATdYp1makMwoP78WiW2MDjMd2HKxZ2eUwtaSrhtRujuvi27k49msqFVAi7T2BsVHvMCHQ879nf5oJvuXjhEshf76EZgrijL3v3KcEA8CYi511YFtwN1b9u7ZUXeQSSUhqcMvyXMwaCZrpZsgCfbiLxk2DQMrngBMUh96vh7cBfPxZWhsZ9DGUtkGhiquqH3DcgFhpP33rRMjanCRXPAx9SbbphH3RBA2Z9K9j9TvWV6PnUafVGSpixUS8eawxUCiAuUAZHttXK9DjWqzeTDxDH9Tz1gSyjy7aKokwZyoAGTEafuiNQQrJ1UVfuVJCHPUD5v9eomJLmLVqdVDEUm7gj6Qj9a2cEKDfzedex977RkqXvuaeUdaumcikVCr9spzgmv7rhFCovdzAJscwTio98iRGS9rqcnUoTZFN6YmNJPXKe3krdQ7c9yvv74Ad7SBQmvNyuMkchFRnbPRozogKzV3xmTMxpLzagjQ1AdcP",
+    },
   ];
 
   const tradeUse: ResourceLink[] = [
-    { label: "USE/ERG on Crux", url: null },
-    { label: "USE/USDT on BSC", url: null },
+    {
+      label: "USE/ERG on Crux",
+      url: "https://cruxfinance.io/tokens/a55b8735ed1a99e46c2c89f8994aacdf4b1109bdcf682f1e5b34479c6e392669",
+    },
+    {
+      label: "USE/USDT on BSC",
+      url: "https://pancakeswap.finance/swap?inputCurrency=0x04458bD623824e7e7DF04Be619B553FC5f286151&outputCurrency=0x55d398326f99059fF775485246999027B3197955&chain=bsc",
+    },
   ];
 
-  const mintUse: ResourceLink[] = [{ label: "Algorithmic Bank", url: null }];
+  const mintUse: ResourceLink[] = [
+    { label: "Mint USE on Crux", url: null, comingSoon: true },
+  ];
 
-  const transferUse: ResourceLink[] = [{ label: "Rosen Bridge", url: null }];
+  const transferUse: ResourceLink[] = [
+    { label: "Rosen Bridge", url: "https://rosen.tech/" },
+  ];
 
   const ResourceItem: FC<{ resource: ResourceLink }> = ({ resource }) => (
     <Box
@@ -109,7 +127,7 @@ const UseResources: FC = () => {
 
       <Grid container spacing={4}>
         {/* Documentation & Code */}
-        <Grid xs={12} sm={6} md={3}>
+        <Grid xs={12} sm={6} md={4}>
           <Typography
             variant="subtitle2"
             sx={{ color: theme.palette.text.secondary, mb: 1 }}
@@ -121,21 +139,8 @@ const UseResources: FC = () => {
           ))}
         </Grid>
 
-        {/* Analytics Platforms */}
-        <Grid xs={12} sm={6} md={3}>
-          <Typography
-            variant="subtitle2"
-            sx={{ color: theme.palette.text.secondary, mb: 1 }}
-          >
-            Analytics Platforms
-          </Typography>
-          {analyticsPlatforms.map((resource) => (
-            <ResourceItem key={resource.label} resource={resource} />
-          ))}
-        </Grid>
-
         {/* Contract Addresses */}
-        <Grid xs={12} sm={6} md={3}>
+        <Grid xs={12} sm={6} md={4}>
           <Typography
             variant="subtitle2"
             sx={{ color: theme.palette.text.secondary, mb: 1 }}
@@ -148,7 +153,7 @@ const UseResources: FC = () => {
         </Grid>
 
         {/* Socials */}
-        <Grid xs={12} sm={6} md={3}>
+        <Grid xs={12} sm={6} md={4}>
           <Typography
             variant="subtitle2"
             sx={{ color: theme.palette.text.secondary, mb: 1 }}
@@ -158,8 +163,8 @@ const UseResources: FC = () => {
           <Box sx={{ mt: 1 }}>
             <Grid container spacing={2} sx={{ fontSize: "24px" }}>
               <SocialGrid
-                telegram="https://t.me/CruxFinance"
-                twitter="https://twitter.com/cruxfinance"
+                telegram="https://t.me/USE_stablecoin"
+                twitter="https://x.com/StableUSE"
               />
             </Grid>
           </Box>

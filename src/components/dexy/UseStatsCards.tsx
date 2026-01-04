@@ -93,8 +93,8 @@ const UseStatsCards: FC<UseStatsCardsProps> = ({ analytics, isLoading }) => {
       value: "$" + formatFullNumber(analytics.stablecoinInCirculation),
     },
     {
-      label: "USE in LP",
-      value: "$" + formatFullNumber(analytics.stablecoinInLp),
+      label: "USE in Core LP",
+      value: "$" + formatFullNumber(analytics.stablecoinInCoreLp),
     },
     {
       label: "USE on Hands",
