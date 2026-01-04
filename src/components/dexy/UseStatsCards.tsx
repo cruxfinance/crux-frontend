@@ -1,7 +1,6 @@
 import React, { FC } from "react";
-import { Box, Paper, Typography, useTheme, Skeleton } from "@mui/material";
+import { Paper, Typography, useTheme, Skeleton } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import { formatNumber } from "@lib/utils/general";
 
 interface UseStatsCardsProps {
   analytics: DexyAnalytics | null | undefined;
@@ -77,34 +76,41 @@ const UseStatsCards: FC<UseStatsCardsProps> = ({ analytics, isLoading }) => {
     );
   }
 
+  const formatFullNumber = (num: number) => {
+    return num.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   const formatRatio = (ratio: number) => {
-    return (ratio * 100).toFixed(1) + "%";
+    return (ratio * 100).toFixed(3) + "%";
   };
 
   const stats = [
     {
       label: "USE in Circulation",
-      value: "$" + formatNumber(analytics.stablecoinInCirculation, 2),
+      value: "$" + formatFullNumber(analytics.stablecoinInCirculation),
     },
     {
       label: "USE in LP",
-      value: "$" + formatNumber(analytics.stablecoinInLp, 2),
+      value: "$" + formatFullNumber(analytics.stablecoinInLp),
     },
     {
       label: "USE on Hands",
-      value: "$" + formatNumber(analytics.stablecoinOnHands, 2),
+      value: "$" + formatFullNumber(analytics.stablecoinOnHands),
     },
     {
       label: "ERG in Bank",
-      value: "Σ" + formatNumber(analytics.ergInBank, 2),
+      value: "Σ" + formatFullNumber(analytics.ergInBank),
     },
     {
       label: "ERG TVL",
-      value: "Σ" + formatNumber(analytics.ergTvl, 2),
+      value: "Σ" + formatFullNumber(analytics.ergTvl),
     },
     {
-      label: "Reserve Ratio",
-      value: formatRatio(analytics.bankReserveRatio),
+      label: "Relative Reserve Ratio",
+      value: formatRatio(analytics.relativeReserveRatio),
     },
   ];
 

@@ -1,12 +1,5 @@
 import React, { FC } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  Link,
-  Chip,
-  useTheme,
-} from "@mui/material";
+import { Box, Paper, Typography, Link, Chip, useTheme } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SocialGrid from "@components/layout/SocialGrid";
@@ -20,17 +13,29 @@ interface ResourceLink {
 const UseResources: FC = () => {
   const theme = useTheme();
 
-  const resources: ResourceLink[] = [
-    { label: "GitHub", url: null, comingSoon: false },
-    { label: "Articles", url: null, comingSoon: false },
+  const documentation: ResourceLink[] = [
+    { label: "GitHub", url: null },
+    { label: "Articles", url: null },
+  ];
+
+  const analyticsPlatforms: ResourceLink[] = [
     { label: "CoinGecko", url: null, comingSoon: true },
     { label: "DefiLlama", url: null, comingSoon: true },
   ];
 
-  const liquidityPairs: ResourceLink[] = [
-    { label: "USE/ERG on Crux", url: null, comingSoon: false },
-    { label: "USE/USDT on BSC", url: null, comingSoon: false },
+  const contractAddresses: ResourceLink[] = [
+    { label: "Bank Contract", url: null },
+    { label: "LP Contract", url: null },
   ];
+
+  const tradeUse: ResourceLink[] = [
+    { label: "USE/ERG on Crux", url: null },
+    { label: "USE/USDT on BSC", url: null },
+  ];
+
+  const mintUse: ResourceLink[] = [{ label: "Algorithmic Bank", url: null }];
+
+  const transferUse: ResourceLink[] = [{ label: "Rosen Bridge", url: null }];
 
   const ResourceItem: FC<{ resource: ResourceLink }> = ({ resource }) => (
     <Box
@@ -38,7 +43,7 @@ const UseResources: FC = () => {
         display: "flex",
         alignItems: "center",
         gap: 1,
-        py: 1,
+        py: 0.75,
       }}
     >
       {resource.url ? (
@@ -103,6 +108,7 @@ const UseResources: FC = () => {
       </Typography>
 
       <Grid container spacing={4}>
+        {/* Documentation & Code */}
         <Grid xs={12} sm={6} md={3}>
           <Typography
             variant="subtitle2"
@@ -110,11 +116,12 @@ const UseResources: FC = () => {
           >
             Documentation & Code
           </Typography>
-          {resources.slice(0, 2).map((resource) => (
+          {documentation.map((resource) => (
             <ResourceItem key={resource.label} resource={resource} />
           ))}
         </Grid>
 
+        {/* Analytics Platforms */}
         <Grid xs={12} sm={6} md={3}>
           <Typography
             variant="subtitle2"
@@ -122,23 +129,25 @@ const UseResources: FC = () => {
           >
             Analytics Platforms
           </Typography>
-          {resources.slice(2).map((resource) => (
+          {analyticsPlatforms.map((resource) => (
             <ResourceItem key={resource.label} resource={resource} />
           ))}
         </Grid>
 
+        {/* Contract Addresses */}
         <Grid xs={12} sm={6} md={3}>
           <Typography
             variant="subtitle2"
             sx={{ color: theme.palette.text.secondary, mb: 1 }}
           >
-            Liquidity Pairs
+            Contract Addresses
           </Typography>
-          {liquidityPairs.map((resource) => (
+          {contractAddresses.map((resource) => (
             <ResourceItem key={resource.label} resource={resource} />
           ))}
         </Grid>
 
+        {/* Socials */}
         <Grid xs={12} sm={6} md={3}>
           <Typography
             variant="subtitle2"
@@ -156,6 +165,56 @@ const UseResources: FC = () => {
           </Box>
         </Grid>
       </Grid>
+
+      {/* USE Actions Section */}
+      <Box
+        sx={{ mt: 4, pt: 3, borderTop: `1px solid ${theme.palette.divider}` }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+          Get USE
+        </Typography>
+
+        <Grid container spacing={4}>
+          {/* Trade USE */}
+          <Grid xs={12} sm={6} md={4}>
+            <Typography
+              variant="subtitle2"
+              sx={{ color: theme.palette.text.secondary, mb: 1 }}
+            >
+              Trade USE
+            </Typography>
+            {tradeUse.map((resource) => (
+              <ResourceItem key={resource.label} resource={resource} />
+            ))}
+          </Grid>
+
+          {/* Mint USE */}
+          <Grid xs={12} sm={6} md={4}>
+            <Typography
+              variant="subtitle2"
+              sx={{ color: theme.palette.text.secondary, mb: 1 }}
+            >
+              Mint USE from Algorithmic Bank
+            </Typography>
+            {mintUse.map((resource) => (
+              <ResourceItem key={resource.label} resource={resource} />
+            ))}
+          </Grid>
+
+          {/* Transfer USE */}
+          <Grid xs={12} sm={6} md={4}>
+            <Typography
+              variant="subtitle2"
+              sx={{ color: theme.palette.text.secondary, mb: 1 }}
+            >
+              Transfer USE Between Blockchains
+            </Typography>
+            {transferUse.map((resource) => (
+              <ResourceItem key={resource.label} resource={resource} />
+            ))}
+          </Grid>
+        </Grid>
+      </Box>
     </Paper>
   );
 };

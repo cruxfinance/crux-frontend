@@ -21,7 +21,7 @@ import { GridRows } from "@visx/grid";
 import { Group } from "@visx/group";
 import { LinearGradient } from "@visx/gradient";
 import { localPoint } from "@visx/event";
-import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
+import { useTooltip } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
 import { bisector } from "d3-array";
 import { trpc } from "@lib/trpc";
@@ -174,8 +174,12 @@ const ChartContent: FC<ChartContentProps> = ({
   ) => {
     if (data.length === 0) return;
 
-    const { x } = localPoint(event) || { x: 0 };
-    const x0 = xScale.invert(x - margin.left);
+    const point = localPoint(event);
+    if (!point) return;
+
+    // Subtract margin since the rect is inside a Group offset by margins
+    const x = point.x - margin.left;
+    const x0 = xScale.invert(x);
     const index = bisectDate(data, x0, 1);
     const d0 = data[index - 1];
     const d1 = data[index];
@@ -287,36 +291,43 @@ const ChartContent: FC<ChartContentProps> = ({
           )}
         </Group>
       </svg>
-      {tooltipOpen && tooltipData && (
-        <TooltipWithBounds
-          left={tooltipLeft}
-          top={tooltipTop}
-          style={{
-            backgroundColor: theme.palette.background.paper,
-            color: theme.palette.text.primary,
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 4,
-            padding: "8px 12px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {metric.formatValue(tooltipData.value)}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: theme.palette.text.secondary }}
+      {tooltipOpen &&
+        tooltipData &&
+        tooltipLeft != null &&
+        tooltipTop != null && (
+          <Box
+            sx={{
+              position: "absolute",
+              left: tooltipLeft + 12,
+              top: tooltipTop - 50,
+              backgroundColor: theme.palette.background.paper,
+              color: theme.palette.text.primary,
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 1,
+              padding: "8px 12px",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
+              pointerEvents: "none",
+              zIndex: 10,
+              whiteSpace: "nowrap",
+            }}
           >
-            {tooltipData.date.toLocaleDateString(undefined, {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Typography>
-        </TooltipWithBounds>
-      )}
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {metric.formatValue(tooltipData.value)}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: theme.palette.text.secondary, display: "block" }}
+            >
+              {tooltipData.date.toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Typography>
+          </Box>
+        )}
     </Box>
   );
 };
