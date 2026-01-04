@@ -2,6 +2,7 @@ import { createTRPCRouter } from "@server/trpc";
 import { accountingRouter } from "./accounting";
 import { authRouter } from "./auth";
 import { chartsRouter } from "./charts";
+import { dexyRouter } from "./dexy";
 import { notificationRouter } from "./notification";
 import { portfolioRouter } from "./portfolio";
 import { savedSettingsRouter } from "./savedSettings";
@@ -18,6 +19,7 @@ import { verifyRouter } from "./verify";
  */
 export const appRouter = createTRPCRouter({
   auth: authRouter,
+  dexy: dexyRouter,
   portfolio: portfolioRouter,
   user: userRouter,
   charts: chartsRouter,
@@ -27,7 +29,7 @@ export const appRouter = createTRPCRouter({
   verify: verifyRouter,
   transaction: transactionRouter,
   savedSettings: savedSettingsRouter,
-  starredTokens: starredTokensRouter
+  starredTokens: starredTokensRouter,
 });
 
 // export type definition of API
