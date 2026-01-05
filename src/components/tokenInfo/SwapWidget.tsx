@@ -73,7 +73,7 @@ interface EIP12UnsignedTransaction {
 }
 
 interface TokenPrice {
-  erg_price_usd: number;
+  erg_price_use: number;
   asset_price_erg: number;
 }
 

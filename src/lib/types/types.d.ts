@@ -3,13 +3,18 @@ interface ITokenData {
   ticker: string;
   tokenId: string;
   icon: string;
+  pairIcon?: string; // Icon to use in pair breakdown tooltips (for swapped USE/ERG display)
   price: number;
   pctChange1h: number;
   pctChange1d: number;
   pctChange1w: number;
   pctChange1m: number;
   vol: number;
+  volErg: number;
+  volUse: number;
   liquidity: number;
+  liquidityErg: number;
+  liquidityUse: number;
   buys: number;
   sells: number;
   mktCap: number;
@@ -22,6 +27,7 @@ interface IApiTokenData {
   exchanges: string[];
   price_erg: number;
   erg_price_usd: number;
+  erg_price_use: number;
   hour_change_erg: number;
   hour_change_usd: number;
   day_change_erg: number;
@@ -31,7 +37,11 @@ interface IApiTokenData {
   month_change_erg: number;
   month_change_usd: number;
   volume: number;
+  volume_erg: number;
+  volume_use: number;
   liquidity: number;
+  liquidity_erg: number;
+  liquidity_use: number;
   market_cap: number;
   buys: number;
   sells: number;
@@ -83,12 +93,12 @@ interface ITrade {
 type PriceInfo = {
   erg: number;
   usd: number;
+  use: number;
 };
-
 
 type PriceInfoUppercase = {
   ERG: number;
-  USD: number;
+  USE: number;
 };
 
 interface Signature {
@@ -133,7 +143,7 @@ type WalletButtonProps = {
   icon: string;
   iconDark: string;
   messageSigning: boolean;
-}
+};
 
 interface WalletListItem {
   addresses: string[];
@@ -235,4 +245,4 @@ type IActiveToken = {
   amount: number;
   value: number;
   color: string;
-} | null
+} | null;
