@@ -14,6 +14,7 @@ declare global {
     bankReserveRatio: number;
     relativeReserveRatio: number;
     relativeRrWithLp: number;
+    protocolTvlUsd: number;
   };
 
   type DexyHistoryPoint = {
@@ -29,7 +30,8 @@ declare global {
     | "stablecoin_in_core_lp"
     | "stablecoin_on_hands"
     | "erg_in_bank"
-    | "erg_tvl";
+    | "erg_tvl"
+    | "protocol_tvl_usd";
 
   type DexyResolution = "1h" | "1d" | "1w";
 }

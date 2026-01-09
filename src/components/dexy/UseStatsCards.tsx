@@ -54,8 +54,8 @@ const UseStatsCards: FC<UseStatsCardsProps> = ({ analytics, isLoading }) => {
   if (isLoading) {
     return (
       <Grid container spacing={2}>
-        {[...Array(6)].map((_, i) => (
-          <Grid xs={6} sm={4} md={2} key={i}>
+        {[...Array(7)].map((_, i) => (
+          <Grid xs={6} sm={4} md key={i}>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Skeleton variant="text" width="60%" />
               <Skeleton variant="text" width="80%" height={32} />
@@ -109,6 +109,10 @@ const UseStatsCards: FC<UseStatsCardsProps> = ({ analytics, isLoading }) => {
       value: "Σ" + formatFullNumber(analytics.ergTvl),
     },
     {
+      label: "Protocol TVL",
+      value: "$" + formatFullNumber(analytics.protocolTvlUsd),
+    },
+    {
       label: "Relative Reserve Ratio",
       value: formatRatio(analytics.relativeReserveRatio),
     },
@@ -117,7 +121,7 @@ const UseStatsCards: FC<UseStatsCardsProps> = ({ analytics, isLoading }) => {
   return (
     <Grid container spacing={2}>
       {stats.map((stat, i) => (
-        <Grid xs={6} sm={4} md={2} key={i}>
+        <Grid xs={6} sm={4} md key={i}>
           <StatCard label={stat.label} value={stat.value} />
         </Grid>
       ))}
