@@ -11,6 +11,7 @@ const dexyMetricSchema = z.enum([
   "stablecoin_on_hands",
   "erg_in_bank",
   "erg_tvl",
+  "protocol_tvl_usd",
 ]);
 
 const dexyResolutionSchema = z.enum(["1h", "1d", "1w"]);

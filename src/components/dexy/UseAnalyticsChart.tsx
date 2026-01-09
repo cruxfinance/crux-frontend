@@ -80,6 +80,12 @@ const metricOptions: MetricOption[] = [
     formatValue: (v) =>
       "Σ" + v.toLocaleString(undefined, { maximumFractionDigits: 0 }),
   },
+  {
+    value: "protocol_tvl_usd",
+    label: "Protocol TVL ($)",
+    formatValue: (v) =>
+      "$" + v.toLocaleString(undefined, { maximumFractionDigits: 0 }),
+  },
 ];
 
 const timeRangeConfig: Record<
