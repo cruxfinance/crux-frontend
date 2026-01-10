@@ -1,4 +1,4 @@
-import React, { FC, useEffect } from "react";
+import React, { FC, useEffect, useState } from "react";
 import AppBar from "@mui/material/AppBar";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -14,7 +14,10 @@ import {
   useTheme,
   Dialog,
   DialogContent,
+  Menu,
+  MenuItem,
 } from "@mui/material";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import Box from "@mui/material/Box";
 import Link from "@components/Link";
 // import { ThemeContext } from "@contexts/ThemeContext";
@@ -32,7 +35,14 @@ import SocialGrid from "./SocialGrid";
 import { useRouter } from "next/router";
 import { useScrollLock } from "@contexts/ScrollLockContext";
 
-const pages = [
+interface PageItem {
+  name: string;
+  link: string;
+  disabled?: boolean;
+  subItems?: { name: string; link: string }[];
+}
+
+const pages: PageItem[] = [
   {
     name: "Tokens",
     link: "/",
@@ -41,23 +51,17 @@ const pages = [
     name: "Portfolio",
     link: "/portfolio",
   },
-  // {
-  //   name: "Alerts",
-  //   link: "/alerts",
-  //   disabled: true,
-  // },
-  // {
-  //   name: "Trading Floor",
-  //   link: "/trading-floor",
-  //   disabled: true,
-  // },
   {
     name: "Accounting",
     link: "/accounting",
   },
   {
-    name: "USE Analytics",
-    link: "/use-analytics",
+    name: "Dexy",
+    link: "/dexy",
+    subItems: [
+      { name: "Mint", link: "/dexy/mint" },
+      { name: "Analytics", link: "/dexy/analytics" },
+    ],
   },
   {
     name: "About",
@@ -68,11 +72,8 @@ const pages = [
 interface INavItemProps {
   size?: number;
   fontWeight?: number;
-  page: {
-    name: string;
-    link: string;
-    disabled?: boolean;
-  };
+  page: PageItem;
+  onNavigate?: () => void;
 }
 
 interface IHeaderProps {}
@@ -131,28 +132,43 @@ const Header: FC<IHeaderProps> = ({}) => {
   //   // console.log(temp)
   // };
 
+  // State for dropdown menus
+  const [dexyMenuAnchor, setDexyMenuAnchor] = useState<HTMLElement | null>(
+    null,
+  );
+  const dexyMenuOpen = Boolean(dexyMenuAnchor);
+
+  const handleDexyMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setDexyMenuAnchor(event.currentTarget);
+  };
+
+  const handleDexyMenuClose = () => {
+    setDexyMenuAnchor(null);
+  };
+
   const NavigationListItem: React.FC<INavItemProps> = ({
     size,
     fontWeight,
     page,
+    onNavigate,
   }) => {
+    const isActive =
+      page.link === "/"
+        ? router.pathname === "/"
+        : router.pathname.startsWith(page.link);
+
+    // Handle pages with sub-items (dropdown) - skip here, handled separately
+    if (page.subItems && page.subItems.length > 0) {
+      return null;
+    }
+
+    // Regular navigation item
     return (
       <Grid item>
         <Box
           sx={{
             display: "inline-block",
             position: "relative",
-            // "&::after": {
-            //   content: '""',
-            //   position: 'absolute',
-            //   bottom: '-4px',
-            //   display: 'block',
-            //   mt: '0',
-            //   borderRadius: '10px',
-            //   height: (fontWeight && fontWeight > 500) || (size && size > 20) ? '3px' : '2px',
-            //   background: router.pathname === page.link ? theme.palette.primary.main : '',
-            //   width: '100%',
-            // },
           }}
         >
           {page.disabled ? (
@@ -170,13 +186,13 @@ const Header: FC<IHeaderProps> = ({}) => {
           ) : (
             <Box
               onClick={() => {
-                if (!upMd) handleNavbarToggle();
+                if (onNavigate) onNavigate();
               }}
             >
               <Link
                 href={page.link}
                 sx={{
-                  color: router.pathname.includes(page.link)
+                  color: isActive
                     ? theme.palette.primary.main
                     : theme.palette.text.primary,
                   "&:hover": {
@@ -201,6 +217,9 @@ const Header: FC<IHeaderProps> = ({}) => {
       </Grid>
     );
   };
+
+  // Get Dexy page for menu items
+  const dexyPage = pages.find((p) => p.name === "Dexy");
 
   // const trigger = useScrollTrigger({
   //   disableHysteresis: router.pathname === "/" ? true : false,
@@ -300,14 +319,66 @@ const Header: FC<IHeaderProps> = ({}) => {
             </Grid>
             <Grid item sx={{ display: { xs: "none", md: "flex" } }}>
               <Grid container spacing={2}>
-                {pages.map((page, i) => (
-                  <NavigationListItem
-                    size={16}
-                    key={i}
-                    page={page}
-                    fontWeight={500}
-                  />
-                ))}
+                {pages.map((page, i) => {
+                  // Render Dexy dropdown separately to avoid re-render issues
+                  if (page.subItems && page.subItems.length > 0) {
+                    const isActive = router.pathname.startsWith(page.link);
+                    return (
+                      <Grid item key={i}>
+                        <Box
+                          onClick={handleDexyMenuOpen}
+                          sx={{
+                            display: "inline-block",
+                            position: "relative",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              color: isActive
+                                ? theme.palette.primary.main
+                                : theme.palette.text.primary,
+                              "&:hover": {
+                                color: theme.palette.primary.main,
+                              },
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontSize: "16px",
+                                textDecoration: "none",
+                                fontWeight: 500,
+                                px: "8px",
+                              }}
+                            >
+                              {page.name}
+                            </Typography>
+                            <KeyboardArrowDownIcon
+                              sx={{
+                                fontSize: 16,
+                                ml: -0.5,
+                                transition: "transform 0.2s",
+                                transform: dexyMenuOpen
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      </Grid>
+                    );
+                  }
+                  return (
+                    <NavigationListItem
+                      size={16}
+                      key={i}
+                      page={page}
+                      fontWeight={500}
+                    />
+                  );
+                })}
               </Grid>
             </Grid>
             <Grid item>
@@ -395,9 +466,27 @@ const Header: FC<IHeaderProps> = ({}) => {
                     mb: 3,
                   }}
                 >
-                  {pages.map((page) => (
-                    <NavigationListItem size={24} key={page.name} page={page} />
-                  ))}
+                  {pages.flatMap((page) => {
+                    // Expand sub-items for mobile menu
+                    if (page.subItems && page.subItems.length > 0) {
+                      return page.subItems.map((subItem) => (
+                        <NavigationListItem
+                          size={24}
+                          key={subItem.link}
+                          page={{ name: subItem.name, link: subItem.link }}
+                          onNavigate={handleNavbarToggle}
+                        />
+                      ));
+                    }
+                    return (
+                      <NavigationListItem
+                        size={24}
+                        key={page.name}
+                        page={page}
+                        onNavigate={handleNavbarToggle}
+                      />
+                    );
+                  })}
                 </Grid>
               </Box>
               <Box>
@@ -447,6 +536,48 @@ const Header: FC<IHeaderProps> = ({}) => {
           </Box>
         </DialogContent>
       </Dialog>
+
+      {/* Dexy Dropdown Menu - rendered at root level for proper positioning */}
+      <Menu
+        anchorEl={dexyMenuAnchor}
+        open={dexyMenuOpen}
+        onClose={handleDexyMenuClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        sx={{
+          "& .MuiPaper-root": {
+            mt: 1,
+            minWidth: 120,
+          },
+        }}
+      >
+        {dexyPage?.subItems?.map((subItem) => (
+          <MenuItem
+            key={subItem.link}
+            onClick={() => {
+              handleDexyMenuClose();
+              router.push(subItem.link);
+            }}
+            sx={{
+              color:
+                router.pathname === subItem.link
+                  ? theme.palette.primary.main
+                  : theme.palette.text.primary,
+              "&:hover": {
+                color: theme.palette.primary.main,
+              },
+            }}
+          >
+            {subItem.name}
+          </MenuItem>
+        ))}
+      </Menu>
     </>
   );
 };
