@@ -56,7 +56,7 @@ const pages: PageItem[] = [
     link: "/accounting",
   },
   {
-    name: "Dexy",
+    name: "USE & Dexy",
     link: "/dexy",
     subItems: [
       { name: "Mint", link: "/dexy/mint" },

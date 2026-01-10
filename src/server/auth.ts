@@ -67,12 +67,39 @@ declare module "next-auth" {
   }
 }
 
+interface UserWithWallets extends User {
+  wallets: {
+    id: string;
+    changeAddress: string;
+    unusedAddresses: string[];
+    usedAddresses: string[];
+  }[];
+}
+
 const signUser = async (
-  user: User,
-  credentials: Credentials
+  user: UserWithWallets,
+  credentials: Credentials,
 ): Promise<User | null> => {
   const walletParse: ParsedWallet = JSON.parse(credentials.wallet);
   const signatureParse = JSON.parse(credentials.signature);
+
+  // Verify the signing address belongs to this user's wallets
+  // This prevents someone from signing with their own address to access another user's account
+  const userAddresses = user.wallets.flatMap((w) => [
+    w.changeAddress,
+    ...w.unusedAddresses,
+    ...w.usedAddresses,
+  ]);
+
+  if (!userAddresses.includes(walletParse.defaultAddress)) {
+    console.error(
+      `[SECURITY] Address verification failed: Address ${walletParse.defaultAddress} attempted login for user ${user.id} but is not in user's wallets. ` +
+        `User has ${user.wallets.length} wallet(s) with addresses: ${userAddresses.slice(0, 5).join(", ")}${userAddresses.length > 5 ? "..." : ""}`,
+    );
+    throw new Error(`Address not associated with this user`);
+  }
+
+  // Extract and verify nonce based on wallet type
   if (walletParse.type === "nautilus") {
     const signedMessageSplit = signatureParse.signedMessage.split(";");
     const nonce = signedMessageSplit[0];
@@ -90,15 +117,17 @@ const signUser = async (
     throw new Error("Unrecognized wallet type");
   }
 
+  // Verify the signature - this proves the user controls the signing address
   const result = verifySignature(
     walletParse.defaultAddress,
     signatureParse.signedMessage,
     signatureParse.proof,
-    walletParse.type
+    walletParse.type,
   );
+
   if (result) {
     const newNonce = nanoid();
-    prisma.user.update({
+    await prisma.user.update({
       where: {
         id: user.id,
       },
@@ -106,6 +135,7 @@ const signUser = async (
         nonce: newNonce,
       },
     });
+
     const newUser = { ...user, walletType: walletParse.type };
     return newUser;
   }
@@ -114,7 +144,7 @@ const signUser = async (
 
 export const createNewUser = async (
   user: User,
-  credentials: Credentials
+  credentials: Credentials,
 ): Promise<User | null> => {
   const { nonce, userId, signature, wallet } = credentials;
   const walletParse: ParsedWallet = JSON.parse(wallet);
@@ -142,7 +172,7 @@ export const createNewUser = async (
       walletParse.defaultAddress,
       signatureParse.signedMessage,
       signatureParse.proof,
-      walletParse.type
+      walletParse.type,
     );
 
     if (!result) {
@@ -208,7 +238,7 @@ export const createNewUser = async (
 export const authorize = async (
   credentials: any,
   req: Pick<RequestInternal, "query" | "body" | "headers" | "method">,
-  res: NextApiResponse
+  res: NextApiResponse,
 ): Promise<User | null> => {
   try {
     if (req.method !== "POST") {
@@ -244,10 +274,12 @@ export const authorize = async (
 export const signInCallback = async (
   req: NextApiRequest,
   res: NextApiResponse,
-  { user, account }: any
+  { user, account }: any,
 ) => {
   if (nextAuthInclude(req, "callback") && nextAuthInclude(req, "credentials")) {
-    if (!user) return true;
+    // Return false to indicate login failure when user is null
+    // This prevents silent failures where login appears successful but no session is created
+    if (!user) return false;
 
     const sessionToken = nanoid();
     const sessionMaxAge = 60 * 60 * 24 * 30;
@@ -268,7 +300,7 @@ export const signInCallback = async (
       res: res,
       httpOnly: true,
       secure: process.env.AUTH_DOMAIN !== "http://localhost:3000", // support localhost
-      sameSite: true
+      sameSite: true,
     });
 
     return true;
@@ -292,7 +324,7 @@ export const sessionCallback = async (
   }: {
     session: Session;
     user: any;
-  }
+  },
 ) => {
   const cookie = getCookie(`next-auth.session-token`, {
     req: req,
@@ -357,7 +389,7 @@ export const verifySignature = (
   address: string,
   message: string,
   proof: string,
-  type: string
+  type: string,
 ) => {
   const ergoAddress = Address.from_mainnet_str(address);
   const convertedMessage = Buffer.from(message, "utf-8");
@@ -368,7 +400,7 @@ export const verifySignature = (
   const result = verify_signature(
     ergoAddress,
     convertedMessage,
-    convertedProof
+    convertedProof,
   );
   return result;
 };
