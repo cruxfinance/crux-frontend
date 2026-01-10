@@ -103,7 +103,9 @@ const NautilusLogin: FC<INautilusLogin> = ({
         if (response && response.error) {
           throw new Error(response.error.message);
         }
-        setNewNonce(response.data.nonce);
+        if (response?.data?.nonce) {
+          setNewNonce(response.data.nonce);
+        }
       })
       .catch((error: any) => {
         console.error("Nonce error: " + error);
