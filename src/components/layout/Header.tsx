@@ -16,8 +16,10 @@ import {
   DialogContent,
   Menu,
   MenuItem,
+  Collapse,
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import Box from "@mui/material/Box";
 import Link from "@components/Link";
 // import { ThemeContext } from "@contexts/ThemeContext";
@@ -138,6 +140,11 @@ const Header: FC<IHeaderProps> = ({}) => {
   );
   const dexyMenuOpen = Boolean(dexyMenuAnchor);
 
+  // State for mobile menu expandable sections
+  const [mobileMenuExpanded, setMobileMenuExpanded] = useState<string | null>(
+    null,
+  );
+
   const handleDexyMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setDexyMenuAnchor(event.currentTarget);
   };
@@ -219,7 +226,7 @@ const Header: FC<IHeaderProps> = ({}) => {
   };
 
   // Get Dexy page for menu items
-  const dexyPage = pages.find((p) => p.name === "Dexy");
+  const dexyPage = pages.find((p) => p.subItems && p.subItems.length > 0);
 
   // const trigger = useScrollTrigger({
   //   disableHysteresis: router.pathname === "/" ? true : false,
@@ -466,17 +473,90 @@ const Header: FC<IHeaderProps> = ({}) => {
                     mb: 3,
                   }}
                 >
-                  {pages.flatMap((page) => {
-                    // Expand sub-items for mobile menu
+                  {pages.map((page) => {
+                    // Render expandable section for pages with sub-items
                     if (page.subItems && page.subItems.length > 0) {
-                      return page.subItems.map((subItem) => (
-                        <NavigationListItem
-                          size={24}
-                          key={subItem.link}
-                          page={{ name: subItem.name, link: subItem.link }}
-                          onNavigate={handleNavbarToggle}
-                        />
-                      ));
+                      const isExpanded = mobileMenuExpanded === page.name;
+                      const isActive = router.pathname.startsWith(page.link);
+                      return (
+                        <Grid item key={page.name}>
+                          <Box
+                            onClick={() =>
+                              setMobileMenuExpanded(
+                                isExpanded ? null : page.name,
+                              )
+                            }
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              cursor: "pointer",
+                              color: isActive
+                                ? theme.palette.primary.main
+                                : theme.palette.text.primary,
+                              "&:hover": {
+                                color: theme.palette.primary.main,
+                              },
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontSize: "24px",
+                                fontWeight: 500,
+                                px: "8px",
+                              }}
+                            >
+                              {page.name}
+                            </Typography>
+                            <KeyboardArrowDownIcon
+                              sx={{
+                                fontSize: 20,
+                                transition: "transform 0.2s",
+                                transform: isExpanded
+                                  ? "rotate(180deg)"
+                                  : "rotate(0deg)",
+                              }}
+                            />
+                          </Box>
+                          <Collapse in={isExpanded}>
+                            <Box sx={{ pl: 3, pt: 2 }}>
+                              {page.subItems.map((subItem) => (
+                                <Box
+                                  key={subItem.link}
+                                  onClick={() => {
+                                    handleNavbarToggle();
+                                    router.push(subItem.link);
+                                  }}
+                                  sx={{
+                                    py: 1,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    color:
+                                      router.pathname === subItem.link
+                                        ? theme.palette.primary.main
+                                        : theme.palette.text.secondary,
+                                    "&:hover": {
+                                      color: theme.palette.primary.main,
+                                    },
+                                  }}
+                                >
+                                  <KeyboardArrowRightIcon
+                                    sx={{ fontSize: 18, mr: 0.5 }}
+                                  />
+                                  <Typography
+                                    sx={{
+                                      fontSize: "20px",
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {subItem.name}
+                                  </Typography>
+                                </Box>
+                              ))}
+                            </Box>
+                          </Collapse>
+                        </Grid>
+                      );
                     }
                     return (
                       <NavigationListItem
