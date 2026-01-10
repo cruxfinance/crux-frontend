@@ -32,8 +32,12 @@ const NautilusLogin: FC<INautilusLogin> = ({
   );
   const [usedAddresses, setUsedAddresses] = useState<string[]>([]);
   const [unusedAddresses, setUnusedAddresses] = useState<string[]>([]);
+  const allAddresses = [
+    ...new Set([defaultAddress, ...usedAddresses, ...unusedAddresses]),
+  ].filter((addr): addr is string => !!addr);
+
   const getNonce = trpc.user.getNonce.useQuery(
-    { userAddress: defaultAddress },
+    { userAddress: defaultAddress, allAddresses },
     { enabled: false, retry: false },
   );
   const [newNonce, setNewNonce] = useState<NonceResponse | undefined>(
@@ -56,11 +60,12 @@ const NautilusLogin: FC<INautilusLogin> = ({
     if (
       defaultAddress &&
       dappConnected &&
-      sessionStatus === "unauthenticated"
+      sessionStatus === "unauthenticated" &&
+      allAddresses.length > 0
     ) {
       refetchData();
     } else if (dappConnected && !defaultAddress) getAddress();
-  }, [defaultAddress, dappConnected, sessionStatus]);
+  }, [defaultAddress, dappConnected, sessionStatus, allAddresses.length]);
 
   const getAddress = async () => {
     try {

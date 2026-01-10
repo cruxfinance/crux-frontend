@@ -67,13 +67,16 @@ declare module "next-auth" {
   }
 }
 
+interface WalletData {
+  id: string;
+  changeAddress: string;
+  unusedAddresses: string[];
+  usedAddresses: string[];
+}
+
 interface UserWithWallets extends User {
-  wallets: {
-    id: string;
-    changeAddress: string;
-    unusedAddresses: string[];
-    usedAddresses: string[];
-  }[];
+  wallets: WalletData[];
+  addedWallets: WalletData[];
 }
 
 const signUser = async (
@@ -83,9 +86,10 @@ const signUser = async (
   const walletParse: ParsedWallet = JSON.parse(credentials.wallet);
   const signatureParse = JSON.parse(credentials.signature);
 
-  // Verify the signing address belongs to this user's wallets
+  // Verify the signing address belongs to this user's wallets (including added wallets)
   // This prevents someone from signing with their own address to access another user's account
-  const userAddresses = user.wallets.flatMap((w) => [
+  const allWallets = [...user.wallets, ...user.addedWallets];
+  const userAddresses = allWallets.flatMap((w) => [
     w.changeAddress,
     ...w.unusedAddresses,
     ...w.usedAddresses,
@@ -257,6 +261,7 @@ export const authorize = async (
       },
       include: {
         wallets: true,
+        addedWallets: true,
       },
     });
 

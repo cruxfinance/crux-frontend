@@ -22,14 +22,15 @@ export const userRouter = createTRPCRouter({
     .input(
       z.object({
         userAddress: z.string().optional(),
+        allAddresses: z.array(z.string()).optional(),
       }),
     )
     .query(async ({ input }) => {
-      const { userAddress } = input;
+      const { userAddress, allAddresses } = input;
       if (!userAddress) {
         return { nonce: null }; // Return a default value or error if the input is not defined
       }
-      const nonce = await generateNonceForLogin(userAddress);
+      const nonce = await generateNonceForLogin(userAddress, allAddresses);
       if (!nonce) {
         throw new Error("Address already in use by another user account");
       }

@@ -1,16 +1,23 @@
 import { prisma } from "@server/prisma";
 import { nanoid } from "nanoid";
-import { getUserIdByAddress } from "./checkAddress";
+import { getUserIdByAddresses } from "./checkAddress";
 
-export async function generateNonceForLogin(userAddress: string) {
+export async function generateNonceForLogin(
+  userAddress: string,
+  allAddresses?: string[],
+) {
   // First, check if a user exists with the given userAddress as the defaultAddress.
   let user = await prisma.user.findUnique({
     where: { defaultAddress: userAddress },
   });
 
-  // If no user exists with the defaultAddress, then check using the getUserIdByAddress function
+  // If no user exists with the defaultAddress, search by all provided addresses in a single batch query
   if (!user) {
-    const userId = await getUserIdByAddress(userAddress);
+    const addressesToSearch = allAddresses?.length
+      ? [...new Set(allAddresses)]
+      : [userAddress];
+
+    const userId = await getUserIdByAddresses(addressesToSearch);
     if (userId) {
       user = await prisma.user.findUnique({
         where: { id: userId },
