@@ -16,6 +16,8 @@ const dexyMetricSchema = z.enum([
 
 const dexyResolutionSchema = z.enum(["1h", "1d", "1w"]);
 
+const mintTypeSchema = z.enum(["arbmint", "freemint"]);
+
 export const dexyRouter = createTRPCRouter({
   getAnalytics: publicProcedure
     .input(
@@ -45,5 +47,46 @@ export const dexyRouter = createTRPCRouter({
         input.to,
         input.resolution,
       );
+    }),
+
+  getInstances: publicProcedure.query(async () => {
+    return await dexyApi.getInstances();
+  }),
+
+  getMintStatus: publicProcedure
+    .input(
+      z.object({
+        instanceName: z.string(),
+        mintType: mintTypeSchema,
+        feeToken: z.string().default("erg"),
+      }),
+    )
+    .query(async ({ input }) => {
+      return await dexyApi.getMintStatus(
+        input.instanceName,
+        input.mintType,
+        input.feeToken,
+      );
+    }),
+
+  buildMintTx: publicProcedure
+    .input(
+      z.object({
+        instanceName: z.string(),
+        mintType: mintTypeSchema,
+        userAddresses: z.string(),
+        targetAddress: z.string(),
+        ergAmount: z.number(),
+        feeToken: z.string().default("erg"),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return await dexyApi.buildMintTx(input.instanceName, {
+        mintType: input.mintType,
+        userAddresses: input.userAddresses,
+        targetAddress: input.targetAddress,
+        ergAmount: input.ergAmount,
+        feeToken: input.feeToken,
+      });
     }),
 });

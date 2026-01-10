@@ -28,16 +28,20 @@ const NautilusLogin: FC<INautilusLogin> = ({
   dappConnection,
 }) => {
   const [defaultAddress, setDefaultAddress] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [usedAddresses, setUsedAddresses] = useState<string[]>([]);
   const [unusedAddresses, setUnusedAddresses] = useState<string[]>([]);
+  const allAddresses = [
+    ...new Set([defaultAddress, ...usedAddresses, ...unusedAddresses]),
+  ].filter((addr): addr is string => !!addr);
+
   const getNonce = trpc.user.getNonce.useQuery(
-    { userAddress: defaultAddress },
-    { enabled: false, retry: false }
+    { userAddress: defaultAddress, allAddresses },
+    { enabled: false, retry: false },
   );
   const [newNonce, setNewNonce] = useState<NonceResponse | undefined>(
-    undefined
+    undefined,
   );
   const {
     wallet,
@@ -48,7 +52,7 @@ const NautilusLogin: FC<INautilusLogin> = ({
     fetchSessionData,
   } = useWallet();
   const [errorMessage, setErrorMessage] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const deleteEmptyUser = trpc.user.deleteEmptyUser.useMutation();
 
@@ -56,11 +60,12 @@ const NautilusLogin: FC<INautilusLogin> = ({
     if (
       defaultAddress &&
       dappConnected &&
-      sessionStatus === "unauthenticated"
+      sessionStatus === "unauthenticated" &&
+      allAddresses.length > 0
     ) {
       refetchData();
     } else if (dappConnected && !defaultAddress) getAddress();
-  }, [defaultAddress, dappConnected, sessionStatus]);
+  }, [defaultAddress, dappConnected, sessionStatus, allAddresses.length]);
 
   const getAddress = async () => {
     try {
@@ -98,7 +103,9 @@ const NautilusLogin: FC<INautilusLogin> = ({
         if (response && response.error) {
           throw new Error(response.error.message);
         }
-        setNewNonce(response.data.nonce);
+        if (response?.data?.nonce) {
+          setNewNonce(response.data.nonce);
+        }
       })
       .catch((error: any) => {
         console.error("Nonce error: " + error);
@@ -153,11 +160,17 @@ const NautilusLogin: FC<INautilusLogin> = ({
         });
 
         if (!response?.status || response.status !== 200) {
+          setErrorMessage(
+            "Login failed. If you registered with a different wallet, please login with that wallet first, then link this address in Settings > Wallets.",
+          );
           cleanupForAuth(nonce);
           return;
         }
       } catch (error) {
         console.error("Error during signIn:", error);
+        setErrorMessage(
+          "Login failed. If you registered with a different wallet, please login with that wallet first, then link this address in Settings > Wallets.",
+        );
         cleanupForAuth(nonce);
         return;
       }
@@ -201,12 +214,8 @@ const NautilusLogin: FC<INautilusLogin> = ({
         </Box>
       )}
       {errorMessage && (
-        <Box
-          sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}
-        >
-          <Typography color="error" sx={{ flexGrow: 1 }}>
-            Address already in use by another account
-          </Typography>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Typography color="error">{errorMessage}</Typography>
           <Button variant="contained" onClick={() => cleanup()}>
             Try again
           </Button>

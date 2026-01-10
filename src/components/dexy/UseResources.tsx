@@ -45,10 +45,14 @@ const UseResources: FC = () => {
       label: "USE/USDT on BSC",
       url: "https://pancakeswap.finance/swap?inputCurrency=0x04458bD623824e7e7DF04Be619B553FC5f286151&outputCurrency=0x55d398326f99059fF775485246999027B3197955&chain=bsc",
     },
+    {
+      label: "USE/ADA on DexHunter",
+      url: "https://app.dexhunter.io/swap?tokenIdSell=&tokenIdBuy=ca769ee7ee7307ceff20508dbb01a873a5b3226f0a563a81912c67b5555345",
+    },
   ];
 
   const mintUse: ResourceLink[] = [
-    { label: "Mint USE on Crux", url: null, comingSoon: true },
+    { label: "Mint USE on Crux", url: "https://cruxfinance.io/dexy/mint" },
   ];
 
   const transferUse: ResourceLink[] = [
