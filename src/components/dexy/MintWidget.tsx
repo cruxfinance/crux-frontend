@@ -411,6 +411,7 @@ const MintWidget: FC = () => {
   );
 
   // Calculate mint output after applying dexy protocol fees (bank_fee + buyback_fee)
+  // Uses the same formula as the backend: mint = (erg * fee_denom) / (rate * total_multiplier)
   const calculateMintOutputWithFees = useCallback(
     (
       rawErgAmount: number,
@@ -419,25 +420,28 @@ const MintWidget: FC = () => {
     ): number => {
       if (!oracleRate || oracleRate === 0) return 0;
 
-      // Calculate raw mint output before fees
-      const rawMintOutput = Math.floor(
-        (rawErgAmount / oracleRate) * Math.pow(10, stablecoinDecimals),
-      );
-
-      // Apply dexy protocol fees if available from box_state
+      // Get fee parameters from box_state
       const bankFeeNum = status?.box_state?.bank_fee_num ?? 0;
       const buybackFeeNum = status?.box_state?.buyback_fee_num ?? 0;
       const feeDenom = status?.box_state?.fee_denom ?? 1000;
 
-      if (feeDenom === 0) return rawMintOutput;
+      // Calculate total multiplier: fee_denom + bank_fee_num + buyback_fee_num
+      // This matches the backend formula where fees are added as a divisor
+      const totalMultiplier = feeDenom + bankFeeNum + buybackFeeNum;
 
-      // Net output = rawMintOutput * (1 - (bankFeeNum + buybackFeeNum) / feeDenom)
-      const totalFeeNum = bankFeeNum + buybackFeeNum;
-      const netOutput = Math.floor(
-        rawMintOutput * (1 - totalFeeNum / feeDenom),
+      if (totalMultiplier === 0) return 0;
+
+      // Match backend formula:
+      // mint_amount = (erg_amount * fee_denom) / (oracle_rate * total_multiplier)
+      //
+      // Since frontend oracle_rate is "per whole unit", we scale by decimals:
+      // mint_amount = (erg_amount * fee_denom * 10^decimals) / (oracle_rate * total_multiplier)
+      const mintAmount = Math.floor(
+        (rawErgAmount * feeDenom * Math.pow(10, stablecoinDecimals)) /
+          (oracleRate * totalMultiplier),
       );
 
-      return netOutput;
+      return mintAmount;
     },
     [stablecoinDecimals],
   );
