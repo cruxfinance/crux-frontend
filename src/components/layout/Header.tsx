@@ -346,11 +346,11 @@ const Header: FC<IHeaderProps> = ({}) => {
         fullScreen
         sx={{
           zIndex: 12000,
-          '& .MuiBackdrop-root': {
-            backdropFilter: 'blur(3px)',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          "& .MuiBackdrop-root": {
+            backdropFilter: "blur(3px)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
           },
-          '& .MuiDialog-paper': {
+          "& .MuiDialog-paper": {
             zIndex: 12000,
           },
         }}
@@ -404,49 +404,6 @@ const Header: FC<IHeaderProps> = ({}) => {
                   ))}
                 </Grid>
               </Box>
-              {/* <Box>
-                <Grid container direction="column" spacing={4}>
-                  <Grid item>
-                  <Button variant="contained" fullWidth>New transaction</Button>
-                </Grid>
-                  <Grid item>
-                    <Divider />
-                  </Grid>
-                  <Grid item>
-                    <Typography
-                      variant="h5"
-                      gutterBottom
-                      fontWeight="800"
-                      fontSize="14px"
-                    >
-                      Follow us on social media
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      gutterBottom
-                      sx={{ mb: 4 }}
-                      fontSize="14px"
-                    >
-                      Interacting with our socials helps us reach a wider
-                      audience.
-                    </Typography>
-                    <Grid
-                      container
-                      direction="row"
-                      spacing={3}
-                      sx={{ fontSize: "24px" }}
-                    >
-                      <SocialGrid
-                        telegram="https://t.me/CruxFinance"
-                        discord="https://discord.gg/tZEd3PadtD"
-                        github="https://github.com/cruxfinance"
-                        twitter="https://twitter.com/cruxfinance"
-                        // medium=""
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-              </Box> */}
             </Box>
           </Box>
         </DialogContent>

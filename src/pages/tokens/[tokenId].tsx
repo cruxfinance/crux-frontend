@@ -28,7 +28,7 @@ import {
 import CandlestickChartIcon from "@mui/icons-material/CandlestickChart";
 import InfoIcon from "@mui/icons-material/Info";
 import HistoryIcon from "@mui/icons-material/History";
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { scroller } from "react-scroll";
 import TvChart from "@components/tokenInfo/TvChart";
 import { checkLocalIcon } from "@lib/utils/icons";
@@ -414,9 +414,9 @@ const TokenInfo: FC = () => {
                   duration: 500,
                   offset: -50,
                   smooth: true,
-              })
-            }
-          />
+                })
+              }
+            />
           </BottomNavigation>
         </Paper>
       )}
