@@ -115,7 +115,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const { addAlert } = useAlert();
   const { dAppWallet } = useWallet();
 
-  const [fromToken, setFromToken] = useState<"token" | "erg">("token");
+  const [fromToken, setFromToken] = useState<"token" | "erg">("erg");
   const [fromAmount, setFromAmount] = useState<string>("");
   const [toAmount, setToAmount] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -723,12 +723,12 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 </Typography>
               }
               labelPlacement="start"
-              sx={{ m: 0 }}
+              sx={{ m: 0, gap: 1 }}
             />
           </Box>
 
           {/* From Input */}
-          <Box sx={{ mb: 1 }}>
+          <Box sx={{ mb: 2 }}>
             <Box
               sx={{
                 display: "flex",

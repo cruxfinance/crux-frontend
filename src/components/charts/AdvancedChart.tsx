@@ -80,8 +80,8 @@ export const TVChartContainer: FC<TVProps> = ({
         }
       });
 
-      // Add volume to a separate pane
-      chart.createStudy("Volume", false, true);
+      // Add volume as indicator
+      chart.createStudy('Volume', true, false);
 
       // Capture changes in settings
       chart.onIntervalChanged().subscribe(null, () => {
