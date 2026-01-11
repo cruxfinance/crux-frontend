@@ -30,9 +30,16 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
   const [isSignatureProcessed, setIsSignatureProcessed] =
     useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const { fetchSessionData, providerLoading, setProviderLoading } = useWallet();
+
+  const handleLoginError = (message: string) => {
+    setErrorMessage(message);
+    setVerificationId(null);
+    setLocalLoading(false);
+    setProviderLoading(false);
+  };
 
   const loginMutation = trpc.auth.initiateLogin.useMutation();
   trpc.auth.checkLoginStatus.useQuery(
@@ -43,11 +50,11 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
       refetchInterval: (
         data:
           | {
-            status: "PENDING" | "SIGNED";
-            signedMessage: string;
-            proof: string;
-          }
-          | undefined
+              status: "PENDING" | "SIGNED";
+              signedMessage: string;
+              proof: string;
+            }
+          | undefined,
       ) => {
         // If the status is 'SIGNED', stop polling
         if (data?.status === "SIGNED") {
@@ -65,7 +72,7 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
           });
         }
       },
-    }
+    },
   );
 
   const initiateLoginFlow = async () => {
@@ -86,22 +93,37 @@ const MobileLogin: FC<IMobileLogin> = ({ setModalOpen }) => {
   };
 
   const authSignIn = async () => {
-    await signIn("credentials", {
-      nonce: nonce?.nonce,
-      userId: nonce?.userId,
-      signature: JSON.stringify(signature),
-      wallet: JSON.stringify({
-        type: "mobile",
-        defaultAddress: address,
-        usedAddresses: [],
-        unusedAddresses: [],
-      }),
-      redirect: false,
-    });
-    await fetchSessionData();
-    setProviderLoading(false);
-    setModalOpen(false);
-    setLocalLoading(false);
+    try {
+      const response = await signIn("credentials", {
+        nonce: nonce?.nonce,
+        userId: nonce?.userId,
+        signature: JSON.stringify(signature),
+        wallet: JSON.stringify({
+          type: "mobile",
+          defaultAddress: address,
+          usedAddresses: [],
+          unusedAddresses: [],
+        }),
+        redirect: false,
+      });
+
+      if (!response?.status || response.status !== 200) {
+        handleLoginError(
+          "Login failed. If you registered with a different wallet, please login with that wallet first, then link this address in Settings > Wallets.",
+        );
+        return;
+      }
+
+      await fetchSessionData();
+      setProviderLoading(false);
+      setModalOpen(false);
+      setLocalLoading(false);
+    } catch (error) {
+      console.error("Error during signIn:", error);
+      handleLoginError(
+        "Login failed. If you registered with a different wallet, please login with that wallet first, then link this address in Settings > Wallets.",
+      );
+    }
   };
 
   useEffect(() => {
