@@ -1,4 +1,11 @@
-import React, { FC, useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  FC,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   Box,
   Paper,
@@ -56,6 +63,7 @@ interface PoolState {
 
 interface SwapResult {
   pool: PoolState;
+  input_amount: number;
   output_amount: number;
   price_impact: number;
   effective_price: number;
@@ -174,7 +182,11 @@ const MintWidget: FC = () => {
   // Amount state
   const [fromAmount, setFromAmount] = useState<string>("");
   const [toAmount, setToAmount] = useState<string>("");
+  const [inputMode, setInputMode] = useState<"input" | "output">("input");
   const [inputError, setInputError] = useState<string | null>(null);
+
+  // Track the previous input mode to prevent race conditions when switching
+  const prevInputModeRef = useRef<"input" | "output">(inputMode);
 
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -418,7 +430,11 @@ const MintWidget: FC = () => {
       oracleRate: number,
       status: RawMintStatus | null,
     ): number => {
+      // Defensive checks for invalid inputs
       if (!oracleRate || oracleRate === 0) return 0;
+      if (!rawErgAmount || isNaN(rawErgAmount)) return 0;
+      if (stablecoinDecimals === undefined || stablecoinDecimals === null)
+        return 0;
 
       // Get fee parameters from box_state
       const bankFeeNum = status?.box_state?.bank_fee_num ?? 0;
@@ -436,34 +452,94 @@ const MintWidget: FC = () => {
       //
       // Since frontend oracle_rate is "per whole unit", we scale by decimals:
       // mint_amount = (erg_amount * fee_denom * 10^decimals) / (oracle_rate * total_multiplier)
+      const divisor = oracleRate * totalMultiplier;
+      if (divisor === 0) return 0;
+
       const mintAmount = Math.floor(
-        (rawErgAmount * feeDenom * Math.pow(10, stablecoinDecimals)) /
-          (oracleRate * totalMultiplier),
+        (rawErgAmount * feeDenom * Math.pow(10, stablecoinDecimals)) / divisor,
       );
 
-      return mintAmount;
+      // Final NaN check
+      return isNaN(mintAmount) ? 0 : mintAmount;
+    },
+    [stablecoinDecimals],
+  );
+
+  // Calculate required ERG input for a desired mint output (inverse of calculateMintOutputWithFees)
+  // Formula: erg_amount = (desired_mint_amount * oracle_rate * total_multiplier) / (fee_denom * 10^decimals)
+  const calculateErgInputForMint = useCallback(
+    (
+      desiredMintAmount: number,
+      oracleRate: number,
+      status: RawMintStatus | null,
+    ): number => {
+      // Defensive checks for invalid inputs
+      if (!oracleRate || oracleRate === 0) return 0;
+      if (!desiredMintAmount || isNaN(desiredMintAmount)) return 0;
+      if (stablecoinDecimals === undefined || stablecoinDecimals === null)
+        return 0;
+
+      // Get fee parameters from box_state
+      const bankFeeNum = status?.box_state?.bank_fee_num ?? 0;
+      const buybackFeeNum = status?.box_state?.buyback_fee_num ?? 0;
+      const feeDenom = status?.box_state?.fee_denom ?? 1000;
+
+      // Calculate total multiplier: fee_denom + bank_fee_num + buyback_fee_num
+      const totalMultiplier = feeDenom + bankFeeNum + buybackFeeNum;
+
+      if (feeDenom === 0 || totalMultiplier === 0) return 0;
+
+      // Inverse formula:
+      // erg_amount = (desired_mint_amount * oracle_rate * total_multiplier) / (fee_denom * 10^decimals)
+      // Use ceiling to ensure user provides enough ERG
+      const divisor = feeDenom * Math.pow(10, stablecoinDecimals);
+      if (divisor === 0) return 0;
+
+      const ergAmount = Math.ceil(
+        (desiredMintAmount * oracleRate * totalMultiplier) / divisor,
+      );
+
+      // Final NaN check
+      return isNaN(ergAmount) ? 0 : ergAmount;
     },
     [stablecoinDecimals],
   );
 
   // Fetch quotes when amount changes
+  // selectionMode: "best" auto-selects optimal method, "manual" preserves user's selection
   const fetchQuotes = useCallback(
-    async (amount: string, signal?: AbortSignal) => {
+    async (
+      amount: string,
+      inputOutputMode: "input" | "output",
+      selectionMode: "best" | "manual",
+      signal?: AbortSignal,
+    ) => {
       if (!amount || parseFloat(amount) <= 0 || !selectedInstance) {
         setArbMintStatus(null);
         setFreeMintStatus(null);
         setLpSwapQuote(null);
-        setToAmount("");
+        if (inputOutputMode === "input") {
+          setToAmount("");
+        } else {
+          setFromAmount("");
+        }
         return;
       }
 
       const numericAmount = parseFloat(amount);
-      const fromDecimals =
-        direction === "mint" ? ERG_DECIMALS : stablecoinDecimals;
-      const minAmount = getMinimumAmount(fromDecimals);
+      // Determine decimals based on input/output mode and direction
+      const amountDecimals =
+        inputOutputMode === "input"
+          ? direction === "mint"
+            ? ERG_DECIMALS
+            : stablecoinDecimals
+          : direction === "mint"
+            ? stablecoinDecimals
+            : ERG_DECIMALS;
+      const minAmount = getMinimumAmount(amountDecimals);
 
       if (numericAmount < minAmount) {
-        setInputError(`Minimum amount is ${minAmount.toFixed(fromDecimals)}`);
+        setInputError(`Minimum amount is ${minAmount.toFixed(amountDecimals)}`);
         return;
       }
 
@@ -472,160 +548,284 @@ const MintWidget: FC = () => {
       setNoPoolFound(false);
 
       try {
-        const rawAmount = convertToRawAmount(amount, fromDecimals);
+        const rawAmount = convertToRawAmount(amount, amountDecimals);
 
         if (direction === "mint") {
-          // Fetch both mint statuses and LP quote in parallel
-          const [arbRes, freeRes, lpRes] = await Promise.all([
-            fetch(
-              `${process.env.CRUX_API}/dexy/mint_status/${selectedInstance}?mint_type=arb_mint&fee_token=${feeToken}`,
-              { signal },
-            ).then((r) => (r.ok ? r.json() : null)),
-            fetch(
-              `${process.env.CRUX_API}/dexy/mint_status/${selectedInstance}?mint_type=free_mint&fee_token=${feeToken}`,
-              { signal },
-            ).then((r) => (r.ok ? r.json() : null)),
-            fetch(
-              `${process.env.CRUX_API}/spectrum/best_swap?given_token_id=${ERG_TOKEN_ID}&given_token_amount=${rawAmount}&requested_token_id=${stablecoinToken}&fee_token=${feeToken}`,
-              { signal },
-            ).then((r) => (r.ok ? r.json() : null)),
-          ]);
+          if (inputOutputMode === "input") {
+            // Input mode: User specifies ERG, we calculate stablecoin output
+            const [arbRes, freeRes, lpRes] = await Promise.all([
+              fetch(
+                `${process.env.CRUX_API}/dexy/mint_status/${selectedInstance}?mint_type=arb_mint&fee_token=${feeToken}`,
+                { signal },
+              ).then((r) => (r.ok ? r.json() : null)),
+              fetch(
+                `${process.env.CRUX_API}/dexy/mint_status/${selectedInstance}?mint_type=free_mint&fee_token=${feeToken}`,
+                { signal },
+              ).then((r) => (r.ok ? r.json() : null)),
+              fetch(
+                `${process.env.CRUX_API}/spectrum/best_swap?given_token_id=${ERG_TOKEN_ID}&given_token_amount=${rawAmount}&requested_token_id=${stablecoinToken}&fee_token=${feeToken}`,
+                { signal },
+              ).then((r) => (r.ok ? r.json() : null)),
+            ]);
 
-          setArbMintStatus(arbRes);
-          setFreeMintStatus(freeRes);
-          setLpSwapQuote(lpRes);
+            setArbMintStatus(arbRes);
+            setFreeMintStatus(freeRes);
+            setLpSwapQuote(lpRes);
 
-          // Calculate best output
-          const outputs: {
-            method: MethodType;
-            output: number;
-            available: boolean;
-          }[] = [];
+            // Calculate best output
+            const outputs: {
+              method: MethodType;
+              output: number;
+              available: boolean;
+            }[] = [];
 
-          // Reset max mint exceeded warning
-          setMaxMintExceeded(null);
+            // Reset max mint exceeded warning
+            setMaxMintExceeded(null);
 
-          if (arbRes?.is_available) {
-            // Calculate mint output for given ERG amount (with dexy protocol fees)
-            const oracleRate = arbRes.box_state?.oracle_rate;
-            if (oracleRate) {
-              const mintOutput = calculateMintOutputWithFees(
-                rawAmount,
-                oracleRate,
-                arbRes,
-              );
-              // Check if exceeds max mint amount
-              const maxMint = arbRes.max_mint_amount || 0;
-              if (mintOutput <= maxMint) {
-                outputs.push({
-                  method: "arbmint",
-                  output: mintOutput,
-                  available: true,
-                });
-              }
-            }
-          }
-
-          if (freeRes?.is_available) {
-            const oracleRate = freeRes.box_state?.oracle_rate;
-            if (oracleRate) {
-              const mintOutput = calculateMintOutputWithFees(
-                rawAmount,
-                oracleRate,
-                freeRes,
-              );
-              // Check if exceeds max mint amount
-              const maxMint = freeRes.max_mint_amount || 0;
-              if (mintOutput <= maxMint) {
-                outputs.push({
-                  method: "freemint",
-                  output: mintOutput,
-                  available: true,
-                });
-              }
-            }
-          }
-
-          if (lpRes?.swap_result) {
-            outputs.push({
-              method: "lp",
-              output: lpRes.swap_result.output_amount,
-              available: true,
-            });
-          }
-
-          // Check if mints were available but exceeded max - set warning
-          const checkExceeded = (
-            res: RawMintStatus | null,
-            method: "arbmint" | "freemint",
-          ) => {
-            if (res?.is_available) {
-              const oracleRate = res.box_state?.oracle_rate;
+            if (arbRes?.is_available) {
+              const oracleRate = arbRes.box_state?.oracle_rate;
               if (oracleRate) {
                 const mintOutput = calculateMintOutputWithFees(
                   rawAmount,
                   oracleRate,
-                  res,
+                  arbRes,
                 );
-                const maxMint = res.max_mint_amount || 0;
-                if (mintOutput > maxMint && maxMint > 0) {
-                  return {
-                    method,
-                    maxAmount: maxMint,
-                    requestedAmount: mintOutput,
-                  };
+                const maxMint = arbRes.max_mint_amount || 0;
+                if (mintOutput <= maxMint) {
+                  outputs.push({
+                    method: "arbmint",
+                    output: mintOutput,
+                    available: true,
+                  });
                 }
               }
             }
-            return null;
-          };
 
-          const arbExceeded = checkExceeded(arbRes, "arbmint");
-          const freeExceeded = checkExceeded(freeRes, "freemint");
+            if (freeRes?.is_available) {
+              const oracleRate = freeRes.box_state?.oracle_rate;
+              if (oracleRate) {
+                const mintOutput = calculateMintOutputWithFees(
+                  rawAmount,
+                  oracleRate,
+                  freeRes,
+                );
+                const maxMint = freeRes.max_mint_amount || 0;
+                if (mintOutput <= maxMint) {
+                  outputs.push({
+                    method: "freemint",
+                    output: mintOutput,
+                    available: true,
+                  });
+                }
+              }
+            }
 
-          // Select best method
-          if (outputs.length > 0) {
-            const best = outputs.reduce((a, b) =>
-              a.output > b.output ? a : b,
-            );
-            setSelectedMethod(best.method);
-            setToAmount(convertFromRawAmount(best.output, stablecoinDecimals));
+            if (lpRes?.swap_result) {
+              outputs.push({
+                method: "lp",
+                output: lpRes.swap_result.output_amount,
+                available: true,
+              });
+            }
 
-            // If best method is LP and a mint was exceeded, show warning
-            if (best.method === "lp" && (arbExceeded || freeExceeded)) {
-              // Prefer showing the one with higher max (more relevant)
-              const exceeded =
-                arbExceeded && freeExceeded
-                  ? arbExceeded.maxAmount > freeExceeded.maxAmount
-                    ? arbExceeded
-                    : freeExceeded
-                  : arbExceeded || freeExceeded;
-              setMaxMintExceeded(exceeded);
+            // Check if mints were available but exceeded max
+            const checkExceeded = (
+              res: RawMintStatus | null,
+              method: "arbmint" | "freemint",
+            ) => {
+              if (res?.is_available) {
+                const oracleRate = res.box_state?.oracle_rate;
+                if (oracleRate) {
+                  const mintOutput = calculateMintOutputWithFees(
+                    rawAmount,
+                    oracleRate,
+                    res,
+                  );
+                  const maxMint = res.max_mint_amount || 0;
+                  if (mintOutput > maxMint && maxMint > 0) {
+                    return {
+                      method,
+                      maxAmount: maxMint,
+                      requestedAmount: mintOutput,
+                    };
+                  }
+                }
+              }
+              return null;
+            };
+
+            const arbExceeded = checkExceeded(arbRes, "arbmint");
+            const freeExceeded = checkExceeded(freeRes, "freemint");
+
+            if (outputs.length > 0) {
+              const best = outputs.reduce((a, b) =>
+                a.output > b.output ? a : b,
+              );
+
+              // Only auto-select method in "best" mode
+              if (selectionMode === "best") {
+                setSelectedMethod(best.method);
+                setToAmount(
+                  convertFromRawAmount(best.output, stablecoinDecimals),
+                );
+              }
+              // In manual mode, don't change selectedMethod - the rateComparison
+              // will be updated and the UI will show correct values for each option
+
+              if (best.method === "lp" && (arbExceeded || freeExceeded)) {
+                const exceeded =
+                  arbExceeded && freeExceeded
+                    ? arbExceeded.maxAmount > freeExceeded.maxAmount
+                      ? arbExceeded
+                      : freeExceeded
+                    : arbExceeded || freeExceeded;
+                setMaxMintExceeded(exceeded);
+              }
+            } else {
+              setNoPoolFound(true);
+              if (selectionMode === "best") {
+                setToAmount("");
+              }
             }
           } else {
-            setNoPoolFound(true);
-            setToAmount("");
+            // Output mode: User specifies desired stablecoin, we calculate required ERG
+            // Fetch mint statuses and LP quote with requested_token_amount
+            const [arbRes, freeRes, lpRes] = await Promise.all([
+              fetch(
+                `${process.env.CRUX_API}/dexy/mint_status/${selectedInstance}?mint_type=arb_mint&fee_token=${feeToken}`,
+                { signal },
+              ).then((r) => (r.ok ? r.json() : null)),
+              fetch(
+                `${process.env.CRUX_API}/dexy/mint_status/${selectedInstance}?mint_type=free_mint&fee_token=${feeToken}`,
+                { signal },
+              ).then((r) => (r.ok ? r.json() : null)),
+              fetch(
+                `${process.env.CRUX_API}/spectrum/best_swap?given_token_id=${ERG_TOKEN_ID}&requested_token_amount=${rawAmount}&requested_token_id=${stablecoinToken}&fee_token=${feeToken}`,
+                { signal },
+              ).then((r) => (r.ok ? r.json() : null)),
+            ]);
+
+            setArbMintStatus(arbRes);
+            setFreeMintStatus(freeRes);
+            setLpSwapQuote(lpRes);
+
+            // Calculate required ERG for each method
+            const inputs: {
+              method: MethodType;
+              input: number;
+              available: boolean;
+            }[] = [];
+
+            setMaxMintExceeded(null);
+
+            if (arbRes?.is_available) {
+              const oracleRate = arbRes.box_state?.oracle_rate;
+              if (oracleRate) {
+                const requiredErg = calculateErgInputForMint(
+                  rawAmount,
+                  oracleRate,
+                  arbRes,
+                );
+                const maxMint = arbRes.max_mint_amount || 0;
+                // Check if desired output exceeds max mint
+                if (rawAmount <= maxMint) {
+                  inputs.push({
+                    method: "arbmint",
+                    input: requiredErg,
+                    available: true,
+                  });
+                }
+              }
+            }
+
+            if (freeRes?.is_available) {
+              const oracleRate = freeRes.box_state?.oracle_rate;
+              if (oracleRate) {
+                const requiredErg = calculateErgInputForMint(
+                  rawAmount,
+                  oracleRate,
+                  freeRes,
+                );
+                const maxMint = freeRes.max_mint_amount || 0;
+                if (rawAmount <= maxMint) {
+                  inputs.push({
+                    method: "freemint",
+                    input: requiredErg,
+                    available: true,
+                  });
+                }
+              }
+            }
+
+            if (lpRes?.swap_result) {
+              inputs.push({
+                method: "lp",
+                input: lpRes.swap_result.input_amount,
+                available: true,
+              });
+            }
+
+            // Select method with lowest required input (best deal for user)
+            if (inputs.length > 0) {
+              const best = inputs.reduce((a, b) => (a.input < b.input ? a : b));
+
+              // Only auto-select method in "best" mode
+              if (selectionMode === "best") {
+                setSelectedMethod(best.method);
+                setFromAmount(convertFromRawAmount(best.input, ERG_DECIMALS));
+              }
+              // In manual mode, don't change selectedMethod - the rateComparison
+              // will be updated and the UI will show correct values for each option
+            } else {
+              setNoPoolFound(true);
+              if (selectionMode === "best") {
+                setFromAmount("");
+              }
+            }
           }
         } else {
           // Swap direction: stablecoin -> ERG (LP only)
-          const lpRes = await fetch(
-            `${process.env.CRUX_API}/spectrum/best_swap?given_token_id=${stablecoinToken}&given_token_amount=${rawAmount}&requested_token_id=${ERG_TOKEN_ID}&fee_token=${feeToken}`,
-            { signal },
-          );
-
-          if (lpRes.ok) {
-            const data = await lpRes.json();
-            setLpSwapQuote(data);
-            setSelectedMethod("lp");
-            setToAmount(
-              convertFromRawAmount(
-                data.swap_result.output_amount,
-                ERG_DECIMALS,
-              ),
+          if (inputOutputMode === "input") {
+            const lpRes = await fetch(
+              `${process.env.CRUX_API}/spectrum/best_swap?given_token_id=${stablecoinToken}&given_token_amount=${rawAmount}&requested_token_id=${ERG_TOKEN_ID}&fee_token=${feeToken}`,
+              { signal },
             );
-          } else if (lpRes.status === 404) {
-            setNoPoolFound(true);
-            setToAmount("");
+
+            if (lpRes.ok) {
+              const data = await lpRes.json();
+              setLpSwapQuote(data);
+              setSelectedMethod("lp");
+              setToAmount(
+                convertFromRawAmount(
+                  data.swap_result.output_amount,
+                  ERG_DECIMALS,
+                ),
+              );
+            } else if (lpRes.status === 404) {
+              setNoPoolFound(true);
+              setToAmount("");
+            }
+          } else {
+            // Output mode for swap: user specifies ERG output, calculate stablecoin input
+            const lpRes = await fetch(
+              `${process.env.CRUX_API}/spectrum/best_swap?given_token_id=${stablecoinToken}&requested_token_amount=${rawAmount}&requested_token_id=${ERG_TOKEN_ID}&fee_token=${feeToken}`,
+              { signal },
+            );
+
+            if (lpRes.ok) {
+              const data = await lpRes.json();
+              setLpSwapQuote(data);
+              setSelectedMethod("lp");
+              setFromAmount(
+                convertFromRawAmount(
+                  data.swap_result.input_amount,
+                  stablecoinDecimals,
+                ),
+              );
+            } else if (lpRes.status === 404) {
+              setNoPoolFound(true);
+              setFromAmount("");
+            }
           }
         }
       } catch (error: any) {
@@ -645,16 +845,27 @@ const MintWidget: FC = () => {
       convertToRawAmount,
       convertFromRawAmount,
       calculateMintOutputWithFees,
+      calculateErgInputForMint,
       addAlert,
     ],
   );
 
   // Debounced quote fetching
   useEffect(() => {
-    if (fromAmount) {
+    // Detect if input mode just changed to prevent double-fetching
+    const modeJustChanged = prevInputModeRef.current !== inputMode;
+    prevInputModeRef.current = inputMode;
+
+    // If mode just changed, skip this effect cycle - the amount change will trigger it
+    if (modeJustChanged) {
+      return;
+    }
+
+    const amount = inputMode === "input" ? fromAmount : toAmount;
+    if (amount) {
       const abortController = new AbortController();
       const timer = setTimeout(() => {
-        fetchQuotes(fromAmount, abortController.signal);
+        fetchQuotes(amount, inputMode, mode, abortController.signal);
       }, 500);
 
       return () => {
@@ -662,18 +873,23 @@ const MintWidget: FC = () => {
         abortController.abort();
       };
     } else {
-      setToAmount("");
+      if (inputMode === "input") {
+        setToAmount("");
+      } else {
+        setFromAmount("");
+      }
       setArbMintStatus(null);
       setFreeMintStatus(null);
       setLpSwapQuote(null);
     }
-  }, [fromAmount, fetchQuotes]);
+  }, [fromAmount, toAmount, inputMode, mode, fetchQuotes]);
 
   // Handle direction flip
   const handleDirectionFlip = () => {
     setDirection(direction === "mint" ? "swap" : "mint");
     setFromAmount(toAmount);
     setToAmount(fromAmount);
+    setInputMode("input");
     setArbMintStatus(null);
     setFreeMintStatus(null);
     setLpSwapQuote(null);
@@ -684,6 +900,13 @@ const MintWidget: FC = () => {
   // Handle amount input
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+
+    // Switch to input mode when user types in "From" field
+    if (inputMode !== "input") {
+      setInputMode("input");
+      // Clear any errors from the previous mode
+      setInputError(null);
+    }
 
     if (value === "") {
       setFromAmount(value);
@@ -703,6 +926,35 @@ const MintWidget: FC = () => {
     setInputError(null);
   };
 
+  // Handle output amount input
+  const handleToAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // Switch to output mode when user types in "To" field
+    if (inputMode !== "output") {
+      setInputMode("output");
+      // Clear any errors from the previous mode
+      setInputError(null);
+    }
+
+    if (value === "") {
+      setToAmount(value);
+      setInputError(null);
+      return;
+    }
+
+    if (!/^\d*\.?\d*$/.test(value)) return;
+
+    const decimals = direction === "mint" ? stablecoinDecimals : ERG_DECIMALS;
+    if (getDecimalPlaces(value) > decimals) {
+      setInputError(`Maximum ${decimals} decimal places allowed`);
+      return;
+    }
+
+    setToAmount(value);
+    setInputError(null);
+  };
+
   // Handle max click
   const handleMaxClick = () => {
     const balance = direction === "mint" ? ergBalance : stablecoinBalance;
@@ -712,6 +964,7 @@ const MintWidget: FC = () => {
 
     const balanceNum = parseInt(balance, 10);
     setFromAmount(convertFromRawAmount(balanceNum, decimals));
+    setInputMode("input");
   };
 
   // Execute mint/swap
@@ -756,7 +1009,11 @@ const MintWidget: FC = () => {
         // Use LP swap
         const fromDecimals =
           direction === "mint" ? ERG_DECIMALS : stablecoinDecimals;
-        const rawAmount = convertToRawAmount(fromAmount, fromDecimals);
+        // In output mode, use the input_amount from the API response
+        const rawAmount =
+          inputMode === "output" && lpSwapQuote?.swap_result
+            ? lpSwapQuote.swap_result.input_amount
+            : convertToRawAmount(fromAmount, fromDecimals);
         const givenTokenId =
           direction === "mint" ? ERG_TOKEN_ID : stablecoinToken;
         const poolId = lpSwapQuote?.pool_state?.pool_id;
@@ -779,6 +1036,7 @@ const MintWidget: FC = () => {
         unsignedTx = await buildRes.json();
       } else {
         // Use mint
+        // In output mode, use the calculated ERG input from fromAmount (already populated by fetchQuotes)
         const rawAmount = convertToRawAmount(fromAmount, ERG_DECIMALS);
         // Convert method name to API format (arbmint -> arb_mint, freemint -> free_mint)
         const apiMintType =
@@ -846,55 +1104,126 @@ const MintWidget: FC = () => {
   };
 
   // Calculate rate comparison (memoized)
+  // Includes both output and input amounts so method selection can update the correct field
   const rateComparison = useMemo(() => {
     if (!lpSwapQuote?.swap_result || direction !== "mint") return null;
 
     const lpOutput = lpSwapQuote.swap_result.output_amount;
+    const lpInput = lpSwapQuote.swap_result.input_amount;
     // Protect against division by zero
     if (lpOutput === 0) return null;
 
-    const results: { method: MethodType; output: number; diff: number }[] = [];
+    const results: {
+      method: MethodType;
+      output: number;
+      input: number;
+      diff: number;
+    }[] = [];
 
-    // Get oracle rate for mint calculations
-    const rawAmount = convertToRawAmount(fromAmount, ERG_DECIMALS);
+    // Get raw amounts based on input mode
+    const rawFromAmount = convertToRawAmount(fromAmount, ERG_DECIMALS);
+    const rawToAmount = convertToRawAmount(toAmount, stablecoinDecimals);
 
     if (arbMintStatus?.is_available) {
       const oracleRate = arbMintStatus.box_state?.oracle_rate;
-      if (oracleRate && oracleRate > 0 && rawAmount > 0) {
-        const mintOutput = calculateMintOutputWithFees(
-          rawAmount,
-          oracleRate,
-          arbMintStatus,
-        );
-        const diff = ((mintOutput - lpOutput) / lpOutput) * 100;
-        results.push({ method: "arbmint", output: mintOutput, diff });
+      if (oracleRate && oracleRate > 0) {
+        if (inputMode === "input" && rawFromAmount > 0) {
+          // Calculate output from input
+          const mintOutput = calculateMintOutputWithFees(
+            rawFromAmount,
+            oracleRate,
+            arbMintStatus,
+          );
+          const diff = ((mintOutput - lpOutput) / lpOutput) * 100;
+          results.push({
+            method: "arbmint",
+            output: mintOutput,
+            input: rawFromAmount,
+            diff,
+          });
+        } else if (inputMode === "output" && rawToAmount > 0) {
+          // Calculate input from output
+          const requiredInput = calculateErgInputForMint(
+            rawToAmount,
+            oracleRate,
+            arbMintStatus,
+          );
+          const diff = ((lpInput - requiredInput) / lpInput) * 100;
+          results.push({
+            method: "arbmint",
+            output: rawToAmount,
+            input: requiredInput,
+            diff,
+          });
+        }
       }
     }
 
     if (freeMintStatus?.is_available) {
       const oracleRate = freeMintStatus.box_state?.oracle_rate;
-      if (oracleRate && oracleRate > 0 && rawAmount > 0) {
-        const mintOutput = calculateMintOutputWithFees(
-          rawAmount,
-          oracleRate,
-          freeMintStatus,
-        );
-        const diff = ((mintOutput - lpOutput) / lpOutput) * 100;
-        results.push({ method: "freemint", output: mintOutput, diff });
+      if (oracleRate && oracleRate > 0) {
+        if (inputMode === "input" && rawFromAmount > 0) {
+          // Calculate output from input
+          const mintOutput = calculateMintOutputWithFees(
+            rawFromAmount,
+            oracleRate,
+            freeMintStatus,
+          );
+          const diff = ((mintOutput - lpOutput) / lpOutput) * 100;
+          results.push({
+            method: "freemint",
+            output: mintOutput,
+            input: rawFromAmount,
+            diff,
+          });
+        } else if (inputMode === "output" && rawToAmount > 0) {
+          // Calculate input from output
+          const requiredInput = calculateErgInputForMint(
+            rawToAmount,
+            oracleRate,
+            freeMintStatus,
+          );
+          const diff = ((lpInput - requiredInput) / lpInput) * 100;
+          results.push({
+            method: "freemint",
+            output: rawToAmount,
+            input: requiredInput,
+            diff,
+          });
+        }
       }
     }
 
-    results.push({ method: "lp", output: lpOutput, diff: 0 });
+    // LP swap - use values from API response
+    if (inputMode === "input") {
+      results.push({
+        method: "lp",
+        output: lpOutput,
+        input: rawFromAmount,
+        diff: 0,
+      });
+    } else {
+      results.push({
+        method: "lp",
+        output: rawToAmount,
+        input: lpInput,
+        diff: 0,
+      });
+    }
 
     return results;
   }, [
     lpSwapQuote,
     direction,
     fromAmount,
+    toAmount,
+    inputMode,
     arbMintStatus,
     freeMintStatus,
+    stablecoinDecimals,
     convertToRawAmount,
     calculateMintOutputWithFees,
+    calculateErgInputForMint,
   ]);
 
   // Format balance for display
@@ -1217,6 +1546,12 @@ const MintWidget: FC = () => {
               placeholder="0.0"
               type="text"
               InputProps={{
+                startAdornment:
+                  loading && inputMode === "output" ? (
+                    <InputAdornment position="start">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : null,
                 endAdornment: (
                   <InputAdornment position="end">
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -1233,7 +1568,7 @@ const MintWidget: FC = () => {
                 ),
               }}
             />
-            {inputError && (
+            {inputError && inputMode === "input" && (
               <Typography
                 variant="caption"
                 color="error"
@@ -1297,10 +1632,16 @@ const MintWidget: FC = () => {
               fullWidth
               variant="outlined"
               value={toAmount}
+              onChange={handleToAmountChange}
               placeholder="0.0"
               type="text"
-              disabled
               InputProps={{
+                startAdornment:
+                  loading && inputMode === "input" ? (
+                    <InputAdornment position="start">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : null,
                 endAdornment: (
                   <InputAdornment position="end">
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -1317,7 +1658,16 @@ const MintWidget: FC = () => {
                 ),
               }}
             />
-            {toAmount && (
+            {inputError && inputMode === "output" && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ mt: 0.5, display: "block" }}
+              >
+                {inputError}
+              </Typography>
+            )}
+            {toAmount && !inputError && (
               <Typography
                 variant="caption"
                 color="text.secondary"
@@ -1329,7 +1679,7 @@ const MintWidget: FC = () => {
           </Box>
 
           {/* Method selection / info */}
-          {direction === "mint" && fromAmount && !loading && (
+          {direction === "mint" && (fromAmount || toAmount) && !loading && (
             <Box sx={{ mb: 2 }}>
               {mode === "best" && selectedMethod && (
                 <Box
@@ -1440,12 +1790,23 @@ const MintWidget: FC = () => {
                             (r) => r.method === "arbmint",
                           );
                           if (comparison) {
-                            setToAmount(
-                              convertFromRawAmount(
-                                comparison.output,
-                                stablecoinDecimals,
-                              ),
-                            );
+                            if (inputMode === "input") {
+                              // User specified input, update output
+                              setToAmount(
+                                convertFromRawAmount(
+                                  comparison.output,
+                                  stablecoinDecimals,
+                                ),
+                              );
+                            } else {
+                              // User specified output, update required input
+                              setFromAmount(
+                                convertFromRawAmount(
+                                  comparison.input,
+                                  ERG_DECIMALS,
+                                ),
+                              );
+                            }
                           }
                         }
                       }}
@@ -1458,14 +1819,18 @@ const MintWidget: FC = () => {
                       </Typography>
                       <Typography variant="caption" display="block">
                         {rateComparison?.find((r) => r.method === "arbmint")
-                          ? convertFromRawAmount(
+                          ? `${convertFromRawAmount(
+                              rateComparison!.find(
+                                (r) => r.method === "arbmint",
+                              )!.input,
+                              ERG_DECIMALS,
+                            )} ${fromTokenName} → ${convertFromRawAmount(
                               rateComparison!.find(
                                 (r) => r.method === "arbmint",
                               )!.output,
                               stablecoinDecimals,
-                            )
-                          : "-"}{" "}
-                        {toTokenName}
+                            )} ${toTokenName}`
+                          : "-"}
                       </Typography>
                       {rateComparison?.find((r) => r.method === "arbmint")
                         ?.diff !== undefined && (
@@ -1543,12 +1908,23 @@ const MintWidget: FC = () => {
                             (r) => r.method === "freemint",
                           );
                           if (comparison) {
-                            setToAmount(
-                              convertFromRawAmount(
-                                comparison.output,
-                                stablecoinDecimals,
-                              ),
-                            );
+                            if (inputMode === "input") {
+                              // User specified input, update output
+                              setToAmount(
+                                convertFromRawAmount(
+                                  comparison.output,
+                                  stablecoinDecimals,
+                                ),
+                              );
+                            } else {
+                              // User specified output, update required input
+                              setFromAmount(
+                                convertFromRawAmount(
+                                  comparison.input,
+                                  ERG_DECIMALS,
+                                ),
+                              );
+                            }
                           }
                         }
                       }}
@@ -1561,14 +1937,18 @@ const MintWidget: FC = () => {
                       </Typography>
                       <Typography variant="caption" display="block">
                         {rateComparison?.find((r) => r.method === "freemint")
-                          ? convertFromRawAmount(
+                          ? `${convertFromRawAmount(
+                              rateComparison!.find(
+                                (r) => r.method === "freemint",
+                              )!.input,
+                              ERG_DECIMALS,
+                            )} ${fromTokenName} → ${convertFromRawAmount(
                               rateComparison!.find(
                                 (r) => r.method === "freemint",
                               )!.output,
                               stablecoinDecimals,
-                            )
-                          : "-"}{" "}
-                        {toTokenName}
+                            )} ${toTokenName}`
+                          : "-"}
                       </Typography>
                       {rateComparison?.find((r) => r.method === "freemint")
                         ?.diff !== undefined && (
@@ -1624,12 +2004,23 @@ const MintWidget: FC = () => {
                     onClick={() => {
                       if (lpSwapQuote) {
                         setSelectedMethod("lp");
-                        setToAmount(
-                          convertFromRawAmount(
-                            lpSwapQuote.swap_result.output_amount,
-                            stablecoinDecimals,
-                          ),
-                        );
+                        if (inputMode === "input") {
+                          // User specified input, update output
+                          setToAmount(
+                            convertFromRawAmount(
+                              lpSwapQuote.swap_result.output_amount,
+                              stablecoinDecimals,
+                            ),
+                          );
+                        } else {
+                          // User specified output, update required input
+                          setFromAmount(
+                            convertFromRawAmount(
+                              lpSwapQuote.swap_result.input_amount,
+                              ERG_DECIMALS,
+                            ),
+                          );
+                        }
                       }
                     }}
                   >
@@ -1641,12 +2032,14 @@ const MintWidget: FC = () => {
                     </Typography>
                     <Typography variant="caption" display="block">
                       {lpSwapQuote
-                        ? convertFromRawAmount(
+                        ? `${convertFromRawAmount(
+                            lpSwapQuote.swap_result.input_amount,
+                            ERG_DECIMALS,
+                          )} ${fromTokenName} → ${convertFromRawAmount(
                             lpSwapQuote.swap_result.output_amount,
                             stablecoinDecimals,
-                          )
-                        : "-"}{" "}
-                      {toTokenName}
+                          )} ${toTokenName}`
+                        : "-"}
                     </Typography>
                     <Typography
                       variant="caption"

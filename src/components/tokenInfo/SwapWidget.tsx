@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback } from "react";
+import React, { FC, useState, useEffect, useCallback, useRef } from "react";
 import {
   Box,
   Paper,
@@ -53,6 +53,7 @@ interface PoolState {
 
 interface SwapResult {
   pool: PoolState;
+  input_amount: number;
   output_amount: number;
   price_impact: number;
   effective_price: number;
@@ -118,7 +119,11 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [fromToken, setFromToken] = useState<"token" | "erg">("erg");
   const [fromAmount, setFromAmount] = useState<string>("");
   const [toAmount, setToAmount] = useState<string>("");
+  const [inputMode, setInputMode] = useState<"input" | "output">("input");
   const [loading, setLoading] = useState(false);
+
+  // Track the previous input mode to prevent race conditions when switching
+  const prevInputModeRef = useRef<"input" | "output">(inputMode);
   const [swapping, setSwapping] = useState(false);
   const [bestSwap, setBestSwap] = useState<BestSwapResponse | null>(null);
   const [tokenDecimals, setTokenDecimals] = useState<number | null>(null);
@@ -325,25 +330,37 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   );
 
   const fetchBestSwap = useCallback(
-    async (amount: string, signal?: AbortSignal) => {
+    async (amount: string, mode: "input" | "output", signal?: AbortSignal) => {
       if (!amount || parseFloat(amount) <= 0 || tokenDecimals === null) {
-        setToAmount("");
+        if (mode === "input") {
+          setToAmount("");
+        } else {
+          setFromAmount("");
+        }
         setBestSwap(null);
         setNoPoolFound(false);
         return;
       }
 
       // Validate minimum amount
-      const givenDecimals = getGivenTokenDecimals();
-      const minAmount = getMinimumSwapAmount(givenDecimals);
+      const amountDecimals =
+        mode === "input"
+          ? getGivenTokenDecimals()
+          : getRequestedTokenDecimals();
+      const minAmount = getMinimumSwapAmount(amountDecimals);
       const numericAmount = parseFloat(amount);
+      const tokenName = mode === "input" ? fromTokenName : toTokenName;
 
       if (numericAmount < minAmount) {
-        setToAmount("");
+        if (mode === "input") {
+          setToAmount("");
+        } else {
+          setFromAmount("");
+        }
         setBestSwap(null);
         setNoPoolFound(false);
         setInputError(
-          `Minimum swap amount is ${minAmount.toFixed(givenDecimals)} ${fromTokenName}`,
+          `Minimum amount is ${minAmount.toFixed(amountDecimals)} ${tokenName}`,
         );
         return;
       }
@@ -355,15 +372,21 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       try {
         const givenDecimals = getGivenTokenDecimals();
         const requestedDecimals = getRequestedTokenDecimals();
-        const rawAmount = convertToRawAmount(amount, givenDecimals);
+        const rawAmount = convertToRawAmount(amount, amountDecimals);
 
         const endpoint = `${process.env.CRUX_API}/spectrum/best_swap`;
         const params = new URLSearchParams({
           given_token_id: givenTokenId,
-          given_token_amount: rawAmount.toString(),
           requested_token_id: requestedTokenId,
           fee_token: feeToken,
         });
+
+        // Use appropriate parameter based on mode
+        if (mode === "input") {
+          params.set("given_token_amount", rawAmount.toString());
+        } else {
+          params.set("requested_token_amount", rawAmount.toString());
+        }
 
         const response = await fetch(`${endpoint}?${params}`, {
           method: "GET",
@@ -376,7 +399,11 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         if (!response.ok) {
           if (response.status === 404) {
             setNoPoolFound(true);
-            setToAmount("");
+            if (mode === "input") {
+              setToAmount("");
+            } else {
+              setFromAmount("");
+            }
             setBestSwap(null);
             setLoading(false);
             return;
@@ -387,11 +414,20 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         const data: BestSwapResponse = await response.json();
         setBestSwap(data);
 
-        const outputAmountFormatted = convertFromRawAmount(
-          data.swap_result.output_amount,
-          requestedDecimals,
-        );
-        setToAmount(outputAmountFormatted);
+        // Update the calculated field based on mode
+        if (mode === "input") {
+          const outputAmountFormatted = convertFromRawAmount(
+            data.swap_result.output_amount,
+            requestedDecimals,
+          );
+          setToAmount(outputAmountFormatted);
+        } else {
+          const inputAmountFormatted = convertFromRawAmount(
+            data.swap_result.input_amount,
+            givenDecimals,
+          );
+          setFromAmount(inputAmountFormatted);
+        }
       } catch (error: any) {
         // Don't show error if request was aborted
         if (error.name === "AbortError") {
@@ -399,7 +435,11 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         }
         console.error("Error fetching best swap:", error);
         addAlert("error", error.message || "failed to fetch swap quote");
-        setToAmount("");
+        if (mode === "input") {
+          setToAmount("");
+        } else {
+          setFromAmount("");
+        }
         setBestSwap(null);
       } finally {
         setLoading(false);
@@ -416,14 +456,25 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       convertFromRawAmount,
       feeToken,
       fromTokenName,
+      toTokenName,
     ],
   );
 
   useEffect(() => {
-    if (fromAmount && tokenDecimals !== null) {
+    // Detect if input mode just changed to prevent double-fetching
+    const modeJustChanged = prevInputModeRef.current !== inputMode;
+    prevInputModeRef.current = inputMode;
+
+    // If mode just changed, skip this effect cycle - the amount change will trigger it
+    if (modeJustChanged) {
+      return;
+    }
+
+    const amount = inputMode === "input" ? fromAmount : toAmount;
+    if (amount && tokenDecimals !== null) {
       const abortController = new AbortController();
       const timer = setTimeout(() => {
-        fetchBestSwap(fromAmount, abortController.signal);
+        fetchBestSwap(amount, inputMode, abortController.signal);
       }, 500);
 
       return () => {
@@ -431,15 +482,20 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         abortController.abort();
       };
     } else {
-      setToAmount("");
+      if (inputMode === "input") {
+        setToAmount("");
+      } else {
+        setFromAmount("");
+      }
       setBestSwap(null);
     }
-  }, [fromAmount, fetchBestSwap, tokenDecimals]);
+  }, [fromAmount, toAmount, inputMode, fetchBestSwap, tokenDecimals]);
 
   const handleSwapDirection = () => {
     setFromToken(fromToken === "token" ? "erg" : "token");
     setFromAmount(toAmount);
     setToAmount(fromAmount);
+    setInputMode("input");
     setBestSwap(null);
     setNoPoolFound(false);
     setInputError(null);
@@ -447,6 +503,13 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+
+    // Switch to input mode when user types in "From" field
+    if (inputMode !== "input") {
+      setInputMode("input");
+      // Clear any errors from the previous mode
+      setInputError(null);
+    }
 
     // Allow empty string
     if (value === "") {
@@ -474,6 +537,45 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     }
 
     setFromAmount(value);
+    setInputError(null);
+  };
+
+  const handleToAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // Switch to output mode when user types in "To" field
+    if (inputMode !== "output") {
+      setInputMode("output");
+      // Clear any errors from the previous mode
+      setInputError(null);
+    }
+
+    // Allow empty string
+    if (value === "") {
+      setToAmount(value);
+      setInputError(null);
+      return;
+    }
+
+    // Check basic format (numbers and optional decimal point)
+    if (!/^\d*\.?\d*$/.test(value)) {
+      return;
+    }
+
+    // Validate decimal precision against token decimals
+    const currentDecimals =
+      fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
+    if (currentDecimals !== null) {
+      const decimalPlaces = getDecimalPlaces(value);
+      if (decimalPlaces > currentDecimals) {
+        setInputError(
+          `Maximum ${currentDecimals} decimal place${currentDecimals !== 1 ? "s" : ""} allowed for ${toTokenName}`,
+        );
+        return;
+      }
+    }
+
+    setToAmount(value);
     setInputError(null);
   };
 
@@ -533,7 +635,12 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       const userAddresses = [...new Set(allAddresses)].join(",");
 
       const givenDecimals = getGivenTokenDecimals();
-      const rawAmount = convertToRawAmount(fromAmount, givenDecimals);
+      // In output mode, use the input_amount from the API response (which calculated the required input)
+      // In input mode, use the user-entered fromAmount
+      const rawAmount =
+        inputMode === "output"
+          ? bestSwap.swap_result.input_amount
+          : convertToRawAmount(fromAmount, givenDecimals);
 
       // Build swap transaction
       const buildEndpoint = `${process.env.CRUX_API}/spectrum/build_swap_tx`;
@@ -645,6 +752,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     const balanceNum = parseInt(balance, 10);
     const formattedBalance = convertFromRawAmount(balanceNum, decimals);
     setFromAmount(formattedBalance);
+    setInputMode("input");
   };
 
   /**
@@ -764,6 +872,12 @@ const SwapWidget: FC<SwapWidgetProps> = ({
               placeholder="0.0"
               type="text"
               InputProps={{
+                startAdornment:
+                  loading && inputMode === "output" ? (
+                    <InputAdornment position="start">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : null,
                 endAdornment: (
                   <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
                     <Box
@@ -796,7 +910,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 ),
               }}
             />
-            {inputError && (
+            {inputError && inputMode === "input" && (
               <Typography
                 variant="caption"
                 color="error"
@@ -873,10 +987,16 @@ const SwapWidget: FC<SwapWidgetProps> = ({
               fullWidth
               variant="outlined"
               value={toAmount}
+              onChange={handleToAmountChange}
               placeholder="0.0"
               type="text"
-              disabled
               InputProps={{
+                startAdornment:
+                  loading && inputMode === "input" ? (
+                    <InputAdornment position="start">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : null,
                 endAdornment: (
                   <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
                     <Box
@@ -909,7 +1029,16 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 ),
               }}
             />
-            {toAmount && (
+            {inputError && inputMode === "output" && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ mt: 0.5, display: "block" }}
+              >
+                {inputError}
+              </Typography>
+            )}
+            {toAmount && !inputError && (
               <Typography
                 variant="caption"
                 color="text.secondary"
