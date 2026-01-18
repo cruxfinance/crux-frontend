@@ -418,9 +418,9 @@ describe("SwapWidget", () => {
       });
 
       // Click the swap direction button
-      const swapButton = screen.getByTestId
-        ? screen.queryByTestId("swap-direction")
-        : document.querySelector('[data-testid="SwapVertIcon"]')?.parentElement;
+      const swapButton =
+        screen.queryByTestId("swap-direction") ??
+        document.querySelector('[data-testid="SwapVertIcon"]')?.parentElement;
 
       if (swapButton) {
         await user.click(swapButton);

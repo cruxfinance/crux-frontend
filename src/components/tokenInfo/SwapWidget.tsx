@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback, useRef } from "react";
+import React, { FC, useState, useEffect, useCallback } from "react";
 import {
   Box,
   Paper,
@@ -121,9 +121,6 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [toAmount, setToAmount] = useState<string>("");
   const [inputMode, setInputMode] = useState<"input" | "output">("input");
   const [loading, setLoading] = useState(false);
-
-  // Track the previous input mode to prevent race conditions when switching
-  const prevInputModeRef = useRef<"input" | "output">(inputMode);
   const [swapping, setSwapping] = useState(false);
   const [bestSwap, setBestSwap] = useState<BestSwapResponse | null>(null);
   const [tokenDecimals, setTokenDecimals] = useState<number | null>(null);
@@ -460,21 +457,16 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     ],
   );
 
+  // Debounced quote fetching - only trigger on the "active" amount field
+  // In input mode, we watch fromAmount; in output mode, we watch toAmount
+  // This prevents re-fetching when the API response updates the other field
+  const activeAmount = inputMode === "input" ? fromAmount : toAmount;
+
   useEffect(() => {
-    // Detect if input mode just changed to prevent double-fetching
-    const modeJustChanged = prevInputModeRef.current !== inputMode;
-    prevInputModeRef.current = inputMode;
-
-    // If mode just changed, skip this effect cycle - the amount change will trigger it
-    if (modeJustChanged) {
-      return;
-    }
-
-    const amount = inputMode === "input" ? fromAmount : toAmount;
-    if (amount && tokenDecimals !== null) {
+    if (activeAmount && tokenDecimals !== null) {
       const abortController = new AbortController();
       const timer = setTimeout(() => {
-        fetchBestSwap(amount, inputMode, abortController.signal);
+        fetchBestSwap(activeAmount, inputMode, abortController.signal);
       }, 500);
 
       return () => {
@@ -489,7 +481,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       }
       setBestSwap(null);
     }
-  }, [fromAmount, toAmount, inputMode, fetchBestSwap, tokenDecimals]);
+  }, [activeAmount, inputMode, fetchBestSwap, tokenDecimals]);
 
   const handleSwapDirection = () => {
     setFromToken(fromToken === "token" ? "erg" : "token");
@@ -501,42 +493,61 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     setInputError(null);
   };
 
+  // Shared validation logic for amount inputs
+  // Returns { valid: true, value } if valid, or { valid: false } if invalid
+  const validateAmountInput = useCallback(
+    (
+      value: string,
+      decimals: number | null,
+      tokenName: string,
+    ): { valid: true; value: string } | { valid: false; error?: string } => {
+      // Empty value is valid (clears the field)
+      if (value === "") {
+        return { valid: true, value };
+      }
+
+      // Check basic format (numbers and optional decimal point)
+      if (!/^\d*\.?\d*$/.test(value)) {
+        return { valid: false };
+      }
+
+      // Validate decimal precision against token decimals
+      if (decimals !== null) {
+        const decimalPlaces = getDecimalPlaces(value);
+        if (decimalPlaces > decimals) {
+          return {
+            valid: false,
+            error: `Maximum ${decimals} decimal place${decimals !== 1 ? "s" : ""} allowed for ${tokenName}`,
+          };
+        }
+      }
+
+      return { valid: true, value };
+    },
+    [],
+  );
+
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
 
     // Switch to input mode when user types in "From" field
     if (inputMode !== "input") {
       setInputMode("input");
-      // Clear any errors from the previous mode
       setInputError(null);
     }
 
-    // Allow empty string
-    if (value === "") {
-      setFromAmount(value);
-      setInputError(null);
-      return;
-    }
-
-    // Check basic format (numbers and optional decimal point)
-    if (!/^\d*\.?\d*$/.test(value)) {
-      return;
-    }
-
-    // Validate decimal precision against token decimals
     const currentDecimals =
       fromToken === "token" ? tokenDecimals : ERG_DECIMALS;
-    if (currentDecimals !== null) {
-      const decimalPlaces = getDecimalPlaces(value);
-      if (decimalPlaces > currentDecimals) {
-        setInputError(
-          `Maximum ${currentDecimals} decimal place${currentDecimals !== 1 ? "s" : ""} allowed for ${fromTokenName}`,
-        );
-        return;
+    const result = validateAmountInput(value, currentDecimals, fromTokenName);
+
+    if (!result.valid) {
+      if (result.error) {
+        setInputError(result.error);
       }
+      return;
     }
 
-    setFromAmount(value);
+    setFromAmount(result.value);
     setInputError(null);
   };
 
@@ -546,36 +557,21 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     // Switch to output mode when user types in "To" field
     if (inputMode !== "output") {
       setInputMode("output");
-      // Clear any errors from the previous mode
       setInputError(null);
     }
 
-    // Allow empty string
-    if (value === "") {
-      setToAmount(value);
-      setInputError(null);
-      return;
-    }
-
-    // Check basic format (numbers and optional decimal point)
-    if (!/^\d*\.?\d*$/.test(value)) {
-      return;
-    }
-
-    // Validate decimal precision against token decimals
     const currentDecimals =
       fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
-    if (currentDecimals !== null) {
-      const decimalPlaces = getDecimalPlaces(value);
-      if (decimalPlaces > currentDecimals) {
-        setInputError(
-          `Maximum ${currentDecimals} decimal place${currentDecimals !== 1 ? "s" : ""} allowed for ${toTokenName}`,
-        );
-        return;
+    const result = validateAmountInput(value, currentDecimals, toTokenName);
+
+    if (!result.valid) {
+      if (result.error) {
+        setInputError(result.error);
       }
+      return;
     }
 
-    setToAmount(value);
+    setToAmount(result.value);
     setInputError(null);
   };
 
@@ -636,6 +632,19 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
       const givenDecimals = getGivenTokenDecimals();
       // In output mode, use the input_amount from the API response (which calculated the required input)
+      // Validate that input_amount exists when in output mode
+      if (
+        inputMode === "output" &&
+        (bestSwap.swap_result.input_amount === undefined ||
+          bestSwap.swap_result.input_amount === null)
+      ) {
+        addAlert(
+          "error",
+          "Invalid swap quote: missing input amount. Please try again.",
+        );
+        setSwapping(false);
+        return;
+      }
       // In input mode, use the user-entered fromAmount
       const rawAmount =
         inputMode === "output"

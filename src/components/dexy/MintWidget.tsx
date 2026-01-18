@@ -185,8 +185,10 @@ const MintWidget: FC = () => {
   const [inputMode, setInputMode] = useState<"input" | "output">("input");
   const [inputError, setInputError] = useState<string | null>(null);
 
-  // Track the previous input mode to prevent race conditions when switching
-  const prevInputModeRef = useRef<"input" | "output">(inputMode);
+  // Ref to skip quote fetch when amounts are programmatically updated (e.g., method selection).
+  // Using a ref instead of state avoids race conditions from async state updates and prevents
+  // extra re-renders when the flag is consumed.
+  const skipNextFetchRef = useRef<boolean>(false);
 
   // Loading states
   const [loading, setLoading] = useState(false);
@@ -662,15 +664,32 @@ const MintWidget: FC = () => {
                 a.output > b.output ? a : b,
               );
 
-              // Only auto-select method in "best" mode
               if (selectionMode === "best") {
+                // In best mode, auto-select the best method and update the output amount
                 setSelectedMethod(best.method);
                 setToAmount(
                   convertFromRawAmount(best.output, stablecoinDecimals),
                 );
+              } else {
+                // In manual mode, update the output amount based on currently selected method
+                const currentMethodResult = outputs.find(
+                  (o) => o.method === selectedMethod,
+                );
+                if (currentMethodResult) {
+                  setToAmount(
+                    convertFromRawAmount(
+                      currentMethodResult.output,
+                      stablecoinDecimals,
+                    ),
+                  );
+                } else {
+                  // If current method not available, fall back to best
+                  setSelectedMethod(best.method);
+                  setToAmount(
+                    convertFromRawAmount(best.output, stablecoinDecimals),
+                  );
+                }
               }
-              // In manual mode, don't change selectedMethod - the rateComparison
-              // will be updated and the UI will show correct values for each option
 
               if (best.method === "lp" && (arbExceeded || freeExceeded)) {
                 const exceeded =
@@ -683,9 +702,7 @@ const MintWidget: FC = () => {
               }
             } else {
               setNoPoolFound(true);
-              if (selectionMode === "best") {
-                setToAmount("");
-              }
+              setToAmount("");
             }
           } else {
             // Output mode: User specifies desired stablecoin, we calculate required ERG
@@ -769,18 +786,31 @@ const MintWidget: FC = () => {
             if (inputs.length > 0) {
               const best = inputs.reduce((a, b) => (a.input < b.input ? a : b));
 
-              // Only auto-select method in "best" mode
               if (selectionMode === "best") {
+                // In best mode, auto-select the best method and update the input amount
                 setSelectedMethod(best.method);
                 setFromAmount(convertFromRawAmount(best.input, ERG_DECIMALS));
+              } else {
+                // In manual mode, update the input amount based on currently selected method
+                const currentMethodResult = inputs.find(
+                  (i) => i.method === selectedMethod,
+                );
+                if (currentMethodResult) {
+                  setFromAmount(
+                    convertFromRawAmount(
+                      currentMethodResult.input,
+                      ERG_DECIMALS,
+                    ),
+                  );
+                } else {
+                  // If current method not available, fall back to best
+                  setSelectedMethod(best.method);
+                  setFromAmount(convertFromRawAmount(best.input, ERG_DECIMALS));
+                }
               }
-              // In manual mode, don't change selectedMethod - the rateComparison
-              // will be updated and the UI will show correct values for each option
             } else {
               setNoPoolFound(true);
-              if (selectionMode === "best") {
-                setFromAmount("");
-              }
+              setFromAmount("");
             }
           }
         } else {
@@ -847,25 +877,34 @@ const MintWidget: FC = () => {
       calculateMintOutputWithFees,
       calculateErgInputForMint,
       addAlert,
+      selectedMethod,
     ],
   );
 
-  // Debounced quote fetching
-  useEffect(() => {
-    // Detect if input mode just changed to prevent double-fetching
-    const modeJustChanged = prevInputModeRef.current !== inputMode;
-    prevInputModeRef.current = inputMode;
+  // Debounced quote fetching - only trigger on the "active" amount field.
+  //
+  // Bidirectional quote system:
+  // - In "input" mode, the user specifies the FROM amount (e.g., ERG to spend), and we
+  //   calculate the TO amount (e.g., stablecoin received) via API.
+  // - In "output" mode, the user specifies the TO amount (desired output), and we
+  //   calculate the required FROM amount via API.
+  // - We only watch the "active" field (fromAmount in input mode, toAmount in output mode)
+  //   to prevent re-fetching when the API response updates the non-active field.
+  // - skipNextFetchRef is used to skip fetches when amounts are updated programmatically
+  //   (e.g., when switching methods in manual mode), since we already have the quote data.
+  const activeAmount = inputMode === "input" ? fromAmount : toAmount;
 
-    // If mode just changed, skip this effect cycle - the amount change will trigger it
-    if (modeJustChanged) {
+  useEffect(() => {
+    // Skip fetch if flag is set (programmatic amount update from method selection)
+    if (skipNextFetchRef.current) {
+      skipNextFetchRef.current = false;
       return;
     }
 
-    const amount = inputMode === "input" ? fromAmount : toAmount;
-    if (amount) {
+    if (activeAmount) {
       const abortController = new AbortController();
       const timer = setTimeout(() => {
-        fetchQuotes(amount, inputMode, mode, abortController.signal);
+        fetchQuotes(activeAmount, inputMode, mode, abortController.signal);
       }, 500);
 
       return () => {
@@ -882,7 +921,7 @@ const MintWidget: FC = () => {
       setFreeMintStatus(null);
       setLpSwapQuote(null);
     }
-  }, [fromAmount, toAmount, inputMode, mode, fetchQuotes]);
+  }, [activeAmount, inputMode, mode, fetchQuotes]);
 
   // Handle direction flip
   const handleDirectionFlip = () => {
@@ -897,6 +936,36 @@ const MintWidget: FC = () => {
     setInputError(null);
   };
 
+  // Shared validation logic for amount inputs
+  // Returns { valid: true, value } if valid, or { valid: false } if invalid
+  const validateAmountInput = useCallback(
+    (
+      value: string,
+      decimals: number,
+    ): { valid: true; value: string } | { valid: false; error?: string } => {
+      // Empty value is valid (clears the field)
+      if (value === "") {
+        return { valid: true, value };
+      }
+
+      // Check basic format (numbers and optional decimal point)
+      if (!/^\d*\.?\d*$/.test(value)) {
+        return { valid: false };
+      }
+
+      // Validate decimal precision
+      if (getDecimalPlaces(value) > decimals) {
+        return {
+          valid: false,
+          error: `Maximum ${decimals} decimal places allowed`,
+        };
+      }
+
+      return { valid: true, value };
+    },
+    [],
+  );
+
   // Handle amount input
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -904,25 +973,20 @@ const MintWidget: FC = () => {
     // Switch to input mode when user types in "From" field
     if (inputMode !== "input") {
       setInputMode("input");
-      // Clear any errors from the previous mode
       setInputError(null);
     }
-
-    if (value === "") {
-      setFromAmount(value);
-      setInputError(null);
-      return;
-    }
-
-    if (!/^\d*\.?\d*$/.test(value)) return;
 
     const decimals = direction === "mint" ? ERG_DECIMALS : stablecoinDecimals;
-    if (getDecimalPlaces(value) > decimals) {
-      setInputError(`Maximum ${decimals} decimal places allowed`);
+    const result = validateAmountInput(value, decimals);
+
+    if (!result.valid) {
+      if (result.error) {
+        setInputError(result.error);
+      }
       return;
     }
 
-    setFromAmount(value);
+    setFromAmount(result.value);
     setInputError(null);
   };
 
@@ -933,25 +997,20 @@ const MintWidget: FC = () => {
     // Switch to output mode when user types in "To" field
     if (inputMode !== "output") {
       setInputMode("output");
-      // Clear any errors from the previous mode
       setInputError(null);
     }
-
-    if (value === "") {
-      setToAmount(value);
-      setInputError(null);
-      return;
-    }
-
-    if (!/^\d*\.?\d*$/.test(value)) return;
 
     const decimals = direction === "mint" ? stablecoinDecimals : ERG_DECIMALS;
-    if (getDecimalPlaces(value) > decimals) {
-      setInputError(`Maximum ${decimals} decimal places allowed`);
+    const result = validateAmountInput(value, decimals);
+
+    if (!result.valid) {
+      if (result.error) {
+        setInputError(result.error);
+      }
       return;
     }
 
-    setToAmount(value);
+    setToAmount(result.value);
     setInputError(null);
   };
 
@@ -1010,6 +1069,19 @@ const MintWidget: FC = () => {
         const fromDecimals =
           direction === "mint" ? ERG_DECIMALS : stablecoinDecimals;
         // In output mode, use the input_amount from the API response
+        // Validate that input_amount exists when in output mode
+        if (
+          inputMode === "output" &&
+          (lpSwapQuote?.swap_result?.input_amount === undefined ||
+            lpSwapQuote?.swap_result?.input_amount === null)
+        ) {
+          addAlert(
+            "error",
+            "Invalid swap quote: missing input amount. Please try again.",
+          );
+          setMinting(false);
+          return;
+        }
         const rawAmount =
           inputMode === "output" && lpSwapQuote?.swap_result
             ? lpSwapQuote.swap_result.input_amount
@@ -1495,7 +1567,13 @@ const MintWidget: FC = () => {
               <ToggleButtonGroup
                 value={mode}
                 exclusive
-                onChange={(_, newMode) => newMode && setMode(newMode)}
+                onChange={(_, newMode) => {
+                  if (newMode) {
+                    // Skip fetch when switching modes - we already have quote data
+                    skipNextFetchRef.current = true;
+                    setMode(newMode);
+                  }
+                }}
                 size="small"
                 fullWidth
               >
@@ -1546,15 +1624,15 @@ const MintWidget: FC = () => {
               placeholder="0.0"
               type="text"
               InputProps={{
-                startAdornment:
-                  loading && inputMode === "output" ? (
-                    <InputAdornment position="start">
-                      <CircularProgress size={16} />
-                    </InputAdornment>
-                  ) : null,
                 endAdornment: (
                   <InputAdornment position="end">
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      {inputMode === "output" && (
+                        <CircularProgress
+                          size={16}
+                          sx={{ opacity: loading ? 1 : 0 }}
+                        />
+                      )}
                       <Avatar
                         src={fromIcon}
                         alt={fromTokenName}
@@ -1636,15 +1714,15 @@ const MintWidget: FC = () => {
               placeholder="0.0"
               type="text"
               InputProps={{
-                startAdornment:
-                  loading && inputMode === "input" ? (
-                    <InputAdornment position="start">
-                      <CircularProgress size={16} />
-                    </InputAdornment>
-                  ) : null,
                 endAdornment: (
                   <InputAdornment position="end">
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      {inputMode === "input" && (
+                        <CircularProgress
+                          size={16}
+                          sx={{ opacity: loading ? 1 : 0 }}
+                        />
+                      )}
                       <Avatar
                         src={toIcon}
                         alt={toTokenName}
@@ -1679,14 +1757,16 @@ const MintWidget: FC = () => {
           </Box>
 
           {/* Method selection / info */}
-          {direction === "mint" && (fromAmount || toAmount) && !loading && (
-            <Box sx={{ mb: 2 }}>
+          {direction === "mint" && (fromAmount || toAmount) && (
+            <Box sx={{ mb: 2, minHeight: mode === "manual" ? 100 : undefined }}>
               {mode === "best" && selectedMethod && (
                 <Box
                   sx={{
                     p: 1.5,
                     bgcolor: theme.palette.background.default,
                     borderRadius: 1,
+                    opacity: loading ? 0.6 : 1,
+                    transition: "opacity 0.2s",
                   }}
                 >
                   <Box
@@ -1747,7 +1827,15 @@ const MintWidget: FC = () => {
               )}
 
               {mode === "manual" && (
-                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    flexWrap: "wrap",
+                    opacity: loading ? 0.6 : 1,
+                    transition: "opacity 0.2s",
+                  }}
+                >
                   {/* ArbMint option */}
                   <Tooltip
                     title={
@@ -1790,6 +1878,8 @@ const MintWidget: FC = () => {
                             (r) => r.method === "arbmint",
                           );
                           if (comparison) {
+                            // Skip fetch since we're using existing quote data
+                            skipNextFetchRef.current = true;
                             if (inputMode === "input") {
                               // User specified input, update output
                               setToAmount(
@@ -1908,6 +1998,8 @@ const MintWidget: FC = () => {
                             (r) => r.method === "freemint",
                           );
                           if (comparison) {
+                            // Skip fetch since we're using existing quote data
+                            skipNextFetchRef.current = true;
                             if (inputMode === "input") {
                               // User specified input, update output
                               setToAmount(
@@ -2004,6 +2096,8 @@ const MintWidget: FC = () => {
                     onClick={() => {
                       if (lpSwapQuote) {
                         setSelectedMethod("lp");
+                        // Skip fetch since we're using existing quote data
+                        skipNextFetchRef.current = true;
                         if (inputMode === "input") {
                           // User specified input, update output
                           setToAmount(
