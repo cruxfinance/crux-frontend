@@ -1414,21 +1414,44 @@ const MintWidget: FC = () => {
   };
 
   // Check if mint would exceed max amount
+  // In input mode: calculate output from fromAmount (ERG) and compare to max
+  // In output mode: directly compare toAmount (desired stablecoin) to max
   const checkMintExceedingMax = useCallback(
     (status: RawMintStatus | null): boolean => {
-      if (!status?.is_available || !fromAmount) return false;
-      const oracleRate = status.box_state?.oracle_rate;
-      if (!oracleRate) return false;
-      const rawAmount = convertToRawAmount(fromAmount, ERG_DECIMALS);
-      const mintOutput = calculateMintOutputWithFees(
-        rawAmount,
-        oracleRate,
-        status,
-      );
+      if (!status?.is_available) return false;
       const maxMint = status.max_mint_amount || 0;
-      return mintOutput > maxMint && maxMint > 0;
+      if (maxMint === 0) return false;
+
+      if (inputMode === "output") {
+        // User specified desired output amount - compare directly to max
+        if (!toAmount) return false;
+        const rawOutputAmount = convertToRawAmount(
+          toAmount,
+          stablecoinDecimals,
+        );
+        return rawOutputAmount > maxMint;
+      } else {
+        // User specified input amount - calculate output and compare to max
+        if (!fromAmount) return false;
+        const oracleRate = status.box_state?.oracle_rate;
+        if (!oracleRate) return false;
+        const rawAmount = convertToRawAmount(fromAmount, ERG_DECIMALS);
+        const mintOutput = calculateMintOutputWithFees(
+          rawAmount,
+          oracleRate,
+          status,
+        );
+        return mintOutput > maxMint;
+      }
     },
-    [fromAmount, convertToRawAmount, calculateMintOutputWithFees],
+    [
+      fromAmount,
+      toAmount,
+      inputMode,
+      stablecoinDecimals,
+      convertToRawAmount,
+      calculateMintOutputWithFees,
+    ],
   );
 
   // Memoized values for mint exceeding max
