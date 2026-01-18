@@ -2210,7 +2210,23 @@ const MintWidget: FC = () => {
                     <Typography variant="caption" color="text.secondary">
                       ArbMint Max
                     </Typography>
-                    <Typography variant="caption">
+                    <Typography
+                      variant="caption"
+                      onClick={() => {
+                        const maxAmount = getMaxMintDisplay(arbMintStatus);
+                        if (maxAmount) {
+                          setToAmount(maxAmount);
+                          setInputMode("output");
+                          setInputError(null);
+                        }
+                      }}
+                      sx={{
+                        cursor: "pointer",
+                        "&:hover": {
+                          textDecoration: "underline",
+                        },
+                      }}
+                    >
                       {getMaxMintDisplay(arbMintStatus)}{" "}
                       {currentInstance?.name || selectedInstance}
                     </Typography>
@@ -2227,7 +2243,23 @@ const MintWidget: FC = () => {
                     <Typography variant="caption" color="text.secondary">
                       FreeMint Max
                     </Typography>
-                    <Typography variant="caption">
+                    <Typography
+                      variant="caption"
+                      onClick={() => {
+                        const maxAmount = getMaxMintDisplay(freeMintStatus);
+                        if (maxAmount) {
+                          setToAmount(maxAmount);
+                          setInputMode("output");
+                          setInputError(null);
+                        }
+                      }}
+                      sx={{
+                        cursor: "pointer",
+                        "&:hover": {
+                          textDecoration: "underline",
+                        },
+                      }}
+                    >
                       {getMaxMintDisplay(freeMintStatus)}{" "}
                       {currentInstance?.name || selectedInstance}
                     </Typography>
