@@ -23,6 +23,8 @@ import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
+import { MinerFeeSelector } from "@components/common/MinerFeeSelector";
+import { useMinerFee } from "@contexts/MinerFeeContext";
 
 declare global {
   interface Window {
@@ -115,6 +117,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const theme = useTheme();
   const { addAlert } = useAlert();
   const { dAppWallet } = useWallet();
+  const { minerFee, setMinerFee } = useMinerFee();
 
   const [fromToken, setFromToken] = useState<"token" | "erg">("erg");
   const [fromAmount, setFromAmount] = useState<string>("");
@@ -660,6 +663,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         given_token_amount: rawAmount.toString(),
         pool_id: bestSwap.pool_state.pool_id,
         fee_token: feeToken,
+        miner_fee: minerFee.toString(),
       });
 
       const buildResponse = await fetch(`${buildEndpoint}?${params}`, {
@@ -1106,6 +1110,14 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                   {getMinimumReceived()} {toTokenName}
                 </Typography>
               </Box>
+              <Box sx={{ mb: 0.5 }}>
+                <MinerFeeSelector
+                  minerFee={minerFee}
+                  onChange={setMinerFee}
+                  disabled={swapping}
+                  ergPrice={ergPrice}
+                />
+              </Box>
               <Box
                 sx={{
                   display: "flex",
@@ -1114,7 +1126,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 }}
               >
                 <Typography variant="caption" color="text.secondary">
-                  Transaction Fee
+                  Service Fee
                 </Typography>
                 <Typography variant="caption">
                   {convertFromRawAmount(

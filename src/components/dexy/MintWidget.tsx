@@ -39,6 +39,8 @@ import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
 import { trpc } from "@lib/trpc";
+import { MinerFeeSelector } from "@components/common/MinerFeeSelector";
+import { useMinerFee } from "@contexts/MinerFeeContext";
 
 declare global {
   interface Window {
@@ -172,6 +174,7 @@ const MintWidget: FC = () => {
   const theme = useTheme();
   const { addAlert } = useAlert();
   const { dAppWallet } = useWallet();
+  const { minerFee, setMinerFee } = useMinerFee();
 
   // Instance and mode state
   const [selectedInstance, setSelectedInstance] = useState<string>("USE");
@@ -1097,7 +1100,7 @@ const MintWidget: FC = () => {
         }
 
         const buildRes = await fetch(
-          `${process.env.CRUX_API}/spectrum/build_swap_tx?user_addresses=${userAddresses}&target_address=${changeAddress}&given_token_id=${givenTokenId}&given_token_amount=${rawAmount}&pool_id=${poolId}&fee_token=${feeToken}`,
+          `${process.env.CRUX_API}/spectrum/build_swap_tx?user_addresses=${userAddresses}&target_address=${changeAddress}&given_token_id=${givenTokenId}&given_token_amount=${rawAmount}&pool_id=${poolId}&fee_token=${feeToken}&miner_fee=${minerFee}`,
         );
 
         if (!buildRes.ok) {
@@ -1120,6 +1123,7 @@ const MintWidget: FC = () => {
           target_address: changeAddress,
           erg_amount: rawAmount.toString(),
           fee_token: feeToken,
+          miner_fee: minerFee.toString(),
         });
 
         const buildRes = await fetch(
@@ -2285,12 +2289,26 @@ const MintWidget: FC = () => {
             <Box
               sx={{
                 mb: 2,
-                p: 1,
+                p: 1.5,
                 bgcolor: theme.palette.background.default,
                 borderRadius: 1,
               }}
             >
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Box sx={{ mb: 0.5 }}>
+                <MinerFeeSelector
+                  minerFee={minerFee}
+                  onChange={setMinerFee}
+                  disabled={minting}
+                  ergPrice={ergPrice}
+                />
+              </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mb: 0.5,
+                }}
+              >
                 <Typography variant="caption" color="text.secondary">
                   Service Fee
                 </Typography>
