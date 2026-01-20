@@ -1637,10 +1637,9 @@ const MintWidget: FC = () => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
-                mt: 1,
                 mb: 1,
                 position: "relative",
-                minHeight: 24,
+                minHeight: 22,
               }}
             >
               <Typography variant="caption" color="text.secondary">
@@ -1734,9 +1733,8 @@ const MintWidget: FC = () => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
-                mt: 1,
                 mb: 1,
-                minHeight: 24,
+                minHeight: 22,
               }}
             >
               <Typography variant="caption" color="text.secondary">
