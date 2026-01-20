@@ -1601,40 +1601,10 @@ const MintWidget: FC = () => {
 
           {/* From Input */}
           <Box sx={{ mb: 1 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 0.5,
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                From
-              </Typography>
-              {(direction === "mint"
-                ? formatBalance(ergBalance, ERG_DECIMALS)
-                : formatBalance(stablecoinBalance, stablecoinDecimals)) && (
-                <Typography
-                  variant="caption"
-                  color="primary"
-                  sx={{
-                    cursor: "pointer",
-                    "&:hover": { textDecoration: "underline" },
-                  }}
-                  onClick={handleMaxClick}
-                >
-                  Balance:{" "}
-                  {direction === "mint"
-                    ? formatBalance(ergBalance, ERG_DECIMALS)
-                    : formatBalance(stablecoinBalance, stablecoinDecimals)}{" "}
-                  {fromTokenName}
-                </Typography>
-              )}
-            </Box>
             <TextField
               fullWidth
               variant="outlined"
+              size="small"
               value={fromAmount}
               onChange={handleFromAmountChange}
               placeholder="0.0"
@@ -1662,69 +1632,76 @@ const MintWidget: FC = () => {
                 ),
               }}
             />
-            {inputError && inputMode === "input" && (
-              <Typography
-                variant="caption"
-                color="error"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {inputError}
-              </Typography>
-            )}
-            {fromAmount && !inputError && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {getUsdValue(fromAmount, direction === "mint")}
-              </Typography>
-            )}
-          </Box>
-
-          {/* Swap Direction Button */}
-          <Box sx={{ display: "flex", justifyContent: "center", my: 1 }}>
-            <IconButton
-              onClick={handleDirectionFlip}
-              disabled={loading || minting}
-              sx={{
-                bgcolor: theme.palette.background.default,
-                border: `1px solid ${theme.palette.divider}`,
-                "&:hover": { bgcolor: theme.palette.action.hover },
-              }}
-            >
-              <SwapVertIcon />
-            </IconButton>
-          </Box>
-
-          {/* To Input */}
-          <Box sx={{ mb: 2 }}>
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
-                mb: 0.5,
+                alignItems: "flex-start",
+                mt: 1,
+                mb: 1,
+                position: "relative",
+                minHeight: 24,
               }}
             >
               <Typography variant="caption" color="text.secondary">
-                To
+                {fromAmount && !inputError
+                  ? getUsdValue(fromAmount, direction === "mint")
+                  : " "}
               </Typography>
+              {/* Swap Direction Button - centered */}
+              <IconButton
+                onClick={handleDirectionFlip}
+                disabled={loading || minting}
+                size="small"
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  bgcolor: theme.palette.background.default,
+                  border: `1px solid ${theme.palette.divider}`,
+                  "&:hover": { bgcolor: theme.palette.action.hover },
+                  p: 0.5,
+                }}
+              >
+                <SwapVertIcon fontSize="small" />
+              </IconButton>
               {(direction === "mint"
-                ? formatBalance(stablecoinBalance, stablecoinDecimals)
-                : formatBalance(ergBalance, ERG_DECIMALS)) && (
-                <Typography variant="caption" color="text.secondary">
+                ? formatBalance(ergBalance, ERG_DECIMALS)
+                : formatBalance(stablecoinBalance, stablecoinDecimals)) && (
+                <Typography
+                  variant="caption"
+                  color="primary"
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": { textDecoration: "underline" },
+                  }}
+                  onClick={handleMaxClick}
+                >
                   Balance:{" "}
                   {direction === "mint"
-                    ? formatBalance(stablecoinBalance, stablecoinDecimals)
-                    : formatBalance(ergBalance, ERG_DECIMALS)}{" "}
-                  {toTokenName}
+                    ? formatBalance(ergBalance, ERG_DECIMALS)
+                    : formatBalance(stablecoinBalance, stablecoinDecimals)}{" "}
+                  {fromTokenName}
                 </Typography>
               )}
             </Box>
+            {inputError && inputMode === "input" && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ display: "block" }}
+              >
+                {inputError}
+              </Typography>
+            )}
+          </Box>
+
+          {/* To Input */}
+          <Box sx={{ mb: 2 }}>
             <TextField
               fullWidth
               variant="outlined"
+              size="small"
               value={toAmount}
               onChange={handleToAmountChange}
               placeholder="0.0"
@@ -1752,22 +1729,40 @@ const MintWidget: FC = () => {
                 ),
               }}
             />
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                mt: 1,
+                mb: 1,
+                minHeight: 24,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {toAmount && !inputError
+                  ? getUsdValue(toAmount, direction !== "mint")
+                  : " "}
+              </Typography>
+              {(direction === "mint"
+                ? formatBalance(stablecoinBalance, stablecoinDecimals)
+                : formatBalance(ergBalance, ERG_DECIMALS)) && (
+                <Typography variant="caption" color="text.secondary">
+                  Balance:{" "}
+                  {direction === "mint"
+                    ? formatBalance(stablecoinBalance, stablecoinDecimals)
+                    : formatBalance(ergBalance, ERG_DECIMALS)}{" "}
+                  {toTokenName}
+                </Typography>
+              )}
+            </Box>
             {inputError && inputMode === "output" && (
               <Typography
                 variant="caption"
                 color="error"
-                sx={{ mt: 0.5, display: "block" }}
+                sx={{ display: "block" }}
               >
                 {inputError}
-              </Typography>
-            )}
-            {toAmount && !inputError && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {getUsdValue(toAmount, direction !== "mint")}
               </Typography>
             )}
           </Box>

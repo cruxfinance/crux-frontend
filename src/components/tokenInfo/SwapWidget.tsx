@@ -844,35 +844,6 @@ const SwapWidget: FC<SwapWidgetProps> = ({
 
           {/* From Input */}
           <Box sx={{ mb: 1 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 0.5,
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                {fromAmount && !inputError
-                  ? getUsdValue(fromAmount, fromToken === "erg")
-                  : " "}
-              </Typography>
-              {getFormattedBalance() !== null && (
-                <Typography
-                  variant="caption"
-                  color="primary"
-                  sx={{
-                    cursor: "pointer",
-                    "&:hover": {
-                      textDecoration: "underline",
-                    },
-                  }}
-                  onClick={handleMaxClick}
-                >
-                  Balance: {getFormattedBalance()} {fromTokenName}
-                </Typography>
-              )}
-            </Box>
             <TextField
               fullWidth
               variant="outlined"
@@ -920,31 +891,20 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 ),
               }}
             />
-            {inputError && inputMode === "input" && (
-              <Typography
-                variant="caption"
-                color="error"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {inputError}
-              </Typography>
-            )}
-          </Box>
-
-          {/* To Input */}
-          <Box sx={{ mb: 1 }}>
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
-                mb: 0.5,
+                alignItems: "flex-start",
+                mt: 1,
+                mb: 1,
                 position: "relative",
+                minHeight: 24,
               }}
             >
               <Typography variant="caption" color="text.secondary">
-                {toAmount && !inputError
-                  ? getUsdValue(toAmount, fromToken === "token")
+                {fromAmount && !inputError
+                  ? getUsdValue(fromAmount, fromToken === "erg")
                   : " "}
               </Typography>
               {/* Swap Direction Button - centered */}
@@ -966,29 +926,35 @@ const SwapWidget: FC<SwapWidgetProps> = ({
               >
                 <SwapVertIcon fontSize="small" />
               </IconButton>
-              {(() => {
-                const balance =
-                  fromToken === "token" ? ergBalance : tokenBalance;
-                const decimals =
-                  fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
-
-                if (!balance || decimals === null) {
-                  return null;
-                }
-
-                const balanceNum = parseInt(balance, 10);
-                const formatted = convertFromRawAmount(balanceNum, decimals);
-                const numFormatted = parseFloat(formatted);
-
-                const formattedBalance = formatBalanceByValue(numFormatted);
-
-                return (
-                  <Typography variant="caption" color="text.secondary">
-                    Balance: {formattedBalance} {toTokenName}
-                  </Typography>
-                );
-              })()}
+              {getFormattedBalance() !== null && (
+                <Typography
+                  variant="caption"
+                  color="primary"
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                  onClick={handleMaxClick}
+                >
+                  Balance: {getFormattedBalance()} {fromTokenName}
+                </Typography>
+              )}
             </Box>
+            {inputError && inputMode === "input" && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ display: "block" }}
+              >
+                {inputError}
+              </Typography>
+            )}
+          </Box>
+
+          {/* To Input */}
+          <Box sx={{ mb: 1 }}>
             <TextField
               fullWidth
               variant="outlined"
@@ -1036,11 +1002,49 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 ),
               }}
             />
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                mt: 1,
+                mb: 1,
+                minHeight: 24,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {toAmount && !inputError
+                  ? getUsdValue(toAmount, fromToken === "token")
+                  : " "}
+              </Typography>
+              {(() => {
+                const balance =
+                  fromToken === "token" ? ergBalance : tokenBalance;
+                const decimals =
+                  fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
+
+                if (!balance || decimals === null) {
+                  return null;
+                }
+
+                const balanceNum = parseInt(balance, 10);
+                const formatted = convertFromRawAmount(balanceNum, decimals);
+                const numFormatted = parseFloat(formatted);
+
+                const formattedBalance = formatBalanceByValue(numFormatted);
+
+                return (
+                  <Typography variant="caption" color="text.secondary">
+                    Balance: {formattedBalance} {toTokenName}
+                  </Typography>
+                );
+              })()}
+            </Box>
             {inputError && inputMode === "output" && (
               <Typography
                 variant="caption"
                 color="error"
-                sx={{ mt: 0.5, display: "block" }}
+                sx={{ display: "block" }}
               >
                 {inputError}
               </Typography>
