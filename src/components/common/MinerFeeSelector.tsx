@@ -19,6 +19,7 @@ interface MinerFeeSelectorProps {
   disabled?: boolean;
   ergPrice?: number | null; // ERG price in USD for displaying fee value
   defaultExpanded?: boolean; // Whether to show expanded by default
+  alwaysExpanded?: boolean; // Always show the slider (no collapse)
   compactMode?: boolean; // Use body2 typography instead of caption for settings popover
 }
 
@@ -28,10 +29,12 @@ export const MinerFeeSelector: FC<MinerFeeSelectorProps> = ({
   disabled = false,
   ergPrice = null,
   defaultExpanded = false,
+  alwaysExpanded = false,
   compactMode = false,
 }) => {
   const textVariant = compactMode ? "body2" : "caption";
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const showSlider = alwaysExpanded || expanded;
   const [inputValue, setInputValue] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -115,21 +118,21 @@ export const MinerFeeSelector: FC<MinerFeeSelectorProps> = ({
         <Typography
           variant={textVariant}
           color="text.secondary"
-          onClick={() => !disabled && setExpanded(!expanded)}
+          onClick={() => !disabled && !alwaysExpanded && setExpanded(!expanded)}
           sx={{
-            cursor: disabled ? "default" : "pointer",
-            "&:hover": disabled ? {} : { textDecoration: "underline" },
+            cursor: disabled || alwaysExpanded ? "default" : "pointer",
+            "&:hover":
+              disabled || alwaysExpanded ? {} : { textDecoration: "underline" },
           }}
         >
           {formatFee(minerFee)} ERG{getUsdValue() && ` (${getUsdValue()})`}
         </Typography>
       </Box>
 
-      <Collapse in={expanded && !disabled}>
+      <Collapse in={showSlider && !disabled}>
         <Box
           sx={{
-            mt: 1.5,
-            px: 0.5,
+            mt: 0.75,
             display: "flex",
             alignItems: "center",
             gap: 1.5,
@@ -142,7 +145,7 @@ export const MinerFeeSelector: FC<MinerFeeSelectorProps> = ({
             step={0.01}
             onChange={handleSliderChange}
             size="small"
-            sx={{ flex: 1, mr: 1 }}
+            sx={{ flex: 1 }}
           />
           <TextField
             size="small"
@@ -152,19 +155,13 @@ export const MinerFeeSelector: FC<MinerFeeSelectorProps> = ({
             onBlur={handleInputBlur}
             type="number"
             InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Typography variant={textVariant} color="text.secondary">
-                    ERG
-                  </Typography>
-                </InputAdornment>
-              ),
+              endAdornment: <InputAdornment position="end">ERG</InputAdornment>,
               inputProps: {
                 min: 0.001,
                 step: 0.001,
               },
             }}
-            sx={{ width: 130 }}
+            sx={{ width: 145 }}
           />
         </Box>
       </Collapse>

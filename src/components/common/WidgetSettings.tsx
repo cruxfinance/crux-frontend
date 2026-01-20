@@ -1,6 +1,7 @@
 import React, { FC, useState } from "react";
 import {
   Box,
+  Divider,
   FormControlLabel,
   IconButton,
   Popover,
@@ -115,7 +116,6 @@ export const WidgetSettings: FC<WidgetSettingsProps> = ({
           label="Pay fee in CRUX"
           labelPlacement="start"
           sx={{
-            mb: 2,
             mx: 0,
             width: "100%",
             justifyContent: "space-between",
@@ -125,17 +125,17 @@ export const WidgetSettings: FC<WidgetSettingsProps> = ({
           }}
         />
 
+        <Divider sx={{ my: 2 }} />
+
         {/* Miner Fee Selector */}
-        <Box>
-          <MinerFeeSelector
-            minerFee={minerFee}
-            onChange={onMinerFeeChange}
-            disabled={disabled}
-            ergPrice={ergPrice}
-            defaultExpanded
-            compactMode
-          />
-        </Box>
+        <MinerFeeSelector
+          minerFee={minerFee}
+          onChange={onMinerFeeChange}
+          disabled={disabled}
+          ergPrice={ergPrice}
+          alwaysExpanded
+          compactMode
+        />
       </Popover>
     </>
   );
