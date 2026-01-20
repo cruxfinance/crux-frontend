@@ -853,34 +853,30 @@ const SwapWidget: FC<SwapWidgetProps> = ({
               }}
             >
               <Typography variant="caption" color="text.secondary">
-                From
+                {fromAmount && !inputError
+                  ? getUsdValue(fromAmount, fromToken === "erg")
+                  : " "}
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                {fromAmount && !inputError && (
-                  <Typography variant="caption" color="text.secondary">
-                    {getUsdValue(fromAmount, fromToken === "erg")}
-                  </Typography>
-                )}
-                {getFormattedBalance() !== null && (
-                  <Typography
-                    variant="caption"
-                    color="primary"
-                    sx={{
-                      cursor: "pointer",
-                      "&:hover": {
-                        textDecoration: "underline",
-                      },
-                    }}
-                    onClick={handleMaxClick}
-                  >
-                    Balance: {getFormattedBalance()} {fromTokenName}
-                  </Typography>
-                )}
-              </Box>
+              {getFormattedBalance() !== null && (
+                <Typography
+                  variant="caption"
+                  color="primary"
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                  onClick={handleMaxClick}
+                >
+                  Balance: {getFormattedBalance()} {fromTokenName}
+                </Typography>
+              )}
             </Box>
             <TextField
               fullWidth
               variant="outlined"
+              size="small"
               value={fromAmount}
               onChange={handleFromAmountChange}
               placeholder="0.0"
@@ -947,7 +943,9 @@ const SwapWidget: FC<SwapWidgetProps> = ({
               }}
             >
               <Typography variant="caption" color="text.secondary">
-                To
+                {toAmount && !inputError
+                  ? getUsdValue(toAmount, fromToken === "token")
+                  : " "}
               </Typography>
               {/* Swap Direction Button - centered */}
               <IconButton
@@ -968,39 +966,33 @@ const SwapWidget: FC<SwapWidgetProps> = ({
               >
                 <SwapVertIcon fontSize="small" />
               </IconButton>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                {toAmount && !inputError && (
+              {(() => {
+                const balance =
+                  fromToken === "token" ? ergBalance : tokenBalance;
+                const decimals =
+                  fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
+
+                if (!balance || decimals === null) {
+                  return null;
+                }
+
+                const balanceNum = parseInt(balance, 10);
+                const formatted = convertFromRawAmount(balanceNum, decimals);
+                const numFormatted = parseFloat(formatted);
+
+                const formattedBalance = formatBalanceByValue(numFormatted);
+
+                return (
                   <Typography variant="caption" color="text.secondary">
-                    {getUsdValue(toAmount, fromToken === "token")}
+                    Balance: {formattedBalance} {toTokenName}
                   </Typography>
-                )}
-                {(() => {
-                  const balance =
-                    fromToken === "token" ? ergBalance : tokenBalance;
-                  const decimals =
-                    fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
-
-                  if (!balance || decimals === null) {
-                    return null;
-                  }
-
-                  const balanceNum = parseInt(balance, 10);
-                  const formatted = convertFromRawAmount(balanceNum, decimals);
-                  const numFormatted = parseFloat(formatted);
-
-                  const formattedBalance = formatBalanceByValue(numFormatted);
-
-                  return (
-                    <Typography variant="caption" color="text.secondary">
-                      Balance: {formattedBalance} {toTokenName}
-                    </Typography>
-                  );
-                })()}
-              </Box>
+                );
+              })()}
             </Box>
             <TextField
               fullWidth
               variant="outlined"
+              size="small"
               value={toAmount}
               onChange={handleToAmountChange}
               placeholder="0.0"
