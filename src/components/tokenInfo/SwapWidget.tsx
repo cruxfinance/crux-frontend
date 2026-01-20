@@ -855,21 +855,28 @@ const SwapWidget: FC<SwapWidgetProps> = ({
               <Typography variant="caption" color="text.secondary">
                 From
               </Typography>
-              {getFormattedBalance() !== null && (
-                <Typography
-                  variant="caption"
-                  color="primary"
-                  sx={{
-                    cursor: "pointer",
-                    "&:hover": {
-                      textDecoration: "underline",
-                    },
-                  }}
-                  onClick={handleMaxClick}
-                >
-                  Balance: {getFormattedBalance()} {fromTokenName}
-                </Typography>
-              )}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                {fromAmount && !inputError && (
+                  <Typography variant="caption" color="text.secondary">
+                    {getUsdValue(fromAmount, fromToken === "erg")}
+                  </Typography>
+                )}
+                {getFormattedBalance() !== null && (
+                  <Typography
+                    variant="caption"
+                    color="primary"
+                    sx={{
+                      cursor: "pointer",
+                      "&:hover": {
+                        textDecoration: "underline",
+                      },
+                    }}
+                    onClick={handleMaxClick}
+                  >
+                    Balance: {getFormattedBalance()} {fromTokenName}
+                  </Typography>
+                )}
+              </Box>
             </Box>
             <TextField
               fullWidth
@@ -926,33 +933,6 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 {inputError}
               </Typography>
             )}
-            {fromAmount && !inputError && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {getUsdValue(fromAmount, fromToken === "erg")}
-              </Typography>
-            )}
-          </Box>
-
-          {/* Swap Direction Button */}
-          <Box sx={{ display: "flex", justifyContent: "center", my: -0.5 }}>
-            <IconButton
-              onClick={handleSwapDirection}
-              disabled={loading || swapping}
-              size="small"
-              sx={{
-                bgcolor: theme.palette.background.default,
-                border: `1px solid ${theme.palette.divider}`,
-                "&:hover": {
-                  bgcolor: theme.palette.action.hover,
-                },
-              }}
-            >
-              <SwapVertIcon fontSize="small" />
-            </IconButton>
           </Box>
 
           {/* To Input */}
@@ -963,33 +943,60 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 justifyContent: "space-between",
                 alignItems: "center",
                 mb: 0.5,
+                position: "relative",
               }}
             >
               <Typography variant="caption" color="text.secondary">
                 To
               </Typography>
-              {(() => {
-                const balance =
-                  fromToken === "token" ? ergBalance : tokenBalance;
-                const decimals =
-                  fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
-
-                if (!balance || decimals === null) {
-                  return null;
-                }
-
-                const balanceNum = parseInt(balance, 10);
-                const formatted = convertFromRawAmount(balanceNum, decimals);
-                const numFormatted = parseFloat(formatted);
-
-                const formattedBalance = formatBalanceByValue(numFormatted);
-
-                return (
+              {/* Swap Direction Button - centered */}
+              <IconButton
+                onClick={handleSwapDirection}
+                disabled={loading || swapping}
+                size="small"
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  bgcolor: theme.palette.background.default,
+                  border: `1px solid ${theme.palette.divider}`,
+                  "&:hover": {
+                    bgcolor: theme.palette.action.hover,
+                  },
+                  p: 0.5,
+                }}
+              >
+                <SwapVertIcon fontSize="small" />
+              </IconButton>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                {toAmount && !inputError && (
                   <Typography variant="caption" color="text.secondary">
-                    Balance: {formattedBalance} {toTokenName}
+                    {getUsdValue(toAmount, fromToken === "token")}
                   </Typography>
-                );
-              })()}
+                )}
+                {(() => {
+                  const balance =
+                    fromToken === "token" ? ergBalance : tokenBalance;
+                  const decimals =
+                    fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
+
+                  if (!balance || decimals === null) {
+                    return null;
+                  }
+
+                  const balanceNum = parseInt(balance, 10);
+                  const formatted = convertFromRawAmount(balanceNum, decimals);
+                  const numFormatted = parseFloat(formatted);
+
+                  const formattedBalance = formatBalanceByValue(numFormatted);
+
+                  return (
+                    <Typography variant="caption" color="text.secondary">
+                      Balance: {formattedBalance} {toTokenName}
+                    </Typography>
+                  );
+                })()}
+              </Box>
             </Box>
             <TextField
               fullWidth
@@ -1044,15 +1051,6 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 sx={{ mt: 0.5, display: "block" }}
               >
                 {inputError}
-              </Typography>
-            )}
-            {toAmount && !inputError && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {getUsdValue(toAmount, fromToken === "token")}
               </Typography>
             )}
           </Box>
