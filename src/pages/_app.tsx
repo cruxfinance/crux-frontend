@@ -15,13 +15,16 @@ import { useRouter } from "next/router";
 import { ScrollLockProvider } from "@contexts/ScrollLockContext";
 import RefreshAccessLevel from "@components/user/RefreshAccessLevel";
 import { AlertProvider } from "@lib/contexts/AlertContext";
+import { MinerFeeProvider } from "@lib/contexts/MinerFeeContext";
 import AlertComponent from "@components/Alert";
 import NotSubscribedNotifyDialog from "@components/dialogs/NotSubscribedNotifyDialog";
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [theme, setTheme] = useState(DarkTheme);
   const router = useRouter();
-  const isNoLayoutPage = router.pathname === "/ergopad-chart" || router.pathname.includes('embedded-charts');
+  const isNoLayoutPage =
+    router.pathname === "/ergopad-chart" ||
+    router.pathname.includes("embedded-charts");
 
   return (
     <>
@@ -37,20 +40,22 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
           <ThemeProvider theme={theme}>
             <CssBaseline enableColorScheme />
             <AlertProvider>
-              <WalletProvider>
-                <ScrollLockProvider>
-                  {isNoLayoutPage ? (
-                    <Component {...pageProps} />
-                  ) : (
-                    <Layout>
+              <MinerFeeProvider>
+                <WalletProvider>
+                  <ScrollLockProvider>
+                    {isNoLayoutPage ? (
                       <Component {...pageProps} />
-                    </Layout>
-                  )}
-                  <AlertComponent />
-                  <NotSubscribedNotifyDialog />
-                </ScrollLockProvider>
-                <RefreshAccessLevel />
-              </WalletProvider>
+                    ) : (
+                      <Layout>
+                        <Component {...pageProps} />
+                      </Layout>
+                    )}
+                    <AlertComponent />
+                    <NotSubscribedNotifyDialog />
+                  </ScrollLockProvider>
+                  <RefreshAccessLevel />
+                </WalletProvider>
+              </MinerFeeProvider>
             </AlertProvider>
           </ThemeProvider>
         </LocalizationProvider>

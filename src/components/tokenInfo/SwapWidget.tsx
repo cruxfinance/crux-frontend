@@ -10,19 +10,22 @@ import {
   useTheme,
   InputAdornment,
   Avatar,
-  Switch,
-  FormControlLabel,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Checkbox,
+  FormControlLabel,
   FormGroup,
+  Collapse,
 } from "@mui/material";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
+import { WidgetSettings } from "@components/common/WidgetSettings";
+import { useMinerFee } from "@contexts/MinerFeeContext";
 
 declare global {
   interface Window {
@@ -53,12 +56,15 @@ interface PoolState {
 
 interface SwapResult {
   pool: PoolState;
+  input_amount: number;
   output_amount: number;
   price_impact: number;
   effective_price: number;
   fee_amount: number;
   fee_token: string;
   fee_usd: number;
+  lp_fee_percent?: number;
+  lp_fee_amount?: number;
 }
 
 interface BestSwapResponse {
@@ -114,10 +120,12 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const theme = useTheme();
   const { addAlert } = useAlert();
   const { dAppWallet } = useWallet();
+  const { minerFee, setMinerFee } = useMinerFee();
 
   const [fromToken, setFromToken] = useState<"token" | "erg">("erg");
   const [fromAmount, setFromAmount] = useState<string>("");
   const [toAmount, setToAmount] = useState<string>("");
+  const [inputMode, setInputMode] = useState<"input" | "output">("input");
   const [loading, setLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
   const [bestSwap, setBestSwap] = useState<BestSwapResponse | null>(null);
@@ -141,6 +149,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [showDisclaimerDialog, setShowDisclaimerDialog] =
     useState<boolean>(false);
   const [disclaimerCheckbox, setDisclaimerCheckbox] = useState<boolean>(false);
+  const [feesExpanded, setFeesExpanded] = useState<boolean>(false);
 
   const givenTokenId = fromToken === "token" ? tokenId : ERG_TOKEN_ID;
   const requestedTokenId = fromToken === "token" ? ERG_TOKEN_ID : tokenId;
@@ -325,25 +334,37 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   );
 
   const fetchBestSwap = useCallback(
-    async (amount: string, signal?: AbortSignal) => {
+    async (amount: string, mode: "input" | "output", signal?: AbortSignal) => {
       if (!amount || parseFloat(amount) <= 0 || tokenDecimals === null) {
-        setToAmount("");
+        if (mode === "input") {
+          setToAmount("");
+        } else {
+          setFromAmount("");
+        }
         setBestSwap(null);
         setNoPoolFound(false);
         return;
       }
 
       // Validate minimum amount
-      const givenDecimals = getGivenTokenDecimals();
-      const minAmount = getMinimumSwapAmount(givenDecimals);
+      const amountDecimals =
+        mode === "input"
+          ? getGivenTokenDecimals()
+          : getRequestedTokenDecimals();
+      const minAmount = getMinimumSwapAmount(amountDecimals);
       const numericAmount = parseFloat(amount);
+      const tokenName = mode === "input" ? fromTokenName : toTokenName;
 
       if (numericAmount < minAmount) {
-        setToAmount("");
+        if (mode === "input") {
+          setToAmount("");
+        } else {
+          setFromAmount("");
+        }
         setBestSwap(null);
         setNoPoolFound(false);
         setInputError(
-          `Minimum swap amount is ${minAmount.toFixed(givenDecimals)} ${fromTokenName}`,
+          `Minimum amount is ${minAmount.toFixed(amountDecimals)} ${tokenName}`,
         );
         return;
       }
@@ -355,15 +376,21 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       try {
         const givenDecimals = getGivenTokenDecimals();
         const requestedDecimals = getRequestedTokenDecimals();
-        const rawAmount = convertToRawAmount(amount, givenDecimals);
+        const rawAmount = convertToRawAmount(amount, amountDecimals);
 
         const endpoint = `${process.env.CRUX_API}/spectrum/best_swap`;
         const params = new URLSearchParams({
           given_token_id: givenTokenId,
-          given_token_amount: rawAmount.toString(),
           requested_token_id: requestedTokenId,
           fee_token: feeToken,
         });
+
+        // Use appropriate parameter based on mode
+        if (mode === "input") {
+          params.set("given_token_amount", rawAmount.toString());
+        } else {
+          params.set("requested_token_amount", rawAmount.toString());
+        }
 
         const response = await fetch(`${endpoint}?${params}`, {
           method: "GET",
@@ -376,7 +403,11 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         if (!response.ok) {
           if (response.status === 404) {
             setNoPoolFound(true);
-            setToAmount("");
+            if (mode === "input") {
+              setToAmount("");
+            } else {
+              setFromAmount("");
+            }
             setBestSwap(null);
             setLoading(false);
             return;
@@ -387,11 +418,20 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         const data: BestSwapResponse = await response.json();
         setBestSwap(data);
 
-        const outputAmountFormatted = convertFromRawAmount(
-          data.swap_result.output_amount,
-          requestedDecimals,
-        );
-        setToAmount(outputAmountFormatted);
+        // Update the calculated field based on mode
+        if (mode === "input") {
+          const outputAmountFormatted = convertFromRawAmount(
+            data.swap_result.output_amount,
+            requestedDecimals,
+          );
+          setToAmount(outputAmountFormatted);
+        } else {
+          const inputAmountFormatted = convertFromRawAmount(
+            data.swap_result.input_amount,
+            givenDecimals,
+          );
+          setFromAmount(inputAmountFormatted);
+        }
       } catch (error: any) {
         // Don't show error if request was aborted
         if (error.name === "AbortError") {
@@ -399,7 +439,11 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         }
         console.error("Error fetching best swap:", error);
         addAlert("error", error.message || "failed to fetch swap quote");
-        setToAmount("");
+        if (mode === "input") {
+          setToAmount("");
+        } else {
+          setFromAmount("");
+        }
         setBestSwap(null);
       } finally {
         setLoading(false);
@@ -416,14 +460,20 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       convertFromRawAmount,
       feeToken,
       fromTokenName,
+      toTokenName,
     ],
   );
 
+  // Debounced quote fetching - only trigger on the "active" amount field
+  // In input mode, we watch fromAmount; in output mode, we watch toAmount
+  // This prevents re-fetching when the API response updates the other field
+  const activeAmount = inputMode === "input" ? fromAmount : toAmount;
+
   useEffect(() => {
-    if (fromAmount && tokenDecimals !== null) {
+    if (activeAmount && tokenDecimals !== null) {
       const abortController = new AbortController();
       const timer = setTimeout(() => {
-        fetchBestSwap(fromAmount, abortController.signal);
+        fetchBestSwap(activeAmount, inputMode, abortController.signal);
       }, 500);
 
       return () => {
@@ -431,49 +481,104 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         abortController.abort();
       };
     } else {
-      setToAmount("");
+      if (inputMode === "input") {
+        setToAmount("");
+      } else {
+        setFromAmount("");
+      }
       setBestSwap(null);
     }
-  }, [fromAmount, fetchBestSwap, tokenDecimals]);
+  }, [activeAmount, inputMode, fetchBestSwap, tokenDecimals]);
 
   const handleSwapDirection = () => {
     setFromToken(fromToken === "token" ? "erg" : "token");
     setFromAmount(toAmount);
     setToAmount(fromAmount);
+    setInputMode("input");
     setBestSwap(null);
     setNoPoolFound(false);
     setInputError(null);
   };
 
+  // Shared validation logic for amount inputs
+  // Returns { valid: true, value } if valid, or { valid: false } if invalid
+  const validateAmountInput = useCallback(
+    (
+      value: string,
+      decimals: number | null,
+      tokenName: string,
+    ): { valid: true; value: string } | { valid: false; error?: string } => {
+      // Empty value is valid (clears the field)
+      if (value === "") {
+        return { valid: true, value };
+      }
+
+      // Check basic format (numbers and optional decimal point)
+      if (!/^\d*\.?\d*$/.test(value)) {
+        return { valid: false };
+      }
+
+      // Validate decimal precision against token decimals
+      if (decimals !== null) {
+        const decimalPlaces = getDecimalPlaces(value);
+        if (decimalPlaces > decimals) {
+          return {
+            valid: false,
+            error: `Maximum ${decimals} decimal place${decimals !== 1 ? "s" : ""} allowed for ${tokenName}`,
+          };
+        }
+      }
+
+      return { valid: true, value };
+    },
+    [],
+  );
+
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
 
-    // Allow empty string
-    if (value === "") {
-      setFromAmount(value);
+    // Switch to input mode when user types in "From" field
+    if (inputMode !== "input") {
+      setInputMode("input");
       setInputError(null);
-      return;
     }
 
-    // Check basic format (numbers and optional decimal point)
-    if (!/^\d*\.?\d*$/.test(value)) {
-      return;
-    }
-
-    // Validate decimal precision against token decimals
     const currentDecimals =
       fromToken === "token" ? tokenDecimals : ERG_DECIMALS;
-    if (currentDecimals !== null) {
-      const decimalPlaces = getDecimalPlaces(value);
-      if (decimalPlaces > currentDecimals) {
-        setInputError(
-          `Maximum ${currentDecimals} decimal place${currentDecimals !== 1 ? "s" : ""} allowed for ${fromTokenName}`,
-        );
-        return;
+    const result = validateAmountInput(value, currentDecimals, fromTokenName);
+
+    if (!result.valid) {
+      if (result.error) {
+        setInputError(result.error);
       }
+      return;
     }
 
-    setFromAmount(value);
+    setFromAmount(result.value);
+    setInputError(null);
+  };
+
+  const handleToAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // Switch to output mode when user types in "To" field
+    if (inputMode !== "output") {
+      setInputMode("output");
+      setInputError(null);
+    }
+
+    const currentDecimals =
+      fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
+    const result = validateAmountInput(value, currentDecimals, toTokenName);
+
+    if (!result.valid) {
+      if (result.error) {
+        setInputError(result.error);
+      }
+      return;
+    }
+
+    setToAmount(result.value);
     setInputError(null);
   };
 
@@ -533,7 +638,25 @@ const SwapWidget: FC<SwapWidgetProps> = ({
       const userAddresses = [...new Set(allAddresses)].join(",");
 
       const givenDecimals = getGivenTokenDecimals();
-      const rawAmount = convertToRawAmount(fromAmount, givenDecimals);
+      // In output mode, use the input_amount from the API response (which calculated the required input)
+      // Validate that input_amount exists when in output mode
+      if (
+        inputMode === "output" &&
+        (bestSwap.swap_result.input_amount === undefined ||
+          bestSwap.swap_result.input_amount === null)
+      ) {
+        addAlert(
+          "error",
+          "Invalid swap quote: missing input amount. Please try again.",
+        );
+        setSwapping(false);
+        return;
+      }
+      // In input mode, use the user-entered fromAmount
+      const rawAmount =
+        inputMode === "output"
+          ? bestSwap.swap_result.input_amount
+          : convertToRawAmount(fromAmount, givenDecimals);
 
       // Build swap transaction
       const buildEndpoint = `${process.env.CRUX_API}/spectrum/build_swap_tx`;
@@ -544,6 +667,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
         given_token_amount: rawAmount.toString(),
         pool_id: bestSwap.pool_state.pool_id,
         fee_token: feeToken,
+        miner_fee: minerFee.toString(),
       });
 
       const buildResponse = await fetch(`${buildEndpoint}?${params}`, {
@@ -645,6 +769,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
     const balanceNum = parseInt(balance, 10);
     const formattedBalance = convertFromRawAmount(balanceNum, decimals);
     setFromAmount(formattedBalance);
+    setInputMode("input");
   };
 
   /**
@@ -707,63 +832,33 @@ const SwapWidget: FC<SwapWidgetProps> = ({
             }}
           >
             <Typography variant="h6">Swap</Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={feeToken === "crux"}
-                  onChange={(e) =>
-                    setFeeToken(e.target.checked ? "crux" : "erg")
-                  }
-                  size="small"
-                />
-              }
-              label={
-                <Typography variant="caption" color="text.secondary">
-                  Pay fee in {feeToken === "crux" ? "CRUX" : "ERG"}
-                </Typography>
-              }
-              labelPlacement="start"
-              sx={{ m: 0, gap: 1 }}
+            <WidgetSettings
+              feeToken={feeToken}
+              onFeeTokenChange={setFeeToken}
+              minerFee={minerFee}
+              onMinerFeeChange={setMinerFee}
+              disabled={swapping}
+              ergPrice={ergPrice}
             />
           </Box>
 
           {/* From Input */}
-          <Box sx={{ mb: 2 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 0.5,
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                From
-              </Typography>
-              {getFormattedBalance() !== null && (
-                <Typography
-                  variant="caption"
-                  color="primary"
-                  sx={{
-                    cursor: "pointer",
-                    "&:hover": {
-                      textDecoration: "underline",
-                    },
-                  }}
-                  onClick={handleMaxClick}
-                >
-                  Balance: {getFormattedBalance()} {fromTokenName}
-                </Typography>
-              )}
-            </Box>
+          <Box sx={{ mb: 1 }}>
             <TextField
               fullWidth
               variant="outlined"
+              size="small"
               value={fromAmount}
               onChange={handleFromAmountChange}
               placeholder="0.0"
               type="text"
               InputProps={{
+                startAdornment:
+                  loading && inputMode === "output" ? (
+                    <InputAdornment position="start">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : null,
                 endAdornment: (
                   <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
                     <Box
@@ -796,87 +891,84 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 ),
               }}
             />
-            {inputError && (
-              <Typography
-                variant="caption"
-                color="error"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {inputError}
-              </Typography>
-            )}
-            {fromAmount && !inputError && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {getUsdValue(fromAmount, fromToken === "erg")}
-              </Typography>
-            )}
-          </Box>
-
-          {/* Swap Direction Button */}
-          <Box sx={{ display: "flex", justifyContent: "center", my: 1 }}>
-            <IconButton
-              onClick={handleSwapDirection}
-              disabled={loading || swapping}
-              sx={{
-                bgcolor: theme.palette.background.default,
-                border: `1px solid ${theme.palette.divider}`,
-                "&:hover": {
-                  bgcolor: theme.palette.action.hover,
-                },
-              }}
-            >
-              <SwapVertIcon />
-            </IconButton>
-          </Box>
-
-          {/* To Input */}
-          <Box sx={{ mb: 2 }}>
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
-                mb: 0.5,
+                alignItems: "flex-start",
+                mb: 1,
+                position: "relative",
+                minHeight: 22,
               }}
             >
               <Typography variant="caption" color="text.secondary">
-                To
+                {fromAmount && !inputError
+                  ? getUsdValue(fromAmount, fromToken === "erg")
+                  : " "}
               </Typography>
-              {(() => {
-                const balance =
-                  fromToken === "token" ? ergBalance : tokenBalance;
-                const decimals =
-                  fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
-
-                if (!balance || decimals === null) {
-                  return null;
-                }
-
-                const balanceNum = parseInt(balance, 10);
-                const formatted = convertFromRawAmount(balanceNum, decimals);
-                const numFormatted = parseFloat(formatted);
-
-                const formattedBalance = formatBalanceByValue(numFormatted);
-
-                return (
-                  <Typography variant="caption" color="text.secondary">
-                    Balance: {formattedBalance} {toTokenName}
-                  </Typography>
-                );
-              })()}
+              {/* Swap Direction Button - centered */}
+              <IconButton
+                onClick={handleSwapDirection}
+                disabled={loading || swapping}
+                size="small"
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  bgcolor: theme.palette.background.default,
+                  border: `1px solid ${theme.palette.divider}`,
+                  "&:hover": {
+                    bgcolor: theme.palette.action.hover,
+                  },
+                  p: 0.5,
+                }}
+              >
+                <SwapVertIcon fontSize="small" />
+              </IconButton>
+              {getFormattedBalance() !== null && (
+                <Typography
+                  variant="caption"
+                  color="primary"
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                  onClick={handleMaxClick}
+                >
+                  Balance: {getFormattedBalance()} {fromTokenName}
+                </Typography>
+              )}
             </Box>
+            {inputError && inputMode === "input" && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ display: "block" }}
+              >
+                {inputError}
+              </Typography>
+            )}
+          </Box>
+
+          {/* To Input */}
+          <Box sx={{ mb: 1 }}>
             <TextField
               fullWidth
               variant="outlined"
+              size="small"
               value={toAmount}
+              onChange={handleToAmountChange}
               placeholder="0.0"
               type="text"
-              disabled
               InputProps={{
+                startAdornment:
+                  loading && inputMode === "input" ? (
+                    <InputAdornment position="start">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : null,
                 endAdornment: (
                   <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
                     <Box
@@ -909,13 +1001,50 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 ),
               }}
             />
-            {toAmount && (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                mb: 1,
+                minHeight: 22,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {toAmount && !inputError
+                  ? getUsdValue(toAmount, fromToken === "token")
+                  : " "}
+              </Typography>
+              {(() => {
+                const balance =
+                  fromToken === "token" ? ergBalance : tokenBalance;
+                const decimals =
+                  fromToken === "token" ? ERG_DECIMALS : tokenDecimals;
+
+                if (!balance || decimals === null) {
+                  return null;
+                }
+
+                const balanceNum = parseInt(balance, 10);
+                const formatted = convertFromRawAmount(balanceNum, decimals);
+                const numFormatted = parseFloat(formatted);
+
+                const formattedBalance = formatBalanceByValue(numFormatted);
+
+                return (
+                  <Typography variant="caption" color="text.secondary">
+                    Balance: {formattedBalance} {toTokenName}
+                  </Typography>
+                );
+              })()}
+            </Box>
+            {inputError && inputMode === "output" && (
               <Typography
                 variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: "block" }}
+                color="error"
+                sx={{ display: "block" }}
               >
-                {getUsdValue(toAmount, fromToken === "token")}
+                {inputError}
               </Typography>
             )}
           </Box>
@@ -968,34 +1097,142 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                   {getMinimumReceived()} {toTokenName}
                 </Typography>
               </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  mb: 0.5,
-                }}
-              >
-                <Typography variant="caption" color="text.secondary">
-                  Transaction Fee
-                </Typography>
-                <Typography variant="caption">
-                  {convertFromRawAmount(
-                    bestSwap.swap_result.fee_amount,
-                    bestSwap.swap_result.fee_token === "erg"
-                      ? ERG_DECIMALS
-                      : CRUX_DECIMALS,
-                  )}{" "}
-                  {bestSwap.swap_result.fee_token.toUpperCase()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography variant="caption" color="text.secondary">
-                  Fee (USD)
-                </Typography>
-                <Typography variant="caption">
-                  ${bestSwap.swap_result.fee_usd.toFixed(4)}
-                </Typography>
-              </Box>
+
+              {/* Collapsible Fees Section */}
+              {(() => {
+                // Calculate LP fee USD from amount and token price
+                // LP fee is taken from the OUTPUT token
+                const lpFeeAmount = bestSwap.swap_result.lp_fee_amount ?? 0;
+                const lpFeeDecimals =
+                  fromToken === "token" ? ERG_DECIMALS : (tokenDecimals ?? 0);
+                const lpFeeInToken = lpFeeAmount / Math.pow(10, lpFeeDecimals);
+                const lpFeeUsd =
+                  fromToken === "token"
+                    ? ergPrice
+                      ? lpFeeInToken * ergPrice
+                      : 0
+                    : tokenPrice && ergPrice
+                      ? lpFeeInToken * tokenPrice.asset_price_erg * ergPrice
+                      : 0;
+
+                const minerFeeUsd = ergPrice ? (minerFee / 1e9) * ergPrice : 0;
+                const totalFeesUsd =
+                  bestSwap.swap_result.fee_usd + lpFeeUsd + minerFeeUsd;
+
+                return (
+                  <>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        mb: feesExpanded ? 0.5 : 0,
+                      }}
+                      onClick={() => setFeesExpanded(!feesExpanded)}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Total Fees
+                        </Typography>
+                        <ExpandMoreIcon
+                          sx={{
+                            fontSize: 16,
+                            color: "text.secondary",
+                            transform: feesExpanded
+                              ? "rotate(180deg)"
+                              : "rotate(0deg)",
+                            transition: "transform 0.2s",
+                            ml: 0.5,
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption">
+                        ${totalFeesUsd.toFixed(4)}
+                      </Typography>
+                    </Box>
+
+                    <Collapse in={feesExpanded}>
+                      <Box
+                        sx={{
+                          pl: 1,
+                          borderLeft: `2px solid ${theme.palette.divider}`,
+                        }}
+                      >
+                        {/* LP Fee - only show if available */}
+                        {bestSwap.swap_result.lp_fee_percent != null && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              mb: 0.5,
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              LP Fee (
+                              {bestSwap.swap_result.lp_fee_percent.toFixed(2)}%)
+                            </Typography>
+                            <Typography variant="caption">
+                              {lpFeeInToken.toFixed(
+                                lpFeeDecimals > 4 ? 4 : lpFeeDecimals,
+                              )}{" "}
+                              {toTokenName} (~${lpFeeUsd.toFixed(4)})
+                            </Typography>
+                          </Box>
+                        )}
+
+                        {/* Miner Fee */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            mb: 0.5,
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Miner Fee
+                          </Typography>
+                          <Typography variant="caption">
+                            {(minerFee / 1e9).toFixed(
+                              minerFee / 1e9 < 0.01
+                                ? 4
+                                : minerFee / 1e9 < 1
+                                  ? 3
+                                  : 2,
+                            )}{" "}
+                            ERG (~${minerFeeUsd.toFixed(4)})
+                          </Typography>
+                        </Box>
+
+                        {/* Service Fee */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Service Fee
+                          </Typography>
+                          <Typography variant="caption">
+                            {convertFromRawAmount(
+                              bestSwap.swap_result.fee_amount,
+                              bestSwap.swap_result.fee_token === "erg"
+                                ? ERG_DECIMALS
+                                : CRUX_DECIMALS,
+                            )}{" "}
+                            {bestSwap.swap_result.fee_token.toUpperCase()} (~$
+                            {bestSwap.swap_result.fee_usd.toFixed(4)})
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Collapse>
+                  </>
+                );
+              })()}
             </Box>
           )}
 
