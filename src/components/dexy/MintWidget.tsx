@@ -17,13 +17,12 @@ import {
   useTheme,
   InputAdornment,
   Avatar,
-  Switch,
-  FormControlLabel,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Checkbox,
+  FormControlLabel,
   FormGroup,
   ToggleButton,
   ToggleButtonGroup,
@@ -39,7 +38,7 @@ import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
 import { trpc } from "@lib/trpc";
-import { MinerFeeSelector } from "@components/common/MinerFeeSelector";
+import { WidgetSettings } from "@components/common/WidgetSettings";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 
 declare global {
@@ -1568,23 +1567,13 @@ const MintWidget: FC = () => {
               </Select>
             </FormControl>
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={feeToken === "crux"}
-                  onChange={(e) =>
-                    setFeeToken(e.target.checked ? "crux" : "erg")
-                  }
-                  size="small"
-                />
-              }
-              label={
-                <Typography variant="caption" color="text.secondary">
-                  Pay fee in {feeToken === "crux" ? "CRUX" : "ERG"}
-                </Typography>
-              }
-              labelPlacement="start"
-              sx={{ m: 0 }}
+            <WidgetSettings
+              feeToken={feeToken}
+              onFeeTokenChange={setFeeToken}
+              minerFee={minerFee}
+              onMinerFeeChange={setMinerFee}
+              disabled={minting}
+              ergPrice={ergPrice}
             />
           </Box>
 
@@ -2294,13 +2283,24 @@ const MintWidget: FC = () => {
                 borderRadius: 1,
               }}
             >
-              <Box sx={{ mb: 0.5 }}>
-                <MinerFeeSelector
-                  minerFee={minerFee}
-                  onChange={setMinerFee}
-                  disabled={minting}
-                  ergPrice={ergPrice}
-                />
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mb: 0.5,
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  Miner Fee
+                </Typography>
+                <Typography variant="caption">
+                  {(minerFee / 1e9).toFixed(
+                    minerFee / 1e9 < 0.01 ? 4 : minerFee / 1e9 < 1 ? 3 : 2,
+                  )}{" "}
+                  ERG
+                  {ergPrice &&
+                    ` (~$${((minerFee / 1e9) * ergPrice).toFixed(4)})`}
+                </Typography>
               </Box>
               <Box
                 sx={{

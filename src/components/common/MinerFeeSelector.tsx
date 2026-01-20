@@ -18,6 +18,8 @@ interface MinerFeeSelectorProps {
   onChange: (fee: number) => void; // callback with nanoERG
   disabled?: boolean;
   ergPrice?: number | null; // ERG price in USD for displaying fee value
+  defaultExpanded?: boolean; // Whether to show expanded by default
+  compactMode?: boolean; // Use body2 typography instead of caption for settings popover
 }
 
 export const MinerFeeSelector: FC<MinerFeeSelectorProps> = ({
@@ -25,8 +27,11 @@ export const MinerFeeSelector: FC<MinerFeeSelectorProps> = ({
   onChange,
   disabled = false,
   ergPrice = null,
+  defaultExpanded = false,
+  compactMode = false,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const textVariant = compactMode ? "body2" : "caption";
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [inputValue, setInputValue] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -106,11 +111,10 @@ export const MinerFeeSelector: FC<MinerFeeSelectorProps> = ({
           alignItems: "center",
         }}
       >
-        <Typography variant="caption" color="text.secondary">
-          Miner Fee
-        </Typography>
+        <Typography variant={textVariant}>Miner Fee</Typography>
         <Typography
-          variant="caption"
+          variant={textVariant}
+          color="text.secondary"
           onClick={() => !disabled && setExpanded(!expanded)}
           sx={{
             cursor: disabled ? "default" : "pointer",
@@ -150,7 +154,7 @@ export const MinerFeeSelector: FC<MinerFeeSelectorProps> = ({
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant={textVariant} color="text.secondary">
                     ERG
                   </Typography>
                 </InputAdornment>

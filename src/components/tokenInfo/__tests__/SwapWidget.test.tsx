@@ -12,6 +12,13 @@ jest.mock("@contexts/WalletContext", () => ({
   useWallet: () => ({ dAppWallet: { connected: false } }),
 }));
 
+jest.mock("@contexts/MinerFeeContext", () => ({
+  useMinerFee: () => ({
+    minerFee: 2000000, // 0.002 ERG in nanoERG
+    setMinerFee: jest.fn(),
+  }),
+}));
+
 // Mock icon utilities
 jest.mock("@lib/utils/icons", () => ({
   checkLocalIcon: jest.fn().mockResolvedValue(null),
@@ -47,6 +54,8 @@ const mockBestSwapResponse = {
     fee_amount: 1000000,
     fee_token: "erg",
     fee_usd: 0.01,
+    lp_fee_percent: 0.3,
+    lp_fee_amount: 3000000, // 0.003 ERG
   },
 };
 

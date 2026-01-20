@@ -10,20 +10,21 @@ import {
   useTheme,
   InputAdornment,
   Avatar,
-  Switch,
-  FormControlLabel,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Checkbox,
+  FormControlLabel,
   FormGroup,
+  Collapse,
 } from "@mui/material";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
-import { MinerFeeSelector } from "@components/common/MinerFeeSelector";
+import { WidgetSettings } from "@components/common/WidgetSettings";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 
 declare global {
@@ -62,6 +63,8 @@ interface SwapResult {
   fee_amount: number;
   fee_token: string;
   fee_usd: number;
+  lp_fee_percent?: number;
+  lp_fee_amount?: number;
 }
 
 interface BestSwapResponse {
@@ -146,6 +149,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
   const [showDisclaimerDialog, setShowDisclaimerDialog] =
     useState<boolean>(false);
   const [disclaimerCheckbox, setDisclaimerCheckbox] = useState<boolean>(false);
+  const [feesExpanded, setFeesExpanded] = useState<boolean>(false);
 
   const givenTokenId = fromToken === "token" ? tokenId : ERG_TOKEN_ID;
   const requestedTokenId = fromToken === "token" ? ERG_TOKEN_ID : tokenId;
@@ -828,23 +832,13 @@ const SwapWidget: FC<SwapWidgetProps> = ({
             }}
           >
             <Typography variant="h6">Swap</Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={feeToken === "crux"}
-                  onChange={(e) =>
-                    setFeeToken(e.target.checked ? "crux" : "erg")
-                  }
-                  size="small"
-                />
-              }
-              label={
-                <Typography variant="caption" color="text.secondary">
-                  Pay fee in {feeToken === "crux" ? "CRUX" : "ERG"}
-                </Typography>
-              }
-              labelPlacement="start"
-              sx={{ m: 0, gap: 1 }}
+            <WidgetSettings
+              feeToken={feeToken}
+              onFeeTokenChange={setFeeToken}
+              minerFee={minerFee}
+              onMinerFeeChange={setMinerFee}
+              disabled={swapping}
+              ergPrice={ergPrice}
             />
           </Box>
 
@@ -1110,42 +1104,142 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                   {getMinimumReceived()} {toTokenName}
                 </Typography>
               </Box>
-              <Box sx={{ mb: 0.5 }}>
-                <MinerFeeSelector
-                  minerFee={minerFee}
-                  onChange={setMinerFee}
-                  disabled={swapping}
-                  ergPrice={ergPrice}
-                />
-              </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  mb: 0.5,
-                }}
-              >
-                <Typography variant="caption" color="text.secondary">
-                  Service Fee
-                </Typography>
-                <Typography variant="caption">
-                  {convertFromRawAmount(
-                    bestSwap.swap_result.fee_amount,
-                    bestSwap.swap_result.fee_token === "erg"
-                      ? ERG_DECIMALS
-                      : CRUX_DECIMALS,
-                  )}{" "}
-                  {bestSwap.swap_result.fee_token.toUpperCase()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography variant="caption" color="text.secondary">
-                  Fee (USD)
-                </Typography>
-                <Typography variant="caption">
-                  ${bestSwap.swap_result.fee_usd.toFixed(4)}
-                </Typography>
-              </Box>
+
+              {/* Collapsible Fees Section */}
+              {(() => {
+                // Calculate LP fee USD from amount and token price
+                // LP fee is taken from the OUTPUT token
+                const lpFeeAmount = bestSwap.swap_result.lp_fee_amount ?? 0;
+                const lpFeeDecimals =
+                  fromToken === "token" ? ERG_DECIMALS : (tokenDecimals ?? 0);
+                const lpFeeInToken = lpFeeAmount / Math.pow(10, lpFeeDecimals);
+                const lpFeeUsd =
+                  fromToken === "token"
+                    ? ergPrice
+                      ? lpFeeInToken * ergPrice
+                      : 0
+                    : tokenPrice && ergPrice
+                      ? lpFeeInToken * tokenPrice.asset_price_erg * ergPrice
+                      : 0;
+
+                const minerFeeUsd = ergPrice ? (minerFee / 1e9) * ergPrice : 0;
+                const totalFeesUsd =
+                  bestSwap.swap_result.fee_usd + lpFeeUsd + minerFeeUsd;
+
+                return (
+                  <>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        mb: feesExpanded ? 0.5 : 0,
+                      }}
+                      onClick={() => setFeesExpanded(!feesExpanded)}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Total Fees
+                        </Typography>
+                        <ExpandMoreIcon
+                          sx={{
+                            fontSize: 16,
+                            color: "text.secondary",
+                            transform: feesExpanded
+                              ? "rotate(180deg)"
+                              : "rotate(0deg)",
+                            transition: "transform 0.2s",
+                            ml: 0.5,
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption">
+                        ${totalFeesUsd.toFixed(4)}
+                      </Typography>
+                    </Box>
+
+                    <Collapse in={feesExpanded}>
+                      <Box
+                        sx={{
+                          pl: 1,
+                          borderLeft: `2px solid ${theme.palette.divider}`,
+                        }}
+                      >
+                        {/* LP Fee - only show if available */}
+                        {bestSwap.swap_result.lp_fee_percent != null && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              mb: 0.5,
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              LP Fee (
+                              {bestSwap.swap_result.lp_fee_percent.toFixed(2)}%)
+                            </Typography>
+                            <Typography variant="caption">
+                              {lpFeeInToken.toFixed(
+                                lpFeeDecimals > 4 ? 4 : lpFeeDecimals,
+                              )}{" "}
+                              {toTokenName} (~${lpFeeUsd.toFixed(4)})
+                            </Typography>
+                          </Box>
+                        )}
+
+                        {/* Miner Fee */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            mb: 0.5,
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Miner Fee
+                          </Typography>
+                          <Typography variant="caption">
+                            {(minerFee / 1e9).toFixed(
+                              minerFee / 1e9 < 0.01
+                                ? 4
+                                : minerFee / 1e9 < 1
+                                  ? 3
+                                  : 2,
+                            )}{" "}
+                            ERG (~${minerFeeUsd.toFixed(4)})
+                          </Typography>
+                        </Box>
+
+                        {/* Service Fee */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            Service Fee
+                          </Typography>
+                          <Typography variant="caption">
+                            {convertFromRawAmount(
+                              bestSwap.swap_result.fee_amount,
+                              bestSwap.swap_result.fee_token === "erg"
+                                ? ERG_DECIMALS
+                                : CRUX_DECIMALS,
+                            )}{" "}
+                            {bestSwap.swap_result.fee_token.toUpperCase()} (~$
+                            {bestSwap.swap_result.fee_usd.toFixed(4)})
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Collapse>
+                  </>
+                );
+              })()}
             </Box>
           )}
 
