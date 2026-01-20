@@ -843,7 +843,7 @@ const SwapWidget: FC<SwapWidgetProps> = ({
           </Box>
 
           {/* From Input */}
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 1 }}>
             <Box
               sx={{
                 display: "flex",
@@ -938,10 +938,11 @@ const SwapWidget: FC<SwapWidgetProps> = ({
           </Box>
 
           {/* Swap Direction Button */}
-          <Box sx={{ display: "flex", justifyContent: "center", my: 1 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", my: -0.5 }}>
             <IconButton
               onClick={handleSwapDirection}
               disabled={loading || swapping}
+              size="small"
               sx={{
                 bgcolor: theme.palette.background.default,
                 border: `1px solid ${theme.palette.divider}`,
@@ -950,12 +951,12 @@ const SwapWidget: FC<SwapWidgetProps> = ({
                 },
               }}
             >
-              <SwapVertIcon />
+              <SwapVertIcon fontSize="small" />
             </IconButton>
           </Box>
 
           {/* To Input */}
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 1 }}>
             <Box
               sx={{
                 display: "flex",
