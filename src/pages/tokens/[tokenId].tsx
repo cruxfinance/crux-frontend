@@ -33,6 +33,8 @@ import { scroller } from "react-scroll";
 import TvChart from "@components/tokenInfo/TvChart";
 import { checkLocalIcon } from "@lib/utils/icons";
 import { TVChartContainer } from "@components/charts/AdvancedChart";
+import { useWallet } from "@lib/contexts/WalletContext";
+import { trpc } from "@lib/trpc";
 
 export interface TokenDataPlus extends ITokenData {
   totalMinted: number;
@@ -59,6 +61,34 @@ const TokenInfo: FC = () => {
     Partial<ChartingLibraryWidgetOptions> | undefined
   >(undefined);
   const [navigation, setNavigation] = useState("stats");
+
+  // User authentication and wallet data for trade markers
+  const { sessionStatus } = useWallet();
+  const isAuthenticated = sessionStatus === "authenticated";
+
+  const walletQuery = trpc.user.getWallets.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  const userAddresses = useMemo(() => {
+    if (!walletQuery.data) return [];
+
+    const extractAddresses = (
+      wallets: typeof walletQuery.data.walletList | undefined,
+    ) =>
+      wallets?.flatMap((w) => [
+        w.changeAddress,
+        ...(w.usedAddresses || []),
+        ...(w.unusedAddresses || []),
+      ]) || [];
+
+    const addresses = [
+      ...extractAddresses(walletQuery.data.walletList),
+      ...extractAddresses(walletQuery.data.addedWalletList),
+    ];
+
+    return [...new Set(addresses)];
+  }, [walletQuery.data]);
 
   const getExchangeRate = async () => {
     setLoading(true);
@@ -272,10 +302,12 @@ const TokenInfo: FC = () => {
                 }}
               >
                 {defaultWidgetProps !== undefined && (
-                  // <TvChart defaultWidgetProps={defaultWidgetProps} currency={currency} />
                   <TVChartContainer
                     defaultWidgetProps={defaultWidgetProps}
                     currency={currency}
+                    userAddresses={userAddresses}
+                    tokenId={tokenId}
+                    showUserTrades={isAuthenticated && userAddresses.length > 0}
                   />
                 )}
               </Paper>
