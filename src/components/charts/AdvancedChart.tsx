@@ -1,5 +1,6 @@
 import styles from "./index.module.css";
-import { FC, useEffect, useRef } from "react";
+import { FC, useEffect, useRef, useCallback } from "react";
+import { debounce } from "lodash";
 import {
   ChartingLibraryWidgetOptions,
   IChartWidgetApi,
@@ -9,17 +10,27 @@ import {
 } from "@lib/charts/charting_library";
 import { UDFCompatibleDatafeed } from "@lib/charts/datafeeds/udf/src/udf-compatible-datafeed";
 import { useTheme, useMediaQuery } from "@mui/material";
+import {
+  createTradeMarkerManager,
+  TradeMarkerManager,
+} from "@lib/charts/tradeMarkers";
 
 interface TVProps {
   defaultWidgetProps: Partial<ChartingLibraryWidgetOptions>;
   currency: string;
   height?: string;
+  userAddresses?: string[];
+  tokenId?: string;
+  showUserTrades?: boolean;
 }
 
 export const TVChartContainer: FC<TVProps> = ({
   defaultWidgetProps,
   currency,
   height,
+  userAddresses,
+  tokenId,
+  showUserTrades,
 }) => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
@@ -68,6 +79,7 @@ export const TVChartContainer: FC<TVProps> = ({
     };
 
     const tvWidget = new widget(mergedWidgetOptions);
+    let tradeMarkerManager: TradeMarkerManager | null = null;
 
     tvWidget.onChartReady(() => {
       const chart = tvWidget.activeChart();
@@ -81,7 +93,39 @@ export const TVChartContainer: FC<TVProps> = ({
       });
 
       // Add volume as indicator
-      chart.createStudy('Volume', true, false);
+      chart.createStudy("Volume", true, false);
+
+      // Initialize trade markers if user is authenticated
+      if (
+        showUserTrades &&
+        userAddresses &&
+        userAddresses.length > 0 &&
+        tokenId &&
+        chartContainerRef.current
+      ) {
+        tradeMarkerManager = createTradeMarkerManager(
+          chart,
+          tokenId,
+          userAddresses,
+          chartContainerRef.current,
+        );
+
+        // Load initial markers for visible range
+        const visibleRange = chart.getVisibleRange();
+        tradeMarkerManager.loadMarkers(visibleRange.from, visibleRange.to);
+
+        // Debounced marker loader to avoid excessive API calls during pan/zoom
+        const debouncedLoadMarkers = debounce((from: number, to: number) => {
+          if (tradeMarkerManager) {
+            tradeMarkerManager.loadMarkers(from, to);
+          }
+        }, 300);
+
+        // Subscribe to visible range changes to refresh markers
+        chart.onVisibleRangeChanged().subscribe(null, (range) => {
+          debouncedLoadMarkers(range.from, range.to);
+        });
+      }
 
       // Capture changes in settings
       chart.onIntervalChanged().subscribe(null, () => {
@@ -101,9 +145,12 @@ export const TVChartContainer: FC<TVProps> = ({
     });
 
     return () => {
+      if (tradeMarkerManager) {
+        tradeMarkerManager.destroy();
+      }
       tvWidget.remove();
     };
-  }, [defaultWidgetProps, currency]);
+  }, [defaultWidgetProps, currency, userAddresses, tokenId, showUserTrades]);
 
   return (
     <>
