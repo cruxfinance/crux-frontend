@@ -38,7 +38,9 @@ interface WalletContextType extends WalletState {
   setProviderLoading: React.Dispatch<React.SetStateAction<boolean>>;
   fetchSessionData: Function;
   setAddWalletModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setNotSubscribedNotifyDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
+  setNotSubscribedNotifyDialogOpen: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
 }
 
 interface WalletConsumerProps {
@@ -62,7 +64,8 @@ const WalletProvider: FunctionComponent<{ children: ReactNode }> = ({
   const [sessionStatus, setSessionStatus] =
     useState<WalletState["sessionStatus"]>("unauthenticated");
   const [addWalletModalOpen, setAddWalletModalOpen] = useState<boolean>(false);
-  const [notSubscribedNotifyDialogOpen, setNotSubscribedNotifyDialogOpen] = useState<boolean>(false);
+  const [notSubscribedNotifyDialogOpen, setNotSubscribedNotifyDialogOpen] =
+    useState<boolean>(false);
 
   const fetchSessionData = useCallback(async () => {
     setProviderLoading(true);
@@ -84,9 +87,49 @@ const WalletProvider: FunctionComponent<{ children: ReactNode }> = ({
     setProviderLoading(false);
   }, []);
 
+  // Auto-reconnect dApp wallet when session is authenticated
+  const reconnectDAppWallet = useCallback(async () => {
+    if (typeof window === "undefined" || !window.ergoConnector?.nautilus) {
+      return;
+    }
+
+    try {
+      const nautilus = window.ergoConnector.nautilus;
+      // Check if already connected
+      let isConnected = await nautilus.isConnected();
+
+      // If not connected, try to connect
+      if (!isConnected) {
+        isConnected = await nautilus.connect();
+      }
+
+      if (isConnected) {
+        const context = await nautilus.getContext();
+        const changeAddress = await context.get_change_address();
+        const usedAddresses = await context.get_used_addresses();
+        const unusedAddresses = await context.get_unused_addresses();
+
+        setDAppWallet({
+          connected: true,
+          name: "nautilus",
+          addresses: [changeAddress, ...usedAddresses, ...unusedAddresses],
+        });
+      }
+    } catch (error) {
+      console.error("Failed to reconnect dApp wallet:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSessionData();
   }, []);
+
+  // Reconnect dApp wallet when session becomes authenticated
+  useEffect(() => {
+    if (sessionStatus === "authenticated" && !dAppWallet.connected) {
+      reconnectDAppWallet();
+    }
+  }, [sessionStatus, dAppWallet.connected, reconnectDAppWallet]);
 
   // Context values passed to consumer
   const value = {
@@ -104,7 +147,7 @@ const WalletProvider: FunctionComponent<{ children: ReactNode }> = ({
     addWalletModalOpen,
     setAddWalletModalOpen,
     notSubscribedNotifyDialogOpen,
-    setNotSubscribedNotifyDialogOpen
+    setNotSubscribedNotifyDialogOpen,
   };
 
   return (
