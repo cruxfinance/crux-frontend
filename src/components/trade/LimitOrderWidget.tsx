@@ -19,6 +19,7 @@ import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 import { formatNumber } from "@lib/utils/general";
+import { WidgetSettings } from "@components/common/WidgetSettings";
 
 declare global {
   interface Window {
@@ -45,6 +46,8 @@ interface LimitOrderWidgetProps {
 
 const ERG_TOKEN_ID =
   "0000000000000000000000000000000000000000000000000000000000000000";
+const CRUX_TOKEN_ID =
+  "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
 
 const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   baseToken,
@@ -56,10 +59,24 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   const theme = useTheme();
   const { addAlert } = useAlert();
   const { dAppWallet } = useWallet();
-  const { minerFee } = useMinerFee();
+  const { minerFee, setMinerFee } = useMinerFee();
 
   // Order type: buy or sell
   const [orderType, setOrderType] = useState<"buy" | "sell">("buy");
+
+  // Fee token selection - default to "erg", will load from localStorage
+  const [feeToken, setFeeToken] = useState<"erg" | "crux">(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("limitOrderFeeTokenPreference");
+      if (stored === "crux") return "crux";
+    }
+    return "erg";
+  });
+
+  // Persist fee token preference
+  useEffect(() => {
+    localStorage.setItem("limitOrderFeeTokenPreference", feeToken);
+  }, [feeToken]);
 
   // Form inputs
   const [price, setPrice] = useState("");
@@ -279,8 +296,9 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         min_fill_amount: 0,
         expiry_height:
           useExpiry && currentHeight ? currentHeight + expiryBlocks : null,
-        executor_fee: 1000000, // 0.001 ERG default
+        // executor_fee is calculated by the API based on USD target value
         miner_fee: minerFee,
+        fee_token_id: feeToken === "crux" ? CRUX_TOKEN_ID : null,
       };
 
       const response = await fetch(`${process.env.CRUX_API}/dex/limit_order`, {
@@ -346,9 +364,24 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Limit Order
-      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Typography variant="h6">Limit Order</Typography>
+        <WidgetSettings
+          feeToken={feeToken}
+          onFeeTokenChange={setFeeToken}
+          minerFee={minerFee}
+          onMinerFeeChange={setMinerFee}
+          disabled={disabled || submitting}
+          ergPrice={ergPrice}
+        />
+      </Box>
 
       {/* Buy/Sell Toggle */}
       <ToggleButtonGroup

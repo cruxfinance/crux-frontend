@@ -216,7 +216,14 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
         throw new Error("No transaction returned from API");
       }
 
+      console.log("=== UNSIGNED TX ===");
+      console.log(JSON.stringify(result.unsigned_tx, null, 2));
+
       const signedTx = await context.sign_tx(result.unsigned_tx);
+
+      console.log("=== SIGNED TX ===");
+      console.log(JSON.stringify(signedTx, null, 2));
+
       const txId = await context.submit_tx(signedTx);
 
       addAlert("success", `Order cancelled! TX: ${txId.slice(0, 8)}...`);
@@ -283,9 +290,15 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
       // Calculate expected token amount based on price
       const price = getPrice(order);
       if (price === 0) {
-        return { filled: 0, original: 0, token: order.taken_token_name || "token" };
+        return {
+          filled: 0,
+          original: 0,
+          token: order.taken_token_name || "token",
+        };
       }
-      const filledErg = (order.original_given_amount - order.remaining_given_amount) / Math.pow(10, givenDec);
+      const filledErg =
+        (order.original_given_amount - order.remaining_given_amount) /
+        Math.pow(10, givenDec);
       const originalErg = order.original_given_amount / Math.pow(10, givenDec);
       return {
         filled: filledErg / price,
@@ -294,7 +307,9 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
       };
     } else {
       // SELL order: giving token, receiving ERG/quote
-      const filled = (order.original_given_amount - order.remaining_given_amount) / Math.pow(10, givenDec);
+      const filled =
+        (order.original_given_amount - order.remaining_given_amount) /
+        Math.pow(10, givenDec);
       const original = order.original_given_amount / Math.pow(10, givenDec);
       return {
         filled,
