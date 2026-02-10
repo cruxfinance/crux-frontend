@@ -277,14 +277,16 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       // Price ratio in raw units: takenReceived * priceDenom >= givenSpent * priceNum
       // givenSpent/takenReceived are in raw units (nanoERG for ERG, raw token units for tokens)
       // priceDenom = 10^givenDecimals to convert givenSpent from raw to human scale
-      // priceNum = floor(rate * 10^takenDecimals) to convert the rate into raw taken units
+      // priceNum converts the rate into raw taken units per priceDenom raw given units
+      // For BUY: user wants to receive at least X tokens, so use ceil() to guarantee minimum
+      // For SELL: user wants to receive at least X ERG, so use ceil() to guarantee minimum
       const takenDecimals =
         orderType === "buy" ? baseToken.decimals : quoteToken.decimals;
       const priceDenominator = Math.pow(10, givenDecimals);
       const priceNumerator =
         orderType === "buy"
-          ? Math.floor((1 / priceFloat) * Math.pow(10, takenDecimals))
-          : Math.floor(priceFloat * Math.pow(10, takenDecimals));
+          ? Math.ceil((1 / priceFloat) * Math.pow(10, takenDecimals))
+          : Math.ceil(priceFloat * Math.pow(10, takenDecimals));
 
       const requestBody = {
         user_addresses: userAddresses,
