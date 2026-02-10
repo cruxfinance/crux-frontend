@@ -438,9 +438,6 @@ const TradePage: FC = () => {
                     defaultWidgetProps={defaultWidgetProps}
                     currency="ERG"
                     height="100%"
-                    userAddresses={userAddresses}
-                    tokenId={baseToken.tokenId}
-                    showUserTrades={isAuthenticated}
                   />
                 </Box>
               ) : (
