@@ -29,6 +29,7 @@ import {
 import { useRouter } from "next/router";
 import Link from "@components/Link";
 import { Collapse } from "@mui/material";
+import Logo from "@components/svgs/Logo";
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 64;
@@ -126,25 +127,100 @@ const Sidebar: FC = () => {
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: open ? "flex-end" : "center",
-                    padding: theme.spacing(0, 1),
+                    justifyContent: open ? "space-between" : "center",
+                    padding: theme.spacing(0, 2),
                     minHeight: "64px",
+                    width: "100%",
                 }}
             >
-                <IconButton
-                    onClick={handleDrawerToggle}
+                <Link
+                    href="/"
                     sx={{
-                        color: theme.palette.primary.main,
-                        transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        display: "flex",
+                        alignItems: "center",
+                        minWidth: 0,
+                        textDecoration: "none",
                         "&:hover": {
-                            transform: "scale(1.1)",
-                            backgroundColor: "rgba(254, 107, 139, 0.1)",
-                        }
+                            "& span": {
+                                color: theme.palette.primary.main,
+                            },
+                            "& .logo-svg": {
+                                transform: "scale(1.1) rotate(-5deg)",
+                                filter: `drop-shadow(0 0 8px ${theme.palette.primary.main})`,
+                            },
+                        },
                     }}
                 >
-                    {open ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-                </IconButton>
+                    <Logo
+                        className="logo-svg"
+                        sx={{
+                            color: theme.palette.text.primary,
+                            fontSize: "2.2rem",
+                            flexShrink: 0,
+                            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                        }}
+                    />
+                    <Typography
+                        component="span"
+                        sx={{
+                            ml: 1.5,
+                            color: theme.palette.text.primary,
+                            fontSize: "1.2rem",
+                            fontWeight: "700",
+                            lineHeight: 1,
+                            fontFamily: '"Jura", sans-serif',
+                            whiteSpace: "nowrap",
+                            opacity: open ? 1 : 0,
+                            visibility: open ? "visible" : "hidden",
+                            transition: theme.transitions.create(["opacity", "visibility"], {
+                                easing: theme.transitions.easing.sharp,
+                                duration: theme.transitions.duration.enteringScreen,
+                            }),
+                        }}
+                    >
+                        Crux Finance
+                    </Typography>
+                </Link>
             </Box>
+
+            {/* Floating Toggle Handle */}
+            <IconButton
+                onClick={handleDrawerToggle}
+                sx={{
+                    position: "absolute",
+                    bottom: 40,
+                    right: -16,
+                    width: 32,
+                    height: 32,
+                    backgroundColor: theme.palette.mode === 'dark'
+                        ? "rgba(33, 39, 55, 0.95)"
+                        : "rgba(255, 255, 255, 0.95)",
+                    border: `1.5px solid ${theme.palette.primary.main}`,
+                    backdropFilter: "blur(8px)",
+                    borderRadius: "50%",
+                    zIndex: theme.zIndex.drawer + 2,
+                    boxShadow: theme.palette.mode === 'dark'
+                        ? "0 4px 12px rgba(0,0,0,0.5)"
+                        : "0 4px 12px rgba(0,0,0,0.15)",
+                    color: theme.palette.primary.main,
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    "&:hover": {
+                        backgroundColor: theme.palette.primary.main,
+                        color: "#fff",
+                        transform: "scale(1.15)",
+                        boxShadow: `0 0 10px ${theme.palette.primary.main}`,
+                    },
+                }}
+            >
+                <ChevronLeftIcon
+                    sx={{
+                        fontSize: "1.2rem",
+                        transition: "transform 0.3s ease",
+                        transform: open ? "rotate(0deg)" : "rotate(180deg)"
+                    }}
+                />
+            </IconButton>
+
             <Divider sx={{ opacity: 0.1 }} />
             <List sx={{ mt: 1 }}>
                 {pages.map((page) => {

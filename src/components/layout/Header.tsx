@@ -96,43 +96,6 @@ const Header: FC<IHeaderProps> = ({ }) => {
             }}
           >
             <Grid item alignItems="center">
-              <Link
-                href="/"
-                sx={{
-                  display: "block",
-                  "&:hover": {
-                    "& span": {
-                      color: theme.palette.primary.main,
-                    },
-                    "& .MuiSvgIcon-root": {
-                      color: theme.palette.primary.main,
-                    },
-                  },
-                }}
-              >
-                <Logo
-                  sx={{
-                    display: "inline-block",
-                    verticalAlign: "middle",
-                    mr: "3px",
-                    color: theme.palette.text.primary,
-                  }}
-                />
-                <Typography
-                  component="span"
-                  sx={{
-                    color: theme.palette.text.primary,
-                    fontSize: "1.6rem!important",
-                    fontWeight: "700",
-                    lineHeight: 1,
-                    display: upLg ? "inline-block" : "none",
-                    verticalAlign: "middle",
-                    fontFamily: '"Jura", sans-serif',
-                  }}
-                >
-                  Crux Finance
-                </Typography>
-              </Link>
             </Grid>
 
             <Grid item>
