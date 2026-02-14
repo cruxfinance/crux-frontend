@@ -37,59 +37,13 @@ import SocialGrid from "./SocialGrid";
 import { useRouter } from "next/router";
 import { useScrollLock } from "@contexts/ScrollLockContext";
 
-interface PageItem {
-  name: string;
-  link: string;
-  disabled?: boolean;
-  subItems?: { name: string; link: string }[];
-}
+interface IHeaderProps { }
 
-const pages: PageItem[] = [
-  {
-    name: "Tokens",
-    link: "/",
-  },
-  {
-    name: "Portfolio",
-    link: "/portfolio",
-  },
-  {
-    name: "Accounting",
-    link: "/accounting",
-  },
-  {
-    name: "USE & Dexy",
-    link: "/dexy",
-    subItems: [
-      { name: "Mint", link: "/dexy/mint" },
-      { name: "Analytics", link: "/dexy/analytics" },
-    ],
-  },
-  {
-    name: "About",
-    link: "/about",
-  },
-];
-
-interface INavItemProps {
-  size?: number;
-  fontWeight?: number;
-  page: PageItem;
-  onNavigate?: () => void;
-}
-
-interface IHeaderProps {}
-
-const Header: FC<IHeaderProps> = ({}) => {
-  // const {
-  //   theme,
-  //   // setTheme
-  // } = useContext(ThemeContext);
+const Header: FC<IHeaderProps> = ({ }) => {
   const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } =
     useScrollLock();
 
   const theme = useTheme();
-  const [navbarOpen, setNavbarOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
 
   useEffect(() => {
@@ -97,12 +51,10 @@ const Header: FC<IHeaderProps> = ({}) => {
   }, [isLocked, scrollBarCompensation]);
 
   const router = useRouter();
-  const upMd = useMediaQuery(theme.breakpoints.up("md"));
   const upLg = useMediaQuery(theme.breakpoints.up("lg"));
 
   const handleDialogOpen = () => {
     lockScroll();
-    setNavbarOpen(false);
     setNotificationsOpen(true);
   };
 
@@ -110,128 +62,6 @@ const Header: FC<IHeaderProps> = ({}) => {
     unlockScroll();
     setNotificationsOpen(false);
   };
-
-  const handleNavbarToggle = () => {
-    if (navbarOpen === true) {
-      unlockScroll();
-      setNavbarOpen(false);
-    } else {
-      lockScroll();
-      setNavbarOpen(true);
-      setNotificationsOpen(false);
-    }
-  };
-
-  const handleNavbarDialogClose = () => {
-    unlockScroll();
-    setNavbarOpen(false);
-  };
-
-  // const toggleTheme = () => {
-  //   setTheme((prevTheme: Theme) => (prevTheme === LightTheme ? DarkTheme : LightTheme));
-  //   let temp = theme === LightTheme ? "dark" : "light";
-  //   localStorage.setItem('darkToggle', temp);
-  //   // console.log(temp)
-  // };
-
-  // State for dropdown menus
-  const [dexyMenuAnchor, setDexyMenuAnchor] = useState<HTMLElement | null>(
-    null,
-  );
-  const dexyMenuOpen = Boolean(dexyMenuAnchor);
-
-  // State for mobile menu expandable sections
-  const [mobileMenuExpanded, setMobileMenuExpanded] = useState<string | null>(
-    null,
-  );
-
-  const handleDexyMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setDexyMenuAnchor(event.currentTarget);
-  };
-
-  const handleDexyMenuClose = () => {
-    setDexyMenuAnchor(null);
-  };
-
-  const NavigationListItem: React.FC<INavItemProps> = ({
-    size,
-    fontWeight,
-    page,
-    onNavigate,
-  }) => {
-    const isActive =
-      page.link === "/"
-        ? router.pathname === "/"
-        : router.pathname.startsWith(page.link);
-
-    // Handle pages with sub-items (dropdown) - skip here, handled separately
-    if (page.subItems && page.subItems.length > 0) {
-      return null;
-    }
-
-    // Regular navigation item
-    return (
-      <Grid item>
-        <Box
-          sx={{
-            display: "inline-block",
-            position: "relative",
-          }}
-        >
-          {page.disabled ? (
-            <Typography
-              sx={{
-                color: theme.palette.text.secondary,
-                fontSize: size ? size.toString() + "px" : "16px",
-                textDecoration: "none",
-                fontWeight: fontWeight ? fontWeight : "600",
-                px: "8px",
-              }}
-            >
-              {page.name}
-            </Typography>
-          ) : (
-            <Box
-              onClick={() => {
-                if (onNavigate) onNavigate();
-              }}
-            >
-              <Link
-                href={page.link}
-                sx={{
-                  color: isActive
-                    ? theme.palette.primary.main
-                    : theme.palette.text.primary,
-                  "&:hover": {
-                    color: theme.palette.primary.main,
-                  },
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: size ? size.toString() + "px" : "16px",
-                    textDecoration: "none",
-                    fontWeight: fontWeight ? fontWeight : "500",
-                    px: "8px",
-                  }}
-                >
-                  {page.name}
-                </Typography>
-              </Link>
-            </Box>
-          )}
-        </Box>
-      </Grid>
-    );
-  };
-
-  // Get Dexy page for menu items
-  const dexyPage = pages.find((p) => p.subItems && p.subItems.length > 0);
-
-  // const trigger = useScrollTrigger({
-  //   disableHysteresis: router.pathname === "/" ? true : false,
-  //   threshold: 0,
-  // });
 
   return (
     <>
@@ -241,32 +71,18 @@ const Header: FC<IHeaderProps> = ({}) => {
         sx={{
           zIndex: 91,
           border: "none",
-          // top: trigger && router.pathname !== '/' ? '-60px' : 0,
           borderBottom: `none`,
-          // backdropFilter: "blur(10px)",
           backdropFilter: "none",
           borderRadius: "0px",
-          background:
-            navbarOpen || notificationsOpen
-              ? theme.palette.background.default
-              : "none",
-          // boxShadow: router.pathname === '/'
-          //   // && !trigger
-          //   ? 'none'
-          //   : '3px 3px 15px 5px rgba(0,0,0,0.5)',
+          background: notificationsOpen
+            ? theme.palette.background.default
+            : "none",
           boxShadow: "none!important",
-          // background: navbarOpen || notificationsOpen
-          //   ? theme.palette.background.default
-          //   : router.pathname === '/'
-          //     // && !trigger
-          //     ? 'none'
-          //     : 'radial-gradient(at right top, #12121B, #0A0D15)',
           transition: "background 200ms, box-shadow 200ms, top 400ms",
           "&:before": {
             p: 0,
           },
           mb: "24px",
-          // width: "100vw",
         }}
       >
         <Box sx={{ mx: 2 }}>
@@ -275,11 +91,6 @@ const Header: FC<IHeaderProps> = ({}) => {
             justifyContent="space-between"
             alignItems="center"
             sx={{
-              // height: router.pathname === '/'
-              //   // && !trigger
-              //   && upMd
-              //   ? "90px"
-              //   : '60px',
               height: "60px",
               transition: "height 400ms",
             }}
@@ -304,7 +115,6 @@ const Header: FC<IHeaderProps> = ({}) => {
                     display: "inline-block",
                     verticalAlign: "middle",
                     mr: "3px",
-                    // fontSize: '64px',
                     color: theme.palette.text.primary,
                   }}
                 />
@@ -324,75 +134,9 @@ const Header: FC<IHeaderProps> = ({}) => {
                 </Typography>
               </Link>
             </Grid>
-            <Grid item sx={{ display: { xs: "none", md: "flex" } }}>
-              <Grid container spacing={2}>
-                {pages.map((page, i) => {
-                  // Render Dexy dropdown separately to avoid re-render issues
-                  if (page.subItems && page.subItems.length > 0) {
-                    const isActive = router.pathname.startsWith(page.link);
-                    return (
-                      <Grid item key={i}>
-                        <Box
-                          onClick={handleDexyMenuOpen}
-                          sx={{
-                            display: "inline-block",
-                            position: "relative",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              color: isActive
-                                ? theme.palette.primary.main
-                                : theme.palette.text.primary,
-                              "&:hover": {
-                                color: theme.palette.primary.main,
-                              },
-                            }}
-                          >
-                            <Typography
-                              sx={{
-                                fontSize: "16px",
-                                textDecoration: "none",
-                                fontWeight: 500,
-                                px: "8px",
-                              }}
-                            >
-                              {page.name}
-                            </Typography>
-                            <KeyboardArrowDownIcon
-                              sx={{
-                                fontSize: 16,
-                                ml: -0.5,
-                                transition: "transform 0.2s",
-                                transform: dexyMenuOpen
-                                  ? "rotate(180deg)"
-                                  : "rotate(0deg)",
-                              }}
-                            />
-                          </Box>
-                        </Box>
-                      </Grid>
-                    );
-                  }
-                  return (
-                    <NavigationListItem
-                      size={16}
-                      key={i}
-                      page={page}
-                      fontWeight={500}
-                    />
-                  );
-                })}
-              </Grid>
-            </Grid>
+
             <Grid item>
               <Grid container spacing={2} alignItems="center">
-                {/* <IconButton onClick={toggleTheme} sx={{ color: theme.palette.text.primary }}>
-                    {(theme === DarkTheme) ? <Brightness7Icon /> : <Brightness4Icon />}
-                  </IconButton> */}
                 <Grid item>
                   <NotificationsMenu
                     dialogOpen={notificationsOpen}
@@ -404,221 +148,11 @@ const Header: FC<IHeaderProps> = ({}) => {
                 <Grid item>
                   <UserMenu />
                 </Grid>
-                <Grid item sx={{ display: { xs: "flex", md: "none" } }}>
-                  <IconButton sx={{ p: 0 }} onClick={handleNavbarToggle}>
-                    {!navbarOpen ? (
-                      <MenuIcon color="primary" />
-                    ) : (
-                      <ClearIcon color="primary" />
-                    )}
-                  </IconButton>
-                </Grid>
               </Grid>
             </Grid>
           </Grid>
         </Box>
       </AppBar>
-      <Dialog
-        open={navbarOpen}
-        onClose={handleNavbarDialogClose}
-        fullScreen
-        sx={{
-          zIndex: 12000,
-          "& .MuiBackdrop-root": {
-            backdropFilter: "blur(3px)",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-          },
-          "& .MuiDialog-paper": {
-            zIndex: 12000,
-          },
-        }}
-      >
-        <DialogContent>
-          <IconButton
-            sx={{
-              position: "fixed",
-              top: "25px",
-              right: isLocked ? `${scrollBarCompensation + 8}px` : "8px",
-            }}
-            onClick={handleNavbarToggle}
-          >
-            <ClearIcon color="primary" />
-          </IconButton>
-          <Box
-            sx={{
-              height: "100%",
-              // width: "100vw",
-              // position: "fixed",
-              // top: 0,
-              // zIndex: 10002,
-              // background: theme.palette.background.default,
-              // mt: "90px",
-              // p: "16px",
-              // pb: 0,
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-end",
-                height: "100%",
-                pb: 2,
-              }}
-            >
-              <Box>
-                <Grid
-                  container
-                  spacing={5}
-                  direction="column"
-                  justifyContent="flex-end"
-                  alignItems="flex-start"
-                  sx={{
-                    mb: 3,
-                  }}
-                >
-                  {pages.map((page) => {
-                    // Render expandable section for pages with sub-items
-                    if (page.subItems && page.subItems.length > 0) {
-                      const isExpanded = mobileMenuExpanded === page.name;
-                      const isActive = router.pathname.startsWith(page.link);
-                      return (
-                        <Grid item key={page.name}>
-                          <Box
-                            onClick={() =>
-                              setMobileMenuExpanded(
-                                isExpanded ? null : page.name,
-                              )
-                            }
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              cursor: "pointer",
-                              color: isActive
-                                ? theme.palette.primary.main
-                                : theme.palette.text.primary,
-                              "&:hover": {
-                                color: theme.palette.primary.main,
-                              },
-                            }}
-                          >
-                            <Typography
-                              sx={{
-                                fontSize: "24px",
-                                fontWeight: 500,
-                                px: "8px",
-                              }}
-                            >
-                              {page.name}
-                            </Typography>
-                            <KeyboardArrowDownIcon
-                              sx={{
-                                fontSize: 20,
-                                transition: "transform 0.2s",
-                                transform: isExpanded
-                                  ? "rotate(180deg)"
-                                  : "rotate(0deg)",
-                              }}
-                            />
-                          </Box>
-                          <Collapse in={isExpanded}>
-                            <Box sx={{ pl: 3, pt: 2 }}>
-                              {page.subItems.map((subItem) => (
-                                <Box
-                                  key={subItem.link}
-                                  onClick={() => {
-                                    handleNavbarToggle();
-                                    router.push(subItem.link);
-                                  }}
-                                  sx={{
-                                    py: 1,
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    color:
-                                      router.pathname === subItem.link
-                                        ? theme.palette.primary.main
-                                        : theme.palette.text.secondary,
-                                    "&:hover": {
-                                      color: theme.palette.primary.main,
-                                    },
-                                  }}
-                                >
-                                  <KeyboardArrowRightIcon
-                                    sx={{ fontSize: 18, mr: 0.5 }}
-                                  />
-                                  <Typography
-                                    sx={{
-                                      fontSize: "20px",
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    {subItem.name}
-                                  </Typography>
-                                </Box>
-                              ))}
-                            </Box>
-                          </Collapse>
-                        </Grid>
-                      );
-                    }
-                    return (
-                      <NavigationListItem
-                        size={24}
-                        key={page.name}
-                        page={page}
-                        onNavigate={handleNavbarToggle}
-                      />
-                    );
-                  })}
-                </Grid>
-              </Box>
-            </Box>
-          </Box>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dexy Dropdown Menu - rendered at root level for proper positioning */}
-      <Menu
-        anchorEl={dexyMenuAnchor}
-        open={dexyMenuOpen}
-        onClose={handleDexyMenuClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
-        sx={{
-          "& .MuiPaper-root": {
-            mt: 1,
-            minWidth: 120,
-          },
-        }}
-      >
-        {dexyPage?.subItems?.map((subItem) => (
-          <MenuItem
-            key={subItem.link}
-            onClick={() => {
-              handleDexyMenuClose();
-              router.push(subItem.link);
-            }}
-            sx={{
-              color:
-                router.pathname === subItem.link
-                  ? theme.palette.primary.main
-                  : theme.palette.text.primary,
-              "&:hover": {
-                color: theme.palette.primary.main,
-              },
-            }}
-          >
-            {subItem.name}
-          </MenuItem>
-        ))}
-      </Menu>
     </>
   );
 };
