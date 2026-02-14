@@ -28,7 +28,7 @@ import {
 } from "@mui/icons-material";
 import { useRouter } from "next/router";
 import Link from "@components/Link";
-import { Collapse } from "@mui/material";
+import { Collapse, useMediaQuery } from "@mui/material";
 import Logo from "@components/svgs/Logo";
 
 const DRAWER_WIDTH = 240;
@@ -73,9 +73,15 @@ const pages: PageItem[] = [
     },
 ];
 
-const Sidebar: FC = () => {
+interface SidebarProps {
+    mobileOpen?: boolean;
+    onMobileClose?: () => void;
+}
+
+const Sidebar: FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
     const theme = useTheme();
     const router = useRouter();
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
     const [open, setOpen] = useState(false);
     const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
@@ -97,37 +103,13 @@ const Sidebar: FC = () => {
         return router.pathname.startsWith(path);
     };
 
-    return (
-        <Drawer
-            variant="permanent"
-            open={open}
-            sx={{
-                width: open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
-                flexShrink: 0,
-                "& .MuiDrawer-paper": {
-                    width: open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
-                    boxSizing: "border-box",
-                    overflowX: "hidden",
-                    transition: theme.transitions.create(["width", "background-color"], {
-                        easing: theme.transitions.easing.sharp,
-                        duration: theme.transitions.duration.enteringScreen,
-                    }),
-                    backgroundColor: theme.palette.mode === 'dark'
-                        ? "rgba(11, 12, 21, 0.8)"
-                        : "rgba(255, 255, 255, 0.8)",
-                    backdropFilter: "blur(12px)",
-                    borderRight: `1px solid ${theme.palette.divider}`,
-                    boxShadow: theme.palette.mode === 'dark'
-                        ? "4px 0 24px rgba(0, 0, 0, 0.5)"
-                        : "4px 0 24px rgba(0, 0, 0, 0.05)",
-                },
-            }}
-        >
+    const drawerContent = (
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: open ? "space-between" : "center",
+                    justifyContent: (open || isMobile) ? "space-between" : "center",
                     padding: theme.spacing(0, 2),
                     minHeight: "64px",
                     width: "100%",
@@ -135,6 +117,7 @@ const Sidebar: FC = () => {
             >
                 <Link
                     href="/"
+                    onClick={isMobile ? onMobileClose : undefined}
                     sx={{
                         display: "flex",
                         alignItems: "center",
@@ -170,8 +153,8 @@ const Sidebar: FC = () => {
                             lineHeight: 1,
                             fontFamily: '"Jura", sans-serif',
                             whiteSpace: "nowrap",
-                            opacity: open ? 1 : 0,
-                            visibility: open ? "visible" : "hidden",
+                            opacity: (open || isMobile) ? 1 : 0,
+                            visibility: (open || isMobile) ? "visible" : "hidden",
                             transition: theme.transitions.create(["opacity", "visibility"], {
                                 easing: theme.transitions.easing.sharp,
                                 duration: theme.transitions.duration.enteringScreen,
@@ -181,45 +164,52 @@ const Sidebar: FC = () => {
                         Crux Finance
                     </Typography>
                 </Link>
+                {isMobile && (
+                    <IconButton onClick={onMobileClose} sx={{ color: theme.palette.text.secondary }}>
+                        <ChevronLeftIcon />
+                    </IconButton>
+                )}
             </Box>
 
-            {/* Floating Toggle Handle */}
-            <IconButton
-                onClick={handleDrawerToggle}
-                sx={{
-                    position: "absolute",
-                    bottom: 40,
-                    right: -16,
-                    width: 32,
-                    height: 32,
-                    backgroundColor: theme.palette.mode === 'dark'
-                        ? "rgba(33, 39, 55, 0.95)"
-                        : "rgba(255, 255, 255, 0.95)",
-                    border: `1.5px solid ${theme.palette.primary.main}`,
-                    backdropFilter: "blur(8px)",
-                    borderRadius: "50%",
-                    zIndex: theme.zIndex.drawer + 2,
-                    boxShadow: theme.palette.mode === 'dark'
-                        ? "0 4px 12px rgba(0,0,0,0.5)"
-                        : "0 4px 12px rgba(0,0,0,0.15)",
-                    color: theme.palette.primary.main,
-                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                    "&:hover": {
-                        backgroundColor: theme.palette.primary.main,
-                        color: "#fff",
-                        transform: "scale(1.15)",
-                        boxShadow: `0 0 10px ${theme.palette.primary.main}`,
-                    },
-                }}
-            >
-                <ChevronLeftIcon
+            {/* Floating Toggle Handle (Desktop only) */}
+            {!isMobile && (
+                <IconButton
+                    onClick={handleDrawerToggle}
                     sx={{
-                        fontSize: "1.2rem",
-                        transition: "transform 0.3s ease",
-                        transform: open ? "rotate(0deg)" : "rotate(180deg)"
+                        position: "absolute",
+                        bottom: 40,
+                        right: 16,
+                        width: 32,
+                        height: 32,
+                        backgroundColor: theme.palette.mode === 'dark'
+                            ? "rgba(33, 39, 55, 0.95)"
+                            : "rgba(255, 255, 255, 0.95)",
+                        border: `1.5px solid ${theme.palette.primary.main}`,
+                        backdropFilter: "blur(8px)",
+                        borderRadius: "50%",
+                        zIndex: theme.zIndex.drawer + 2,
+                        boxShadow: theme.palette.mode === 'dark'
+                            ? "0 4px 12px rgba(0,0,0,0.5)"
+                            : "0 4px 12px rgba(0,0,0,0.15)",
+                        color: theme.palette.primary.main,
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        "&:hover": {
+                            backgroundColor: theme.palette.primary.main,
+                            color: "#fff",
+                            transform: "scale(1.15)",
+                            boxShadow: `0 0 10px ${theme.palette.primary.main}`,
+                        },
                     }}
-                />
-            </IconButton>
+                >
+                    <ChevronLeftIcon
+                        sx={{
+                            fontSize: "1.2rem",
+                            transition: "transform 0.3s ease",
+                            transform: open ? "rotate(0deg)" : "rotate(180deg)"
+                        }}
+                    />
+                </IconButton>
+            )}
 
             <Divider sx={{ opacity: 0.1 }} />
             <List sx={{ mt: 1 }}>
@@ -232,19 +222,22 @@ const Sidebar: FC = () => {
                         <React.Fragment key={page.name}>
                             <ListItem disablePadding sx={{ display: "block", mb: 0.5 }}>
                                 <Tooltip
-                                    title={!open ? page.name : ""}
+                                    title={(!open && !isMobile) ? page.name : ""}
                                     placement="right"
                                     arrow
-                                    disableHoverListener={open}
+                                    disableHoverListener={open || isMobile}
                                 >
                                     <Box>
                                         <ListItemButton
                                             component={hasSubItems ? "div" : Link}
                                             href={hasSubItems ? undefined : page.link}
-                                            onClick={hasSubItems ? () => handleExpandItem(page.name) : undefined}
+                                            onClick={hasSubItems
+                                                ? () => handleExpandItem(page.name)
+                                                : (isMobile ? onMobileClose : undefined)
+                                            }
                                             sx={{
                                                 minHeight: 48,
-                                                justifyContent: open ? "initial" : "center",
+                                                justifyContent: (open || isMobile) ? "initial" : "center",
                                                 px: 2.5,
                                                 mx: 1,
                                                 borderRadius: "12px",
@@ -283,7 +276,7 @@ const Sidebar: FC = () => {
                                             <ListItemIcon
                                                 sx={{
                                                     minWidth: 0,
-                                                    mr: open ? 3 : "auto",
+                                                    mr: (open || isMobile) ? 3 : "auto",
                                                     justifyContent: "center",
                                                     color: itemActive
                                                         ? theme.palette.primary.main
@@ -296,7 +289,7 @@ const Sidebar: FC = () => {
                                             <ListItemText
                                                 primary={page.name}
                                                 sx={{
-                                                    opacity: open ? 1 : 0,
+                                                    opacity: (open || isMobile) ? 1 : 0,
                                                     "& .MuiTypography-root": {
                                                         fontWeight: itemActive ? 700 : 500,
                                                         fontSize: "0.95rem",
@@ -304,7 +297,7 @@ const Sidebar: FC = () => {
                                                     },
                                                 }}
                                             />
-                                            {open && hasSubItems && (
+                                            {(open || isMobile) && hasSubItems && (
                                                 <Box sx={{
                                                     display: "flex",
                                                     transition: "transform 0.3s ease",
@@ -323,21 +316,22 @@ const Sidebar: FC = () => {
                                         {page.subItems?.map((subItem) => (
                                             <Tooltip
                                                 key={subItem.name}
-                                                title={!open ? subItem.name : ""}
+                                                title={(!open && !isMobile) ? subItem.name : ""}
                                                 placement="right"
                                                 arrow
-                                                disableHoverListener={open}
+                                                disableHoverListener={open || isMobile}
                                             >
                                                 <Box>
                                                     <ListItemButton
                                                         component={Link}
                                                         href={subItem.link}
+                                                        onClick={isMobile ? onMobileClose : undefined}
                                                         sx={{
                                                             minHeight: 40,
-                                                            pl: open ? 6 : 2.5,
+                                                            pl: (open || isMobile) ? 6 : 2.5,
                                                             mx: 1,
                                                             borderRadius: "10px",
-                                                            justifyContent: open ? "initial" : "center",
+                                                            justifyContent: (open || isMobile) ? "initial" : "center",
                                                             color: isActive(subItem.link)
                                                                 ? theme.palette.primary.main
                                                                 : theme.palette.text.secondary,
@@ -348,7 +342,7 @@ const Sidebar: FC = () => {
                                                             "&:hover": {
                                                                 backgroundColor: "rgba(254, 107, 139, 0.08)",
                                                                 color: theme.palette.primary.main,
-                                                                pl: open ? 6.5 : 2.5,
+                                                                pl: (open || isMobile) ? 6.5 : 2.5,
                                                             },
                                                         }}
                                                     >
@@ -356,7 +350,7 @@ const Sidebar: FC = () => {
                                                             <ListItemIcon
                                                                 sx={{
                                                                     minWidth: 0,
-                                                                    mr: open ? 2 : "auto",
+                                                                    mr: (open || isMobile) ? 2 : "auto",
                                                                     justifyContent: "center",
                                                                     color: isActive(subItem.link) ? theme.palette.primary.main : "inherit",
                                                                     fontSize: "1.2rem",
@@ -369,7 +363,7 @@ const Sidebar: FC = () => {
                                                         <ListItemText
                                                             primary={subItem.name}
                                                             sx={{
-                                                                opacity: open ? 1 : 0,
+                                                                opacity: (open || isMobile) ? 1 : 0,
                                                                 "& .MuiTypography-root": {
                                                                     fontSize: "0.85rem",
                                                                     fontWeight: isActive(subItem.link) ? 600 : 400,
@@ -387,7 +381,68 @@ const Sidebar: FC = () => {
                     );
                 })}
             </List>
-        </Drawer>
+        </Box>
+    );
+
+    return (
+        <Box
+            component="nav"
+            sx={{
+                width: { sm: open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH },
+                flexShrink: { sm: 0 },
+            }}
+        >
+            {/* Mobile Drawer */}
+            <Drawer
+                variant="temporary"
+                open={mobileOpen}
+                onClose={onMobileClose}
+                ModalProps={{
+                    keepMounted: true, // Better open performance on mobile.
+                }}
+                sx={{
+                    display: { xs: 'block', sm: 'none' },
+                    "& .MuiDrawer-paper": {
+                        boxSizing: "border-box",
+                        width: DRAWER_WIDTH,
+                        backgroundColor: theme.palette.mode === 'dark'
+                            ? "rgba(11, 12, 21, 0.95)"
+                            : "rgba(255, 255, 255, 0.95)",
+                        backdropFilter: "blur(12px)",
+                    },
+                }}
+            >
+                {drawerContent}
+            </Drawer>
+
+            {/* Desktop Drawer */}
+            <Drawer
+                variant="permanent"
+                sx={{
+                    display: { xs: 'none', sm: 'block' },
+                    "& .MuiDrawer-paper": {
+                        width: open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
+                        boxSizing: "border-box",
+                        overflowX: "hidden",
+                        transition: theme.transitions.create(["width", "background-color"], {
+                            easing: theme.transitions.easing.sharp,
+                            duration: theme.transitions.duration.enteringScreen,
+                        }),
+                        backgroundColor: theme.palette.mode === 'dark'
+                            ? "rgba(11, 12, 21, 0.8)"
+                            : "rgba(255, 255, 255, 0.8)",
+                        backdropFilter: "blur(12px)",
+                        borderRight: `1px solid ${theme.palette.divider}`,
+                        boxShadow: theme.palette.mode === 'dark'
+                            ? "4px 0 24px rgba(0, 0, 0, 0.5)"
+                            : "4px 0 24px rgba(0, 0, 0, 0.05)",
+                    },
+                }}
+                open
+            >
+                {drawerContent}
+            </Drawer>
+        </Box>
     );
 };
 

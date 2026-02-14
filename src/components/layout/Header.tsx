@@ -37,9 +37,11 @@ import SocialGrid from "./SocialGrid";
 import { useRouter } from "next/router";
 import { useScrollLock } from "@contexts/ScrollLockContext";
 
-interface IHeaderProps { }
+interface IHeaderProps {
+  onMenuClick?: () => void;
+}
 
-const Header: FC<IHeaderProps> = ({ }) => {
+const Header: FC<IHeaderProps> = ({ onMenuClick }) => {
   const { lockScroll, unlockScroll, isLocked, scrollBarCompensation } =
     useScrollLock();
 
@@ -52,6 +54,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
 
   const router = useRouter();
   const upLg = useMediaQuery(theme.breakpoints.up("lg"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleDialogOpen = () => {
     lockScroll();
@@ -82,7 +85,7 @@ const Header: FC<IHeaderProps> = ({ }) => {
           "&:before": {
             p: 0,
           },
-          mb: "24px",
+          // mb: "14px",
         }}
       >
         <Box sx={{ mx: 2 }}>
@@ -95,7 +98,18 @@ const Header: FC<IHeaderProps> = ({ }) => {
               transition: "height 400ms",
             }}
           >
-            <Grid item alignItems="center">
+            <Grid item alignItems="center" sx={{ display: 'flex' }}>
+              {isMobile && (
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  edge="start"
+                  onClick={onMenuClick}
+                  sx={{ mr: 2, color: theme.palette.text.primary }}
+                >
+                  <MenuIcon />
+                </IconButton>
+              )}
             </Grid>
 
             <Grid item>

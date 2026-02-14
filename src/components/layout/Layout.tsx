@@ -5,11 +5,17 @@ import Sidebar from "@components/layout/Sidebar";
 import { Box } from "@mui/material";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
   return (
     <Box sx={{ display: "flex" }}>
-      <Sidebar />
+      <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        <Header />
+        <Header onMenuClick={handleDrawerToggle} />
         <Box
           sx={{
             display: "flex",
