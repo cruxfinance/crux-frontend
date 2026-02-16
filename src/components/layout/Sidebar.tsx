@@ -104,7 +104,7 @@ const Sidebar: FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
     };
 
     const drawerContent = (
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <Box
                 sx={{
                     display: "flex",
@@ -124,12 +124,14 @@ const Sidebar: FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
                         minWidth: 0,
                         textDecoration: "none",
                         "&:hover": {
-                            "& span": {
+                            "& .logo-text": {
                                 color: theme.palette.primary.main,
+                                letterSpacing: "0.05em",
+                                transform: "translateX(4px)",
                             },
                             "& .logo-svg": {
-                                transform: "scale(1.1) rotate(-5deg)",
-                                filter: `drop-shadow(0 0 8px ${theme.palette.primary.main})`,
+                                transform: "scale(1.1) rotate(-8deg)",
+                                filter: `drop-shadow(0 0 12px ${theme.palette.primary.main})`,
                             },
                         },
                     }}
@@ -140,11 +142,12 @@ const Sidebar: FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
                             color: theme.palette.text.primary,
                             fontSize: "2.2rem",
                             flexShrink: 0,
-                            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                            transition: "all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
                         }}
                     />
                     <Typography
                         component="span"
+                        className="logo-text"
                         sx={{
                             ml: 1.5,
                             color: theme.palette.text.primary,
@@ -155,7 +158,7 @@ const Sidebar: FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
                             whiteSpace: "nowrap",
                             opacity: (open || isMobile) ? 1 : 0,
                             visibility: (open || isMobile) ? "visible" : "hidden",
-                            transition: theme.transitions.create(["opacity", "visibility"], {
+                            transition: theme.transitions.create(["opacity", "visibility", "color", "letter-spacing", "transform"], {
                                 easing: theme.transitions.easing.sharp,
                                 duration: theme.transitions.duration.enteringScreen,
                             }),
@@ -164,52 +167,46 @@ const Sidebar: FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
                         Crux Finance
                     </Typography>
                 </Link>
-                {isMobile && (
-                    <IconButton onClick={onMobileClose} sx={{ color: theme.palette.text.secondary }}>
-                        <ChevronLeftIcon />
-                    </IconButton>
-                )}
+
             </Box>
 
-            {/* Floating Toggle Handle (Desktop only) */}
-            {!isMobile && (
-                <IconButton
-                    onClick={handleDrawerToggle}
+            {/* Floating Toggle Handle */}
+            <IconButton
+                onClick={isMobile ? onMobileClose : handleDrawerToggle}
+                sx={{
+                    position: "absolute",
+                    bottom: 40,
+                    right: 16,
+                    width: 32,
+                    height: 32,
+                    backgroundColor: theme.palette.mode === 'dark'
+                        ? "rgba(33, 39, 55, 0.95)"
+                        : "rgba(255, 255, 255, 0.95)",
+                    border: `1.5px solid ${theme.palette.primary.main}`,
+                    backdropFilter: "blur(8px)",
+                    borderRadius: "50%",
+                    zIndex: theme.zIndex.drawer + 2,
+                    boxShadow: theme.palette.mode === 'dark'
+                        ? "0 4px 12px rgba(0,0,0,0.5)"
+                        : "0 4px 12px rgba(0,0,0,0.15)",
+                    color: theme.palette.primary.main,
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    "&:hover": {
+                        backgroundColor: theme.palette.primary.main,
+                        color: "#fff",
+                        transform: "scale(1.15)",
+                        boxShadow: `0 0 10px ${theme.palette.primary.main}`,
+                    },
+                }}
+            >
+                <ChevronLeftIcon
                     sx={{
-                        position: "absolute",
-                        bottom: 40,
-                        right: 16,
-                        width: 32,
-                        height: 32,
-                        backgroundColor: theme.palette.mode === 'dark'
-                            ? "rgba(33, 39, 55, 0.95)"
-                            : "rgba(255, 255, 255, 0.95)",
-                        border: `1.5px solid ${theme.palette.primary.main}`,
-                        backdropFilter: "blur(8px)",
-                        borderRadius: "50%",
-                        zIndex: theme.zIndex.drawer + 2,
-                        boxShadow: theme.palette.mode === 'dark'
-                            ? "0 4px 12px rgba(0,0,0,0.5)"
-                            : "0 4px 12px rgba(0,0,0,0.15)",
-                        color: theme.palette.primary.main,
-                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                        "&:hover": {
-                            backgroundColor: theme.palette.primary.main,
-                            color: "#fff",
-                            transform: "scale(1.15)",
-                            boxShadow: `0 0 10px ${theme.palette.primary.main}`,
-                        },
+                        fontSize: "1.2rem",
+                        transition: "transform 0.3s ease",
+                        transform: (isMobile || open) ? "rotate(0deg)" : "rotate(180deg)"
                     }}
-                >
-                    <ChevronLeftIcon
-                        sx={{
-                            fontSize: "1.2rem",
-                            transition: "transform 0.3s ease",
-                            transform: open ? "rotate(0deg)" : "rotate(180deg)"
-                        }}
-                    />
-                </IconButton>
-            )}
+                />
+            </IconButton>
 
             <Divider sx={{ opacity: 0.1 }} />
             <List sx={{ mt: 1 }}>
