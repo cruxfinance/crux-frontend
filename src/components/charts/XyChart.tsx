@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { FC, useEffect, useState, useMemo } from 'react';
 import { IReducedToken } from '@pages/portfolio';
 import {

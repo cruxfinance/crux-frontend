@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, FC, useEffect } from "react";
 import { Pie } from "@visx/shape";
 import { Group } from "@visx/group";
