@@ -27,7 +27,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import VerifyReportPayment from "@components/accounting/VerifyReportPayment";
 import { useRouter } from "next/router";
 
-const yearsAvailableTRPCQuery = [2021, 2022, 2023, 2024];
+const yearsAvailableTRPCQuery = [2021, 2022, 2023, 2024, 2025];
 
 const overflowEllipsis = {
   overflow: "hidden",
@@ -45,7 +45,7 @@ const Accounting: NextPage = () => {
   const [yearChangedByUser, setYearChangedByUser] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<TReport | undefined>(
-    undefined
+    undefined,
   );
   useEffect(() => {
     setYears(yearsAvailableTRPCQuery);
@@ -58,7 +58,7 @@ const Accounting: NextPage = () => {
     {},
     {
       enabled: sessionStatus === "authenticated",
-    }
+    },
   );
 
   useEffect(() => {
@@ -84,13 +84,13 @@ const Accounting: NextPage = () => {
       },
       {
         enabled: sessionStatus === "authenticated",
-      }
+      },
     );
   const checkPrepaidReports = trpc.accounting.checkPrepaidReports.useQuery(
     undefined,
     {
       enabled: sessionStatus === "authenticated",
-    }
+    },
   );
 
   useEffect(() => {
@@ -108,12 +108,12 @@ const Accounting: NextPage = () => {
               query: { "report-id": firstReportForYear.id },
             },
             undefined,
-            { shallow: true }
+            { shallow: true },
           );
         }
       } else {
         const updatedSelectedReport = checkAvailableReports.data.reports.find(
-          (report) => report.id === selectedReport?.id
+          (report) => report.id === selectedReport?.id,
         );
         setSelectedReport(updatedSelectedReport);
       }
@@ -138,7 +138,7 @@ const Accounting: NextPage = () => {
       onSuccess: () => {
         checkAvailableReports.refetch();
       },
-    }
+    },
   );
   const [openNameEdit, setOpenNameEdit] = useState(false);
   const [newName, setNewName] = useState("");
@@ -161,7 +161,7 @@ const Accounting: NextPage = () => {
         setSelectedReport((prev) =>
           prev?.id === selectedReport.id
             ? { ...prev, customName: newName }
-            : prev
+            : prev,
         );
         // Refetch reports to update the list.
         checkAvailableReports.refetch();
@@ -321,7 +321,7 @@ const Accounting: NextPage = () => {
                         </Typography>
                       ))}
                     </Box>
-                  )
+                  ),
                 )}
               </Box>
             </Collapse>
@@ -367,7 +367,7 @@ const Accounting: NextPage = () => {
         </Box>
       ) : selectedReport ? (
         checkAvailableReports.data.reports.find(
-          (report) => selectedReport.id === report.id
+          (report) => selectedReport.id === report.id,
         )?.status === "AVAILABLE" ? (
           <ViewReport report={selectedReport} />
         ) : (
