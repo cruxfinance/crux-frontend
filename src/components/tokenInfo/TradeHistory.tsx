@@ -27,24 +27,6 @@ export interface PropsType {
   exchangeRate: number;
 }
 
-interface DexOrder {
-  id: number;
-  transaction_id: string;
-  quote_name: string;
-  base_name: string;
-  order_quote_amount: string;
-  order_base_amount: string;
-  filled_quote_amount: string;
-  filled_base_amount: string;
-  total_filled_quote_amount: string;
-  total_filled_base_amount: string;
-  exchange: number;
-  order_type: string;
-  status: string;
-  maker_address: string;
-  taker_address: string;
-  chain_time: number;
-}
 
 const TradeHistory: FC<PropsType> = ({
   currency,
@@ -247,18 +229,12 @@ const TradeHistory: FC<PropsType> = ({
   // END WEBSOCKET STUFF
   ////////////////////////////////////
 
-  const getPrice = (
-    baseAmount: string | number,
-    quoteAmount: string | number,
-    decimals?: number,
-  ) => {
-    var price = Number(baseAmount) / Number(quoteAmount);
-
+  const getPrice = (price: number, decimals?: number) => {
+    let displayPrice = price;
     if (currency === "USE") {
-      price = price * exchangeRate;
+      displayPrice = price * exchangeRate;
     }
-
-    return formatNumber(price, decimals ? decimals : 6, true);
+    return formatNumber(displayPrice, decimals ?? 6, true);
   };
 
   const removeCurrentForTesting = () => {
@@ -401,10 +377,7 @@ const TradeHistory: FC<PropsType> = ({
                       <Grid xs={2}>
                         <Typography sx={{ color: itemColor }}>
                           {currencies[currency]}
-                          {getPrice(
-                            item.total_filled_base_amount,
-                            item.filled_quote_amount,
-                          )}
+                          {getPrice(item.price)}
                         </Typography>
                       </Grid>
                       <Grid xs={2}>
@@ -607,11 +580,7 @@ const TradeHistory: FC<PropsType> = ({
                       <Grid xs={3} sx={{ textAlign: "left" }}>
                         <Typography sx={{ color: itemColor }}>
                           {currencies[currency]}
-                          {getPrice(
-                            item.total_filled_base_amount,
-                            item.filled_quote_amount,
-                            4,
-                          )}
+                          {getPrice(item.price, 4)}
                         </Typography>
                       </Grid>
                       <Grid xs={2} sx={{ textAlign: "left" }}>
