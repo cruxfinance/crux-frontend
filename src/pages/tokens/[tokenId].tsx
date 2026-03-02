@@ -37,6 +37,7 @@ import TvChart from "@components/tokenInfo/TvChart";
 import { checkLocalIcon } from "@lib/utils/icons";
 import { TVChartContainer } from "@components/charts/AdvancedChart";
 import { useAlert } from "@lib/contexts/AlertContext";
+import { USE_TOKEN_ID } from "@lib/configs/paymentTokens";
 
 export interface TokenDataPlus extends ITokenData {
   totalMinted: number;
@@ -64,6 +65,7 @@ const TokenInfo: FC = () => {
   >(undefined);
   const [navigation, setNavigation] = useState("stats");
   const { addAlert } = useAlert();
+  const [isGraphInverted, setIsGraphInverted] = useState(false);
 
   const handleCopy = () => {
     if (tokenId) {
@@ -265,8 +267,27 @@ const TokenInfo: FC = () => {
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="h6" sx={{ lineHeight: 1 }}>
-                  <b>{tokenInfo.ticker}</b>/{currency === "USE" ? "USE" : "ERG"}
+                  {isGraphInverted ? (
+                    <>
+                      <b>{currency === "USE" ? "USD" : currency}</b>/{tokenInfo.ticker}
+                    </>
+                  ) : (
+                    <>
+                      <b>{tokenInfo.ticker}</b>/{currency === "USE" ? "USE" : "ERG"}
+                    </>
+                  )}
                 </Typography>
+                <IconButton
+                  onClick={() => setIsGraphInverted(!isGraphInverted)}
+                  size="small"
+                  sx={{
+                    p: 0.5,
+                    color: isGraphInverted ? 'primary.main' : 'inherit',
+                    '&:hover': { background: 'rgba(255,255,255,0.1)' }
+                  }}
+                >
+                  <SwapHorizIcon sx={{ fontSize: "1.2rem" }} />
+                </IconButton>
                 <Tooltip title="Copy Token ID">
                   <IconButton onClick={handleCopy} size="small" sx={{ p: 0.5 }}>
                     <ContentCopyIcon sx={{ fontSize: "1rem", opacity: 0.7 }} />
@@ -298,10 +319,16 @@ const TokenInfo: FC = () => {
                 </ToggleButton>
               </ToggleButtonGroup>
               <Typography variant="h4">
-                1{tokenInfo.ticker} = {currencies[currency]}
-                {currency === "USE"
-                  ? formatNumber(tokenInfo.price * exchangeRate, 4)
-                  : formatNumber(tokenInfo.price, 4)}
+                1{isGraphInverted ? (currency === "USE" ? "USD" : currency) : tokenInfo.ticker} ={" "}
+                {isGraphInverted ? "" : currencies[currency]}
+                {isGraphInverted
+                  ? (currency === "USE"
+                    ? formatNumber(1 / ((tokenInfo?.price || 1) * exchangeRate), 4)
+                    : formatNumber(1 / (tokenInfo?.price || 1), 4))
+                  : (currency === "USE"
+                    ? formatNumber(tokenInfo.price * exchangeRate, 4)
+                    : formatNumber(tokenInfo.price, 4))}
+                {isGraphInverted ? ` ${tokenInfo.ticker}` : ""}
               </Typography>
             </Grid>
           </Grid>
@@ -335,8 +362,11 @@ const TokenInfo: FC = () => {
                 {defaultWidgetProps !== undefined && (
                   // <TvChart defaultWidgetProps={defaultWidgetProps} currency={currency} />
                   <TVChartContainer
-                    defaultWidgetProps={defaultWidgetProps}
-                    currency={currency}
+                    defaultWidgetProps={{
+                      ...defaultWidgetProps,
+                      symbol: (isGraphInverted && tokenId === USE_TOKEN_ID) ? "Ergo" : tokenInfo.name
+                    }}
+                    currency={(isGraphInverted && tokenId === USE_TOKEN_ID) ? "USE" : currency}
                   />
                 )}
               </Paper>
@@ -352,6 +382,7 @@ const TokenInfo: FC = () => {
                     tradingPair={tradingPair ? tradingPair : "ERG"}
                     tokenTicker={tokenInfo.ticker}
                     exchangeRate={exchangeRate}
+                    inverted={isGraphInverted}
                   />
                 </Paper>
               )}
@@ -403,6 +434,7 @@ const TokenInfo: FC = () => {
                   tradingPair={tradingPair ? tradingPair : "ERG"}
                   tokenTicker={tokenInfo.ticker}
                   exchangeRate={exchangeRate}
+                  inverted={isGraphInverted}
                 />
               </Paper>
               <Box id="swap">
