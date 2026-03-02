@@ -277,17 +277,19 @@ const TokenInfo: FC = () => {
                     </>
                   )}
                 </Typography>
-                <IconButton
-                  onClick={() => setIsGraphInverted(!isGraphInverted)}
-                  size="small"
-                  sx={{
-                    p: 0.5,
-                    color: isGraphInverted ? 'primary.main' : 'inherit',
-                    '&:hover': { background: 'rgba(255,255,255,0.1)' }
-                  }}
-                >
-                  <SwapHorizIcon sx={{ fontSize: "1.2rem" }} />
-                </IconButton>
+                {tokenId === USE_TOKEN_ID && currency === "ERG" && (
+                  <IconButton
+                    onClick={() => setIsGraphInverted(!isGraphInverted)}
+                    size="small"
+                    sx={{
+                      p: 0.5,
+                      color: isGraphInverted ? 'primary.main' : 'inherit',
+                      '&:hover': { background: 'rgba(255,255,255,0.1)' }
+                    }}
+                  >
+                    <SwapHorizIcon sx={{ fontSize: "1.2rem" }} />
+                  </IconButton>
+                )}
                 <Tooltip title="Copy Token ID">
                   <IconButton onClick={handleCopy} size="small" sx={{ p: 0.5 }}>
                     <ContentCopyIcon sx={{ fontSize: "1rem", opacity: 0.7 }} />
