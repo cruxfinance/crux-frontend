@@ -13,6 +13,8 @@ import {
   BottomNavigation,
   BottomNavigationAction,
   Avatar,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import { useRouter } from "next/router";
@@ -29,10 +31,12 @@ import CandlestickChartIcon from "@mui/icons-material/CandlestickChart";
 import InfoIcon from "@mui/icons-material/Info";
 import HistoryIcon from "@mui/icons-material/History";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { scroller } from "react-scroll";
 import TvChart from "@components/tokenInfo/TvChart";
 import { checkLocalIcon } from "@lib/utils/icons";
 import { TVChartContainer } from "@components/charts/AdvancedChart";
+import { useAlert } from "@lib/contexts/AlertContext";
 
 export interface TokenDataPlus extends ITokenData {
   totalMinted: number;
@@ -59,6 +63,43 @@ const TokenInfo: FC = () => {
     Partial<ChartingLibraryWidgetOptions> | undefined
   >(undefined);
   const [navigation, setNavigation] = useState("stats");
+  const { addAlert } = useAlert();
+
+  const handleCopy = () => {
+    if (tokenId) {
+      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(tokenId).then(() => {
+          addAlert("success", "Token ID copied to clipboard");
+        }).catch((err) => {
+          fallbackCopy(tokenId);
+        });
+      } else {
+        fallbackCopy(tokenId);
+      }
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        addAlert("success", "Token ID copied to clipboard");
+      } else {
+        addAlert("error", "Failed to copy Token ID");
+      }
+    } catch (err) {
+      addAlert("error", "Failed to copy Token ID");
+    }
+    document.body.removeChild(textArea);
+  };
 
   const getExchangeRate = async () => {
     setLoading(true);
@@ -212,18 +253,26 @@ const TokenInfo: FC = () => {
                 sx={{
                   display: "flex",
                   flexDirection: "row",
-                  alignItems: "baseline",
+                  alignItems: "center",
                   gap: 2,
+                  mb: 2,
                 }}
               >
                 <Avatar src={tokenInfo.icon} />
-                <Typography variant="h2" sx={{ lineHeight: 1, mb: 2 }}>
+                <Typography variant="h3" sx={{ lineHeight: 1 }}>
                   {tokenInfo.name}
                 </Typography>
               </Box>
-              <Typography variant="h6" sx={{ lineHeight: 1 }}>
-                {tokenInfo.ticker}/{tradingPair ? tradingPair : "ERG"}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="h6" sx={{ lineHeight: 1 }}>
+                  <b>{tokenInfo.ticker}</b>/{currency === "USE" ? "USE" : "ERG"}
+                </Typography>
+                <Tooltip title="Copy Token ID">
+                  <IconButton onClick={handleCopy} size="small" sx={{ p: 0.5 }}>
+                    <ContentCopyIcon sx={{ fontSize: "1rem", opacity: 0.7 }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Grid>
             <Grid sx={{ textAlign: "right" }}>
               <ToggleButtonGroup
@@ -233,11 +282,23 @@ const TokenInfo: FC = () => {
                 sx={{ mb: 1 }}
                 size="small"
               >
-                <ToggleButton value="USE">USE</ToggleButton>
-                <ToggleButton value="ERG">Erg</ToggleButton>
+                <ToggleButton value="USE" sx={{ gap: 1 }}>
+                  <Avatar
+                    src="/icons/tokens/a55b8735ed1a99e46c2c89f8994aacdf4b1109bdcf682f1e5b34479c6e392669.png"
+                    sx={{ width: 18, height: 18, background: 'transparent' }}
+                  />
+                  USE
+                </ToggleButton>
+                <ToggleButton value="ERG" sx={{ gap: 1 }}>
+                  <Avatar
+                    src="/icons/tokens/0000000000000000000000000000000000000000000000000000000000000000.svg"
+                    sx={{ width: 18, height: 18, background: 'transparent' }}
+                  />
+                  Erg
+                </ToggleButton>
               </ToggleButtonGroup>
               <Typography variant="h4">
-                {currencies[currency]}
+                1{tokenInfo.ticker} = {currencies[currency]}
                 {currency === "USE"
                   ? formatNumber(tokenInfo.price * exchangeRate, 4)
                   : formatNumber(tokenInfo.price, 4)}

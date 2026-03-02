@@ -12,19 +12,20 @@ import {
     Typography,
     useTheme,
     Divider,
+    Avatar,
 } from "@mui/material";
 import {
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon,
-    CurrencyExchange as CurrencyExchangeIcon,
+    MonetizationOn as MonetizationOnIcon,
     AccountBalanceWallet as AccountBalanceWalletIcon,
     Assessment as AssessmentIcon,
     SwapCalls as SwapCallsIcon,
     Info as InfoIcon,
-    ExpandLess,
     ExpandMore,
     AddCircleOutline as MintIcon,
     ShowChart as AnalyticsIcon,
+    SwapHoriz as TradeIcon,
 } from "@mui/icons-material";
 import { useRouter } from "next/router";
 import Link from "@components/Link";
@@ -45,7 +46,12 @@ const pages: PageItem[] = [
     {
         name: "Tokens",
         link: "/",
-        icon: <CurrencyExchangeIcon />,
+        icon: <MonetizationOnIcon />,
+    },
+    {
+        name: "Trade",
+        link: "/trade",
+        icon: <TradeIcon />,
     },
     {
         name: "Portfolio",
@@ -60,7 +66,19 @@ const pages: PageItem[] = [
     {
         name: "USE & Dexy",
         link: "/dexy",
-        icon: <SwapCallsIcon />,
+        icon: (
+            <Avatar
+                src="/icons/tokens/a55b8735ed1a99e46c2c89f8994aacdf4b1109bdcf682f1e5b34479c6e392669.png"
+                sx={{
+                    width: 24,
+                    height: 24,
+                    background: 'transparent',
+                    '& img': {
+                        objectFit: 'contain'
+                    }
+                }}
+            />
+        ),
         subItems: [
             { name: "Mint", link: "/dexy/mint", icon: <MintIcon /> },
             { name: "Analytics", link: "/dexy/analytics", icon: <AnalyticsIcon /> },
