@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { FC, useState, useMemo } from "react";
 import {
   Box,

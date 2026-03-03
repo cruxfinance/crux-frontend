@@ -32,6 +32,7 @@ import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
 import { formatNumber } from "@lib/utils/general";
+import { USE_TOKEN_ID } from "@lib/configs/paymentTokens";
 import MarketOrderWidget from "@components/trade/MarketOrderWidget";
 import RecentTradesPanel from "@components/trade/RecentTradesPanel";
 import LimitOrderWidget from "@components/trade/LimitOrderWidget";
@@ -233,6 +234,26 @@ const TradePage: FC = () => {
     }
   }, []);
 
+  // Load default USE token on mount
+  useEffect(() => {
+    const loadDefaultToken = async () => {
+      setLoading(true);
+      try {
+        const useSymbol: TokenSearchResult = {
+          token_id: USE_TOKEN_ID,
+          token_name: "USE",
+          token_description: "USE Token",
+        };
+        await handleTokenSelect(useSymbol);
+      } catch (error) {
+        console.error("Error loading default token:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadDefaultToken();
+  }, [handleTokenSelect]);
+
   // Swap base and quote tokens
   const handleSwapTokens = useCallback(() => {
     if (!baseToken) return;
@@ -259,9 +280,9 @@ const TradePage: FC = () => {
     setDefaultWidgetProps((prev) =>
       prev
         ? {
-            ...prev,
-            symbol: quoteToken.name,
-          }
+          ...prev,
+          symbol: quoteToken.name,
+        }
         : undefined,
     );
   }, [baseToken, quoteToken]);
@@ -273,40 +294,52 @@ const TradePage: FC = () => {
   return (
     <Box sx={{ mx: 2, minHeight: "calc(100vh - 120px)" }}>
       {/* Header with Token Pair Selector */}
-      <Grid
-        container
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 2 }}
-      >
-        <Grid xs={12} md={6}>
-          <Box
+      <Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
+        {/* Token Search */}
+        <Grid xs={12} sm={6} md={4}>
+          <Paper
+            variant="outlined"
             sx={{
+              p: 1.5,
+              height: "100%",
+              minHeight: 80,
               display: "flex",
               alignItems: "center",
-              gap: 2,
-              flexWrap: "wrap",
+              background: theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.03)'
+                : 'rgba(0, 0, 0, 0.01)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: 3,
+              transition: 'all 0.2s',
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                boxShadow: `0 0 10px ${theme.palette.primary.main}33`
+              }
             }}
           >
-            {/* Token Search */}
             <ClickAwayListener onClickAway={handleSearchClickAway}>
-              <Box sx={{ position: "relative" }}>
+              <Box sx={{ position: "relative", width: "100%" }}>
                 <TextField
+                  fullWidth
                   size="small"
                   placeholder="Search token..."
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  sx={{ width: 220 }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
                         {searchLoading ? (
                           <CircularProgress size={16} />
                         ) : (
-                          <SearchIcon />
+                          <SearchIcon color="action" />
                         )}
                       </InputAdornment>
                     ),
+                    sx: {
+                      borderRadius: 2,
+                      bgcolor: 'background.paper',
+                      '& fieldset': { border: 'none' }
+                    }
                   }}
                 />
                 <Popper
@@ -314,16 +347,18 @@ const TradePage: FC = () => {
                   anchorEl={searchAnchorEl}
                   placement="bottom-start"
                   transition
-                  sx={{ zIndex: 1300 }}
+                  sx={{ zIndex: 1300, width: searchAnchorEl?.clientWidth }}
                 >
                   {({ TransitionProps }) => (
                     <Fade {...TransitionProps} timeout={200}>
                       <Paper
+                        elevation={4}
                         sx={{
                           mt: 1,
                           maxHeight: 300,
                           overflow: "auto",
-                          width: 280,
+                          borderRadius: 2,
+                          border: `1px solid ${theme.palette.divider}`
                         }}
                       >
                         <List dense>
@@ -339,7 +374,7 @@ const TradePage: FC = () => {
                               }}
                             >
                               <ListItemAvatar>
-                                <Avatar sx={{ width: 24, height: 24 }} src="" />
+                                <Avatar sx={{ width: 32, height: 32 }} src="" />
                               </ListItemAvatar>
                               <ListItemText
                                 primary={token.token_name}
@@ -354,46 +389,101 @@ const TradePage: FC = () => {
                 </Popper>
               </Box>
             </ClickAwayListener>
+          </Paper>
+        </Grid>
 
-            {/* Selected Pair Display */}
-            {baseToken && (
+        {/* Selected Pair Display */}
+        <Grid xs={12} sm={6} md={4}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 1.5,
+              height: "100%",
+              minHeight: 80,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.03)'
+                : 'rgba(0, 0, 0, 0.01)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: 3,
+            }}
+          >
+            {baseToken ? (
               <Box
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 1,
-                  p: 1,
-                  borderRadius: 1,
-                  bgcolor: theme.palette.background.paper,
-                  border: `1px solid ${theme.palette.divider}`,
+                  gap: 1.5,
                 }}
               >
-                <Avatar src={baseToken.icon} sx={{ width: 28, height: 28 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {baseToken.ticker}
-                </Typography>
-                <IconButton size="small" onClick={handleSwapTokens}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Avatar src={baseToken.icon} sx={{ width: 32, height: 32, boxShadow: theme.shadows[2] }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
+                    {baseToken.ticker}
+                  </Typography>
+                </Box>
+
+                <IconButton
+                  size="small"
+                  onClick={handleSwapTokens}
+                  sx={{
+                    bgcolor: 'action.hover',
+                    '&:hover': { bgcolor: 'primary.main', color: 'common.white' }
+                  }}
+                >
                   <SwapVertIcon fontSize="small" />
                 </IconButton>
-                <Avatar src={quoteToken.icon} sx={{ width: 28, height: 28 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {quoteToken.ticker}
-                </Typography>
-              </Box>
-            )}
 
-            {/* Price Display */}
-            {baseToken && (
-              <Box>
-                <Typography variant="h5">
-                  {formatNumber(baseToken.price, 6)} {quoteToken.ticker}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Avatar src={quoteToken.icon} sx={{ width: 32, height: 32, boxShadow: theme.shadows[2] }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
+                    {quoteToken.ticker}
+                  </Typography>
+                </Box>
+              </Box>
+            ) : (
+              <Typography color="text.secondary" variant="body2">
+                No token selected
+              </Typography>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Price Display */}
+        <Grid xs={12} md={4}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 1.5,
+              height: "100%",
+              minHeight: 80,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.03)'
+                : 'rgba(0, 0, 0, 0.01)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: 3,
+            }}
+          >
+            {baseToken ? (
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>
+                  {formatNumber(baseToken.price, 6)} <Typography component="span" variant="h6" sx={{ opacity: 0.7 }}>{quoteToken.ticker}</Typography>
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  ~${formatNumber(baseToken.price * ergPrice, 4)} USD
+                <Typography variant="body2" sx={{ opacity: 0.6, fontWeight: 500, mb: 0 }}>
+                  ≈ ${formatNumber(baseToken.price * ergPrice, 4)} USD
                 </Typography>
               </Box>
+            ) : (
+              <Typography color="text.secondary" variant="body2">
+                Select a token to see price
+              </Typography>
             )}
-          </Box>
+          </Paper>
         </Grid>
       </Grid>
 
@@ -410,10 +500,10 @@ const TradePage: FC = () => {
                 height: upMd ? 500 : 400,
                 ...(!baseToken || loading || !defaultWidgetProps
                   ? {
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }
                   : {}),
               }}
             >

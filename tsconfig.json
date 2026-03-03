@@ -54,7 +54,11 @@
       "@lib/*": [
         "./src/lib/*"
       ]
-    }
+    },
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ]
   },
   "include": [
     "next-env.d.ts",
@@ -64,9 +68,5 @@
   ],
   "exclude": [
     "node_modules"
-  ],
-  "typeRoots": [
-    "./types",
-    "./node_modules/@types"
   ]
 }

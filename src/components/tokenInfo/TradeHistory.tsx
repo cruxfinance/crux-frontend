@@ -25,8 +25,8 @@ export interface PropsType {
   tokenId: string;
   tokenTicker: string;
   exchangeRate: number;
+  inverted?: boolean;
 }
-
 
 const TradeHistory: FC<PropsType> = ({
   currency,
@@ -34,6 +34,7 @@ const TradeHistory: FC<PropsType> = ({
   tokenId,
   tokenTicker,
   exchangeRate,
+  inverted,
 }) => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
@@ -230,8 +231,8 @@ const TradeHistory: FC<PropsType> = ({
   ////////////////////////////////////
 
   const getPrice = (price: number, decimals?: number) => {
-    let displayPrice = price;
-    if (currency === "USE") {
+    let displayPrice = inverted ? (1 / price) : price;
+    if (currency === "USE" && !inverted) {
       displayPrice = price * exchangeRate;
     }
     return formatNumber(displayPrice, decimals ?? 6, true);
@@ -289,8 +290,8 @@ const TradeHistory: FC<PropsType> = ({
               <Grid xs={2} sx={{ textAlign: "left" }}>
                 Type
               </Grid>
-              <Grid xs={2}>Total {tradingPair}</Grid>
-              <Grid xs={2}>Total {tokenTicker}</Grid>
+              <Grid xs={2}>Total {inverted ? tokenTicker : tradingPair}</Grid>
+              <Grid xs={2}>Total {inverted ? tradingPair : tokenTicker}</Grid>
               <Grid xs={2}>Price ({currency})</Grid>
               <Grid xs={2}>Age</Grid>
               <Grid xs={2} sx={{ textAlign: "right" }}>
@@ -308,7 +309,10 @@ const TradeHistory: FC<PropsType> = ({
           >
             {!initialLoading &&
               tradeHistory.map((item, i) => {
-                const itemColor = item.order_type.includes("Buy")
+                const side = inverted
+                  ? (item.order_type.includes("Buy") ? "Sell" : "Buy")
+                  : item.order_type;
+                const itemColor = side.includes("Buy")
                   ? theme.palette.up.main
                   : theme.palette.down.main;
                 return (
@@ -335,7 +339,7 @@ const TradeHistory: FC<PropsType> = ({
                       },
                       animation:
                         highlightedItems[item.id] &&
-                        highlightedItems[item.id] > Date.now()
+                          highlightedItems[item.id] > Date.now()
                           ? "highlightGlow 2s ease-in-out"
                           : "none",
                       background: i % 2 ? "" : theme.palette.background.paper,
@@ -354,13 +358,13 @@ const TradeHistory: FC<PropsType> = ({
                         <Typography
                           sx={{ color: itemColor, textAlign: "left" }}
                         >
-                          {item.order_type}
+                          {side}
                         </Typography>
                       </Grid>
                       <Grid xs={2}>
                         <Typography sx={{ color: itemColor }}>
                           {formatNumber(
-                            Number(item.total_filled_base_amount),
+                            inverted ? Number(item.total_filled_quote_amount) : Number(item.total_filled_base_amount),
                             4,
                           )}
                         </Typography>
@@ -368,7 +372,7 @@ const TradeHistory: FC<PropsType> = ({
                       <Grid xs={2}>
                         <Typography sx={{ color: itemColor }}>
                           {formatNumber(
-                            Number(item.total_filled_quote_amount),
+                            inverted ? Number(item.total_filled_base_amount) : Number(item.total_filled_quote_amount),
                             2,
                             true,
                           )}
@@ -522,7 +526,10 @@ const TradeHistory: FC<PropsType> = ({
           >
             {!initialLoading &&
               tradeHistory.map((item, i) => {
-                const itemColor = item.order_type.includes("Buy")
+                const side = inverted
+                  ? (item.order_type.includes("Buy") ? "Sell" : "Buy")
+                  : item.order_type;
+                const itemColor = side.includes("Buy")
                   ? theme.palette.up.main
                   : theme.palette.down.main;
                 return (
@@ -549,7 +556,7 @@ const TradeHistory: FC<PropsType> = ({
                       },
                       animation:
                         highlightedItems[item.id] &&
-                        highlightedItems[item.id] > Date.now()
+                          highlightedItems[item.id] > Date.now()
                           ? "highlightGlow 2s ease-in-out"
                           : "none",
                       background: i % 2 ? "" : theme.palette.background.paper,
@@ -569,7 +576,7 @@ const TradeHistory: FC<PropsType> = ({
                         <Typography
                           sx={{ color: itemColor, textAlign: "left" }}
                         >
-                          {item.order_type}
+                          {side}
                         </Typography>
                         <Typography
                           sx={{ color: itemColor, textAlign: "left" }}
@@ -586,14 +593,14 @@ const TradeHistory: FC<PropsType> = ({
                       <Grid xs={2} sx={{ textAlign: "left" }}>
                         <Typography sx={{ color: itemColor }}>
                           {formatNumber(
-                            Number(item.order_base_amount),
+                            inverted ? Number(item.filled_quote_amount) : Number(item.order_base_amount),
                             2,
                             true,
                           )}
                         </Typography>
                         <Typography sx={{ color: itemColor }}>
                           {formatNumber(
-                            Number(item.filled_quote_amount),
+                            inverted ? Number(item.order_base_amount) : Number(item.filled_quote_amount),
                             2,
                             true,
                           )}
