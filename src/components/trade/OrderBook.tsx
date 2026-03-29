@@ -124,7 +124,8 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken }) => {
         variant="outlined"
         sx={{
           p: 2,
-          height: 400,
+          height: "100%",
+          minHeight: 400,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -141,7 +142,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken }) => {
     orderBook && (orderBook.bids.length > 0 || orderBook.asks.length > 0);
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, height: 400 }}>
+    <Paper variant="outlined" sx={{ p: 2, height: "100%", minHeight: 400 }}>
       <Box
         sx={{
           display: "flex",

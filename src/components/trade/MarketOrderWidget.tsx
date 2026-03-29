@@ -348,12 +348,11 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
       <Box
         sx={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           alignItems: "center",
-          mb: 2,
+          mb: 1,
         }}
       >
-        <Typography variant="h6">Market Order</Typography>
         <WidgetSettings
           feeToken={feeToken}
           onFeeTokenChange={setFeeToken}
@@ -426,13 +425,22 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
               </InputAdornment>
             ) : null,
             endAdornment: (
-              <InputAdornment position="end">
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, height: "100%" }}>
                   <Avatar
                     src={inputToken?.icon}
-                    sx={{ width: 20, height: 20 }}
+                    sx={{ width: 24, height: 24 }}
                   />
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 600,
+                      lineHeight: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
                     {inputToken?.ticker || "---"}
                   </Typography>
                 </Box>
@@ -496,13 +504,22 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
           disabled
           InputProps={{
             endAdornment: (
-              <InputAdornment position="end">
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, height: "100%" }}>
                   <Avatar
                     src={outputToken?.icon}
-                    sx={{ width: 20, height: 20 }}
+                    sx={{ width: 24, height: 24 }}
                   />
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 600,
+                      lineHeight: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
                     {outputToken?.ticker || "---"}
                   </Typography>
                 </Box>

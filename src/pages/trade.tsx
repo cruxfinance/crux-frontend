@@ -487,10 +487,10 @@ const TradePage: FC = () => {
         </Grid>
       </Grid>
 
-      {/* Main Content Grid */}
-      <Grid container spacing={2}>
-        {/* Left Column: Chart + (Open Orders | Recent Trades) */}
-        <Grid xs={12} lg={8}>
+      {/* Main Content: 3-column layout on large screens */}
+      <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
+        {/* Left Column: Chart + Recent Trades */}
+        <Grid xs={12} lg={7}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {/* Chart Area */}
             <Paper
@@ -537,87 +537,81 @@ const TradePage: FC = () => {
               )}
             </Paper>
 
-            {/* Bottom row: Open Orders + Recent Trades */}
-            <Grid container spacing={2}>
-              {/* User Orders Panel */}
-              <Grid xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
-                  <Tabs
-                    value={ordersTab}
-                    onChange={(_, v) => setOrdersTab(v)}
-                    sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}
-                  >
-                    <Tab label="Open Orders" />
-                    <Tab label="Order History" />
-                  </Tabs>
-                  <Box sx={{ p: 2 }}>
-                    {ordersTab === 0 ? (
-                      <OpenOrdersPanel
-                        baseToken={baseToken}
-                        quoteToken={quoteToken}
-                        refreshTrigger={orderRefreshTrigger}
-                      />
-                    ) : (
-                      <OrderHistoryPanel
-                        baseToken={baseToken}
-                        quoteToken={quoteToken}
-                      />
-                    )}
-                  </Box>
-                </Paper>
-              </Grid>
-
-              {/* Recent Trades */}
-              <Grid xs={12} md={6}>
-                <RecentTradesPanel
-                  baseToken={baseToken}
-                  quoteToken={quoteToken}
-                  ergPrice={ergPrice}
-                />
-              </Grid>
-            </Grid>
+            {/* Recent Trades */}
+            <RecentTradesPanel
+              baseToken={baseToken}
+              quoteToken={quoteToken}
+              ergPrice={ergPrice}
+            />
           </Box>
         </Grid>
 
-        {/* Right Column: Order Widget + Order Book stacked */}
-        <Grid xs={12} md={6} lg={4}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {/* Order Widget with Tabs */}
-            <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
-              <Tabs
-                value={orderTab}
-                onChange={(_, v) => setOrderTab(v)}
-                variant="fullWidth"
-                sx={{ borderBottom: 1, borderColor: "divider" }}
-              >
-                <Tab label="Market" />
-                <Tab label="Limit" />
-              </Tabs>
-              <Box sx={{ p: 2 }}>
-                {orderTab === 0 ? (
-                  <MarketOrderWidget
-                    baseToken={baseToken}
-                    quoteToken={quoteToken}
-                    ergPrice={ergPrice}
-                    disabled={!baseToken}
-                  />
-                ) : (
-                  <LimitOrderWidget
-                    baseToken={baseToken}
-                    quoteToken={quoteToken}
-                    ergPrice={ergPrice}
-                    disabled={!baseToken}
-                    onOrderCreated={() => setOrderRefreshTrigger((t) => t + 1)}
-                  />
-                )}
-              </Box>
-            </Paper>
-
-            {/* Order Book */}
+        {/* Middle Column: Order Book (full height) */}
+        <Grid xs={12} md={6} lg={2.5} sx={{ display: "flex" }}>
+          <Box sx={{ flex: 1 }}>
             <OrderBook baseToken={baseToken} quoteToken={quoteToken} />
           </Box>
         </Grid>
+
+        {/* Right Column: Trade Widget */}
+        <Grid xs={12} md={6} lg={2.5} sx={{ display: "flex" }}>
+          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
+            <Tabs
+              value={orderTab}
+              onChange={(_, v) => setOrderTab(v)}
+              variant="fullWidth"
+              sx={{ borderBottom: 1, borderColor: "divider" }}
+            >
+              <Tab label="Market" />
+              <Tab label="Limit" />
+            </Tabs>
+            <Box sx={{ p: 2 }}>
+              {orderTab === 0 ? (
+                <MarketOrderWidget
+                  baseToken={baseToken}
+                  quoteToken={quoteToken}
+                  ergPrice={ergPrice}
+                  disabled={!baseToken}
+                />
+              ) : (
+                <LimitOrderWidget
+                  baseToken={baseToken}
+                  quoteToken={quoteToken}
+                  ergPrice={ergPrice}
+                  disabled={!baseToken}
+                  onOrderCreated={() => setOrderRefreshTrigger((t) => t + 1)}
+                />
+              )}
+            </Box>
+          </Paper>
+        </Grid>
       </Grid>
+
+      {/* Full-width bottom: My Orders */}
+      <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", mt: 2, minHeight: 200 }}>
+        <Tabs
+          value={ordersTab}
+          onChange={(_, v) => setOrdersTab(v)}
+          sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}
+        >
+          <Tab label="Open Orders" />
+          <Tab label="Order History" />
+        </Tabs>
+        <Box sx={{ p: 2 }}>
+          {ordersTab === 0 ? (
+            <OpenOrdersPanel
+              baseToken={baseToken}
+              quoteToken={quoteToken}
+              refreshTrigger={orderRefreshTrigger}
+            />
+          ) : (
+            <OrderHistoryPanel
+              baseToken={baseToken}
+              quoteToken={quoteToken}
+            />
+          )}
+        </Box>
+      </Paper>
     </Box>
   );
 };

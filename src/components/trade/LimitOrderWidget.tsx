@@ -95,6 +95,32 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   // Current block height for expiry calculation
   const [currentHeight, setCurrentHeight] = useState<number | null>(null);
 
+  // Fee estimate
+  const [feeEstimate, setFeeEstimate] = useState<{
+    fee_amount: number;
+    fee_token: string;
+    fee_usd: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const fetchFeeEstimate = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.CRUX_API}/dex/fee_estimate?fee_token=${feeToken}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.error) {
+            setFeeEstimate(data);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching fee estimate:", error);
+      }
+    };
+    fetchFeeEstimate();
+  }, [feeToken]);
+
   // Fetch current block height
   useEffect(() => {
     const fetchHeight = async () => {
@@ -369,12 +395,11 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       <Box
         sx={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           alignItems: "center",
-          mb: 2,
+          mb: 1,
         }}
       >
-        <Typography variant="h6">Limit Order</Typography>
         <WidgetSettings
           feeToken={feeToken}
           onFeeTokenChange={setFeeToken}
@@ -438,8 +463,17 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           disabled={disabled || submitting}
           InputProps={{
             endAdornment: (
-              <InputAdornment position="end">
-                <Typography variant="body2" fontWeight={600}>
+              <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    lineHeight: "24px",
+                    height: "24px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
                   {quoteToken.ticker}
                 </Typography>
               </InputAdornment>
@@ -471,13 +505,22 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           disabled={disabled || submitting}
           InputProps={{
             endAdornment: (
-              <InputAdornment position="end">
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, height: "100%" }}>
                   <Avatar
                     src={baseToken?.icon}
-                    sx={{ width: 20, height: 20 }}
+                    sx={{ width: 24, height: 24 }}
                   />
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 600,
+                      lineHeight: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
                     {baseToken?.ticker || "---"}
                   </Typography>
                 </Box>
@@ -527,13 +570,22 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           disabled={disabled || submitting}
           InputProps={{
             endAdornment: (
-              <InputAdornment position="end">
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, height: "100%" }}>
                   <Avatar
                     src={quoteToken.icon}
-                    sx={{ width: 20, height: 20 }}
+                    sx={{ width: 24, height: 24 }}
                   />
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 600,
+                      lineHeight: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
                     {quoteToken.ticker}
                   </Typography>
                 </Box>
@@ -579,6 +631,97 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           </Box>
         )}
       </Box>
+
+      {/* Order Summary */}
+      {price && amount && baseToken && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            bgcolor: theme.palette.background.default,
+            borderRadius: 1,
+          }}
+        >
+          {/* Price vs Market */}
+          {(() => {
+            const priceFloat = parseFloat(price);
+            const marketPrice = baseToken.price;
+            if (!priceFloat || !marketPrice) return null;
+            const diff = ((priceFloat - marketPrice) / marketPrice) * 100;
+            const isAbove = diff > 0;
+            // For buy orders: above market = worse price, below = better
+            // For sell orders: above market = better price, below = worse
+            const isFavorable = orderType === "sell" ? isAbove : !isAbove;
+            return (
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                <Typography variant="caption" color="text.secondary">
+                  vs Market Price
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: Math.abs(diff) < 0.1
+                      ? theme.palette.text.secondary
+                      : isFavorable
+                        ? theme.palette.success.main
+                        : theme.palette.error.main,
+                  }}
+                >
+                  {isAbove ? "+" : ""}{diff.toFixed(2)}% {isAbove ? "above" : "below"}
+                </Typography>
+              </Box>
+            );
+          })()}
+
+          {/* Total Value */}
+          {total && ergPrice > 0 && (
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                Total Value
+              </Typography>
+              <Typography variant="caption">
+                ~${formatNumber(parseFloat(total) * ergPrice, 2)} USD
+              </Typography>
+            </Box>
+          )}
+
+          {/* Executor Fee */}
+          {feeEstimate && (
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                Executor Fee
+              </Typography>
+              <Typography variant="caption">
+                {feeEstimate.fee_token === "erg"
+                  ? `${(feeEstimate.fee_amount / 1e9).toFixed(4)} ERG`
+                  : `${feeEstimate.fee_amount} CRUX`}
+                {feeEstimate.fee_usd > 0 && ` (~$${feeEstimate.fee_usd.toFixed(4)})`}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Miner Fee */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              Miner Fee
+            </Typography>
+            <Typography variant="caption">
+              {(minerFee / 1e9).toFixed(4)} ERG
+              {ergPrice > 0 && ` (~$${((minerFee / 1e9) * ergPrice).toFixed(4)})`}
+            </Typography>
+          </Box>
+
+          {/* Fee Reserve */}
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Typography variant="caption" color="text.secondary">
+              Fee Reserve (20 fills)
+            </Typography>
+            <Typography variant="caption">
+              {((minerFee * 20) / 1e9).toFixed(4)} ERG
+            </Typography>
+          </Box>
+        </Box>
+      )}
 
       {/* Submit Button */}
       <Button
