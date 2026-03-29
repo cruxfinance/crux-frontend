@@ -55,7 +55,11 @@ interface TokenInfo {
 interface TokenSearchResult {
   token_id: string;
   token_name: string;
-  token_description: string;
+  token_decimals: number;
+  quote_token_id: string;
+  quote_token_name: string;
+  quote_token_decimals: number;
+  liquidity: number;
 }
 
 const TradePage: FC = () => {
@@ -79,6 +83,7 @@ const TradePage: FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<TokenSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchIcons, setSearchIcons] = useState<Record<string, string>>({});
   const [searchAnchorEl, setSearchAnchorEl] = useState<HTMLElement | null>(
     null,
   );
@@ -95,7 +100,6 @@ const TradePage: FC = () => {
 
   // Tab state for order type and order panels
   const [orderTab, setOrderTab] = useState(0); // 0 = Market, 1 = Limit
-  const [ordersTab, setOrdersTab] = useState(0); // 0 = Open Orders, 1 = History
   const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
 
   // User authentication for trade markers
@@ -173,8 +177,20 @@ const TradePage: FC = () => {
           `${process.env.CRUX_API}/crux/search_tokens?query=${encodeURIComponent(query)}&limit=10`,
         );
         if (response.ok) {
-          const data = await response.json();
+          const data: TokenSearchResult[] = await response.json();
           setSearchResults(data);
+
+          // Resolve icons for results in parallel
+          data.forEach(async (token) => {
+            if (searchIcons[token.token_id]) return;
+            let icon = await checkLocalIcon(token.token_id);
+            if (!icon) {
+              icon = await getIconUrlFromServer(token.token_id);
+            }
+            if (icon) {
+              setSearchIcons((prev) => ({ ...prev, [token.token_id]: icon! }));
+            }
+          });
         }
       } catch (error) {
         console.error("Error searching tokens:", error);
@@ -185,7 +201,7 @@ const TradePage: FC = () => {
     [],
   );
 
-  // Select a token from search results
+  // Select a pair from search results
   const handleTokenSelect = useCallback(async (token: TokenSearchResult) => {
     setSearchResults([]);
     setSearchQuery("");
@@ -193,40 +209,62 @@ const TradePage: FC = () => {
     setLoading(true);
 
     try {
-      // Fetch token icon
-      let icon = await checkLocalIcon(token.token_id);
-      if (!icon) {
-        icon = await getIconUrlFromServer(token.token_id);
-      }
+      // Fetch icons for both tokens in parallel
+      const [baseIcon, quoteIcon] = await Promise.all([
+        checkLocalIcon(token.token_id).then(async (icon) =>
+          icon || await getIconUrlFromServer(token.token_id) || ""
+        ),
+        checkLocalIcon(token.quote_token_id).then(async (icon) =>
+          icon || await getIconUrlFromServer(token.quote_token_id) || ""
+        ),
+      ]);
 
-      // Fetch full token info
-      const response = await fetch(
-        `${process.env.CRUX_API}/crux/token_info/${token.token_id}`,
-      );
-      if (response.ok) {
-        const data = await response.json();
+      // Fetch price from token_info
+      let price = 0;
+      try {
+        const response = await fetch(
+          `${process.env.CRUX_API}/crux/token_info/${token.token_id}`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          price = data.value_in_erg || 0;
+        }
+      } catch { /* price stays 0 */ }
 
-        const newToken: TokenInfo = {
-          tokenId: token.token_id,
-          name: data.token_name || token.token_name,
-          ticker: data.token_name || token.token_name,
-          icon: icon || "",
-          decimals: data.decimals ?? 0,
-          price: data.value_in_erg || 0,
-        };
+      const newBaseToken: TokenInfo = {
+        tokenId: token.token_id,
+        name: token.token_name,
+        ticker: token.token_name,
+        icon: baseIcon,
+        decimals: token.token_decimals,
+        price,
+      };
 
-        setBaseToken(newToken);
+      const newQuoteToken: TokenInfo = {
+        tokenId: token.quote_token_id,
+        name: token.quote_token_name,
+        ticker: token.quote_token_name,
+        icon: quoteIcon,
+        decimals: token.quote_token_decimals,
+        price: 1,
+      };
 
-        // Set up chart widget props
-        setDefaultWidgetProps({
-          symbol: newToken.name,
-          interval: "1D" as ResolutionString,
-          library_path: "/static/charting_library/",
-          locale: "en",
-          fullscreen: false,
-          autosize: true,
-        });
-      }
+      setBaseToken(newBaseToken);
+      setQuoteToken(newQuoteToken);
+
+      // Set up chart widget props
+      // Symbol format: {TOKEN}_{BASE} e.g. "USE" (defaults to ERG), "CRUX_USE"
+      const chartSymbol = newQuoteToken.tokenId === ERG_TOKEN_ID
+        ? newBaseToken.name
+        : `${newBaseToken.name}_${newQuoteToken.name}`;
+      setDefaultWidgetProps({
+        symbol: chartSymbol,
+        interval: "1D" as ResolutionString,
+        library_path: "/static/charting_library/",
+        locale: "en",
+        fullscreen: false,
+        autosize: true,
+      });
     } catch (error) {
       console.error("Error fetching token info:", error);
     } finally {
@@ -242,7 +280,11 @@ const TradePage: FC = () => {
         const useSymbol: TokenSearchResult = {
           token_id: USE_TOKEN_ID,
           token_name: "USE",
-          token_description: "USE Token",
+          token_decimals: 6,
+          quote_token_id: ERG_TOKEN_ID,
+          quote_token_name: "ERG",
+          quote_token_decimals: 9,
+          liquidity: 0,
         };
         await handleTokenSelect(useSymbol);
       } catch (error) {
@@ -276,12 +318,17 @@ const TradePage: FC = () => {
       price: temp.price,
     });
 
-    // Update chart
+    // Update chart - new base is old quote, new quote is old base
+    const newBase = quoteToken.name;
+    const newQuoteId = temp.tokenId;
+    const chartSymbol = newQuoteId === ERG_TOKEN_ID
+      ? newBase
+      : `${newBase}_${temp.name}`;
     setDefaultWidgetProps((prev) =>
       prev
         ? {
           ...prev,
-          symbol: quoteToken.name,
+          symbol: chartSymbol,
         }
         : undefined,
     );
@@ -294,9 +341,9 @@ const TradePage: FC = () => {
   return (
     <Box sx={{ mx: 2, minHeight: "calc(100vh - 120px)" }}>
       {/* Header with Token Pair Selector */}
-      <Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
+      <Grid container spacing={2} sx={{ mb: 3, mt: 1, alignItems: "stretch" }}>
         {/* Token Search */}
-        <Grid xs={12} sm={6} md={4}>
+        <Grid xs={12} sm={6} md={5}>
           <Paper
             variant="outlined"
             sx={{
@@ -362,9 +409,9 @@ const TradePage: FC = () => {
                         }}
                       >
                         <List dense>
-                          {searchResults.map((token) => (
+                          {searchResults.map((token, index) => (
                             <ListItem
-                              key={token.token_id}
+                              key={`${token.token_id}-${token.quote_token_id}`}
                               onClick={() => handleTokenSelect(token)}
                               sx={{
                                 cursor: "pointer",
@@ -374,11 +421,11 @@ const TradePage: FC = () => {
                               }}
                             >
                               <ListItemAvatar>
-                                <Avatar sx={{ width: 32, height: 32 }} src="" />
+                                <Avatar sx={{ width: 32, height: 32 }} src={searchIcons[token.token_id] || ""} />
                               </ListItemAvatar>
                               <ListItemText
-                                primary={token.token_name}
-                                secondary={`${token.token_id.slice(0, 8)}...`}
+                                primary={`${token.token_name} / ${token.quote_token_name}`}
+                                secondary={`Liquidity: ${formatNumber(token.liquidity, 2)} ERG`}
                               />
                             </ListItem>
                           ))}
@@ -392,8 +439,8 @@ const TradePage: FC = () => {
           </Paper>
         </Grid>
 
-        {/* Selected Pair Display */}
-        <Grid xs={12} sm={6} md={4}>
+        {/* Pair Price Display */}
+        <Grid xs={12} sm={6} md={7}>
           <Paper
             variant="outlined"
             sx={{
@@ -401,6 +448,7 @@ const TradePage: FC = () => {
               height: "100%",
               minHeight: 80,
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
               background: theme.palette.mode === 'dark'
@@ -408,79 +456,41 @@ const TradePage: FC = () => {
                 : 'rgba(0, 0, 0, 0.01)',
               backdropFilter: 'blur(8px)',
               borderRadius: 3,
+              cursor: baseToken ? 'pointer' : 'default',
+              transition: 'all 0.2s',
+              '&:hover': baseToken ? {
+                borderColor: theme.palette.primary.main,
+                boxShadow: `0 0 10px ${theme.palette.primary.main}33`
+              } : {},
             }}
+            onClick={baseToken ? handleSwapTokens : undefined}
           >
             {baseToken ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1.5,
-                }}
-              >
+              <>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Avatar src={baseToken.icon} sx={{ width: 32, height: 32, boxShadow: theme.shadows[2] }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
-                    {baseToken.ticker}
+                  <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>1</Typography>
+                  <Avatar src={baseToken.icon} sx={{ width: 24, height: 24 }} />
+                  <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
+                    {baseToken.ticker} = {formatNumber(baseToken.price, 6)}
                   </Typography>
-                </Box>
-
-                <IconButton
-                  size="small"
-                  onClick={handleSwapTokens}
-                  sx={{
-                    bgcolor: 'action.hover',
-                    '&:hover': { bgcolor: 'primary.main', color: 'common.white' }
-                  }}
-                >
-                  <SwapVertIcon fontSize="small" />
-                </IconButton>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Avatar src={quoteToken.icon} sx={{ width: 32, height: 32, boxShadow: theme.shadows[2] }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
+                  <Avatar src={quoteToken.icon} sx={{ width: 24, height: 24 }} />
+                  <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
                     {quoteToken.ticker}
                   </Typography>
+                  <SwapVertIcon fontSize="small" sx={{ opacity: 0.4, ml: 0.5 }} />
                 </Box>
-              </Box>
+                <Typography component="span" sx={{ opacity: 0.5, fontWeight: 500, fontSize: '0.875rem' }}>
+                  ≈ ${formatNumber(
+                    baseToken.tokenId === ERG_TOKEN_ID
+                      ? ergPrice
+                      : baseToken.price * ergPrice,
+                    4
+                  )} USD
+                </Typography>
+              </>
             ) : (
               <Typography color="text.secondary" variant="body2">
                 No token selected
-              </Typography>
-            )}
-          </Paper>
-        </Grid>
-
-        {/* Price Display */}
-        <Grid xs={12} md={4}>
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 1.5,
-              height: "100%",
-              minHeight: 80,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: theme.palette.mode === 'dark'
-                ? 'rgba(255, 255, 255, 0.03)'
-                : 'rgba(0, 0, 0, 0.01)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: 3,
-            }}
-          >
-            {baseToken ? (
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                  {formatNumber(baseToken.price, 6)} <Typography component="span" variant="h6" sx={{ opacity: 0.7 }}>{quoteToken.ticker}</Typography>
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.6, fontWeight: 500, mb: 0 }}>
-                  ≈ ${formatNumber(baseToken.price * ergPrice, 4)} USD
-                </Typography>
-              </Box>
-            ) : (
-              <Typography color="text.secondary" variant="body2">
-                Select a token to see price
               </Typography>
             )}
           </Paper>
@@ -588,30 +598,35 @@ const TradePage: FC = () => {
       </Grid>
 
       {/* Full-width bottom: My Orders */}
-      <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", mt: 2, minHeight: 200 }}>
-        <Tabs
-          value={ordersTab}
-          onChange={(_, v) => setOrdersTab(v)}
-          sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}
-        >
-          <Tab label="Open Orders" />
-          <Tab label="Order History" />
-        </Tabs>
-        <Box sx={{ p: 2 }}>
-          {ordersTab === 0 ? (
-            <OpenOrdersPanel
-              baseToken={baseToken}
-              quoteToken={quoteToken}
-              refreshTrigger={orderRefreshTrigger}
-            />
-          ) : (
-            <OrderHistoryPanel
-              baseToken={baseToken}
-              quoteToken={quoteToken}
-            />
-          )}
-        </Box>
-      </Paper>
+      <Grid container spacing={2} sx={{ mt: 0 }}>
+        <Grid xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", minHeight: 200 }}>
+            <Typography variant="subtitle2" sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
+              Open Orders
+            </Typography>
+            <Box sx={{ p: 2 }}>
+              <OpenOrdersPanel
+                baseToken={baseToken}
+                quoteToken={quoteToken}
+                refreshTrigger={orderRefreshTrigger}
+              />
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", minHeight: 200 }}>
+            <Typography variant="subtitle2" sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
+              Order History
+            </Typography>
+            <Box sx={{ p: 2 }}>
+              <OrderHistoryPanel
+                baseToken={baseToken}
+                quoteToken={quoteToken}
+              />
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
     </Box>
   );
 };
