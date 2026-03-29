@@ -46,6 +46,7 @@ interface ILinkProps {
   activeClassName?: string;
   sx?: SxProps;
   target?: string;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
 }
 
 const Link = React.forwardRef<HTMLAnchorElement, ILinkProps>((props, ref) => {

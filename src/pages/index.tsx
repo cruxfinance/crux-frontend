@@ -720,8 +720,20 @@ const Tokens: FC = () => {
         onChange={handleCurrencyChange}
         size="small"
       >
-        <ToggleButton value="USE">USE</ToggleButton>
-        <ToggleButton value="ERG">Erg</ToggleButton>
+        <ToggleButton value="USE" sx={{ gap: 1 }}>
+          <Avatar
+            src="/icons/tokens/a55b8735ed1a99e46c2c89f8994aacdf4b1109bdcf682f1e5b34479c6e392669.png"
+            sx={{ width: 18, height: 18, background: "transparent" }}
+          />
+          USE
+        </ToggleButton>
+        <ToggleButton value="ERG" sx={{ gap: 1 }}>
+          <Avatar
+            src="/icons/tokens/0000000000000000000000000000000000000000000000000000000000000000.svg"
+            sx={{ width: 18, height: 18, background: "transparent" }}
+          />
+          Erg
+        </ToggleButton>
       </ToggleButtonGroup>
     );
   };
