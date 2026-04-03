@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useMemo, useCallback } from "react";
+import React, { FC, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Typography,
   Box,
@@ -19,15 +19,21 @@ import {
   Fade,
   Tabs,
   Tab,
+  Collapse,
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import SearchIcon from "@mui/icons-material/Search";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import {
   ChartingLibraryWidgetOptions,
+  IChartWidgetApi,
   ResolutionString,
 } from "@lib/charts/charting_library";
 import { TVChartContainer } from "@components/charts/AdvancedChart";
+import { createTradeMarkerManager, TradeMarkerManager } from "@lib/charts/tradeMarkers";
 import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
@@ -39,6 +45,7 @@ import LimitOrderWidget from "@components/trade/LimitOrderWidget";
 import OrderBook from "@components/trade/OrderBook";
 import OpenOrdersPanel from "@components/trade/OpenOrdersPanel";
 import OrderHistoryPanel from "@components/trade/OrderHistoryPanel";
+import { useRouter } from "next/router";
 
 const ERG_TOKEN_ID =
   "0000000000000000000000000000000000000000000000000000000000000000";
@@ -64,6 +71,7 @@ interface TokenSearchResult {
 
 const TradePage: FC = () => {
   const theme = useTheme();
+  const router = useRouter();
   const upLg = useMediaQuery(theme.breakpoints.up("lg"));
   const upMd = useMediaQuery(theme.breakpoints.up("md"));
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
@@ -98,9 +106,30 @@ const TradePage: FC = () => {
   // ERG price for USD conversion
   const [ergPrice, setErgPrice] = useState<number>(0);
 
+  // LP position indicator
+  const [lpShare, setLpShare] = useState<number | null>(null);
+
+  // 24h token stats
+  const [tokenStats, setTokenStats] = useState<{
+    dayChangeErg: number;
+    volumeErg: number;
+    volume: number;
+  } | null>(null);
+
   // Tab state for order type and order panels
-  const [orderTab, setOrderTab] = useState(0); // 0 = Market, 1 = Limit
+  const [orderTab, setOrderTab] = useState(0); // 0 = Limit, 1 = Market
+  const [openOrdersExpanded, setOpenOrdersExpanded] = useState(true);
+  const [orderHistoryExpanded, setOrderHistoryExpanded] = useState(false);
+  const [externalLimitPrice, setExternalLimitPrice] = useState<number | null>(null);
   const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
+  const [chartFullscreen, setChartFullscreen] = useState(false);
+  const [openOrderCount, setOpenOrderCount] = useState<number | null>(null);
+  const [orderHistoryCount, setOrderHistoryCount] = useState<number | null>(null);
+
+  // Chart refs for trade markers and order lines
+  const chartRef = useRef<IChartWidgetApi | null>(null);
+  const markerManagerRef = useRef<TradeMarkerManager | null>(null);
+  const orderLinesRef = useRef<any[]>([]);
 
   // User authentication for trade markers
   const { sessionStatus } = useWallet();
@@ -159,12 +188,16 @@ const TradePage: FC = () => {
     fetchErgIcon();
   }, []);
 
-  // Search for tokens
+  // Search for tokens (with 300ms debounce)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleSearchChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       const query = e.target.value;
       setSearchQuery(query);
       setSearchAnchorEl(e.currentTarget);
+
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 
       if (query.length < 2) {
         setSearchResults([]);
@@ -172,31 +205,33 @@ const TradePage: FC = () => {
       }
 
       setSearchLoading(true);
-      try {
-        const response = await fetch(
-          `${process.env.CRUX_API}/crux/search_tokens?query=${encodeURIComponent(query)}&limit=10`,
-        );
-        if (response.ok) {
-          const data: TokenSearchResult[] = await response.json();
-          setSearchResults(data);
+      searchTimerRef.current = setTimeout(async () => {
+        try {
+          const response = await fetch(
+            `${process.env.CRUX_API}/crux/search_tokens?query=${encodeURIComponent(query)}&limit=10`,
+          );
+          if (response.ok) {
+            const data: TokenSearchResult[] = await response.json();
+            setSearchResults(data);
 
-          // Resolve icons for results in parallel
-          data.forEach(async (token) => {
-            if (searchIcons[token.token_id]) return;
-            let icon = await checkLocalIcon(token.token_id);
-            if (!icon) {
-              icon = await getIconUrlFromServer(token.token_id);
-            }
-            if (icon) {
-              setSearchIcons((prev) => ({ ...prev, [token.token_id]: icon! }));
-            }
-          });
+            // Resolve icons for results in parallel
+            data.forEach(async (token) => {
+              if (searchIcons[token.token_id]) return;
+              let icon = await checkLocalIcon(token.token_id);
+              if (!icon) {
+                icon = await getIconUrlFromServer(token.token_id);
+              }
+              if (icon) {
+                setSearchIcons((prev) => ({ ...prev, [token.token_id]: icon! }));
+              }
+            });
+          }
+        } catch (error) {
+          console.error("Error searching tokens:", error);
+        } finally {
+          setSearchLoading(false);
         }
-      } catch (error) {
-        console.error("Error searching tokens:", error);
-      } finally {
-        setSearchLoading(false);
-      }
+      }, 300);
     },
     [],
   );
@@ -277,16 +312,27 @@ const TradePage: FC = () => {
     const loadDefaultToken = async () => {
       setLoading(true);
       try {
-        const useSymbol: TokenSearchResult = {
+        const response = await fetch(
+          `${process.env.CRUX_API}/crux/search_tokens?query=USE&limit=10`,
+        );
+        if (response.ok) {
+          const results: TokenSearchResult[] = await response.json();
+          const useToken = results.find((t) => t.token_id === USE_TOKEN_ID);
+          if (useToken) {
+            await handleTokenSelect(useToken);
+            return;
+          }
+        }
+        // Fallback if API fails
+        await handleTokenSelect({
           token_id: USE_TOKEN_ID,
           token_name: "USE",
-          token_decimals: 6,
+          token_decimals: 2,
           quote_token_id: ERG_TOKEN_ID,
           quote_token_name: "ERG",
           quote_token_decimals: 9,
           liquidity: 0,
-        };
-        await handleTokenSelect(useSymbol);
+        });
       } catch (error) {
         console.error("Error loading default token:", error);
       } finally {
@@ -338,18 +384,241 @@ const TradePage: FC = () => {
     setSearchAnchorEl(null);
   };
 
+  const [externalLimitAmount, setExternalLimitAmount] = useState<number | null>(null);
+
+  const handleOrderBookPriceClick = useCallback((price: number, amount?: number) => {
+    setOrderTab(0); // Switch to Limit tab
+    setExternalLimitPrice(price);
+    if (amount !== undefined) {
+      setExternalLimitAmount(amount);
+    }
+  }, []);
+
+  // Load open order price lines on chart
+  const loadOrderLines = useCallback(async (chart: IChartWidgetApi) => {
+    // Clear existing lines
+    orderLinesRef.current.forEach((line) => {
+      try { line.remove(); } catch {}
+    });
+    orderLinesRef.current = [];
+
+    if (userAddresses.length === 0 || !baseToken) return;
+
+    try {
+      const allOrders: any[] = [];
+      for (const address of userAddresses.slice(0, 5)) {
+        const params = new URLSearchParams({
+          owner_address: address,
+          status: "open,partial",
+          limit: "50",
+        });
+        const response = await fetch(
+          `${process.env.CRUX_API}/dex/orders?${params}`,
+        );
+        if (response.ok) {
+          const result = await response.json();
+          if (Array.isArray(result)) allOrders.push(...result);
+        }
+      }
+
+      // Deduplicate by order_id
+      const uniqueOrders = allOrders.filter(
+        (order, idx, self) => idx === self.findIndex((o) => o.order_id === order.order_id),
+      );
+
+      for (const order of uniqueOrders) {
+        // Determine side and price (same logic as OpenOrdersPanel)
+        const givenIsQuote =
+          order.given_token_id === null ||
+          order.given_token_id === ERG_TOKEN_ID ||
+          order.given_token_id === quoteToken.tokenId;
+        const side = givenIsQuote ? "buy" : "sell";
+
+        if (order.price_denominator === 0) continue;
+        const rawRatio = order.price_numerator / order.price_denominator;
+        const givenDec = order.given_token_decimals || 9;
+        const takenDec = order.taken_token_decimals || 9;
+        const price = side === "buy"
+          ? Math.pow(10, takenDec) / (rawRatio * Math.pow(10, givenDec))
+          : (rawRatio * Math.pow(10, givenDec)) / Math.pow(10, takenDec);
+
+        if (price <= 0 || !isFinite(price)) continue;
+
+        // Calculate display amount
+        let amount: number;
+        if (side === "buy") {
+          const originalQuote = order.original_given_amount / Math.pow(10, givenDec);
+          amount = price > 0 ? originalQuote / price : 0;
+        } else {
+          amount = order.original_given_amount / Math.pow(10, givenDec);
+        }
+
+        const isBuy = side === "buy";
+        const color = isBuy ? "#4caf50" : "#f44336";
+
+        try {
+          const line = chart.createOrderLine()
+            .setPrice(price)
+            .setText(isBuy ? "BUY" : "SELL")
+            .setQuantity(formatNumber(amount, 2))
+            .setLineColor(color)
+            .setBodyBackgroundColor(color)
+            .setBodyTextColor("#ffffff")
+            .setQuantityBackgroundColor(color)
+            .setQuantityTextColor("#ffffff");
+
+          orderLinesRef.current.push(line);
+        } catch (e) {
+          console.error("Error creating order line:", e);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading order lines:", error);
+    }
+  }, [userAddresses, baseToken, quoteToken]);
+
+  // Chart ready handler — sets up trade markers and order lines
+  const handleChartReady = useCallback((chart: IChartWidgetApi, container: HTMLElement) => {
+    // Clean up previous
+    if (markerManagerRef.current) {
+      markerManagerRef.current.destroy();
+      markerManagerRef.current = null;
+    }
+
+    chartRef.current = chart;
+
+    // Trade markers: show buy/sell arrows for connected wallet
+    if (baseToken && userAddresses.length > 0) {
+      const manager = createTradeMarkerManager(chart, baseToken.tokenId, userAddresses, container);
+      markerManagerRef.current = manager;
+
+      // Load markers for initial visible range
+      const range = chart.getVisibleRange();
+      manager.loadMarkers(range.from, range.to);
+
+      // Reload markers on scroll/zoom with debounce
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+      chart.onVisibleRangeChanged().subscribe(null, () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          if (markerManagerRef.current) {
+            const range = chart.getVisibleRange();
+            markerManagerRef.current.loadMarkers(range.from, range.to);
+          }
+        }, 500);
+      });
+    }
+
+    // Order price lines
+    loadOrderLines(chart);
+  }, [baseToken, userAddresses, loadOrderLines]);
+
+  // Refresh order lines when orders change
+  useEffect(() => {
+    if (chartRef.current) {
+      loadOrderLines(chartRef.current);
+    }
+  }, [orderRefreshTrigger, loadOrderLines]);
+
+  // Cleanup trade markers on unmount
+  useEffect(() => {
+    return () => {
+      if (markerManagerRef.current) {
+        markerManagerRef.current.destroy();
+        markerManagerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Fetch LP position for current pair
+  useEffect(() => {
+    setLpShare(null);
+    if (!baseToken || userAddresses.length === 0) return;
+    const fetchLpShare = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.CRUX_API}/dex/lp_positions`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_addresses: userAddresses,
+              limit: 50,
+              offset: 0,
+            }),
+          },
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.positions) {
+            // Find position matching current pair (check both token directions)
+            const match = data.positions.find(
+              (p: any) =>
+                (p.base_token.token_id === baseToken.tokenId &&
+                  p.quote_token.token_id === quoteToken.tokenId) ||
+                (p.base_token.token_id === quoteToken.tokenId &&
+                  p.quote_token.token_id === baseToken.tokenId),
+            );
+            if (match) {
+              setLpShare(match.share_of_pool);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching LP position:", error);
+      }
+    };
+    fetchLpShare();
+  }, [baseToken?.tokenId, quoteToken?.tokenId, userAddresses]);
+
+  // Fetch 24h token stats
+  useEffect(() => {
+    setTokenStats(null);
+    if (!baseToken) return;
+
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.CRUX_API}/spectrum/token_list`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token_filter: [baseToken.tokenId],
+              limit: 1,
+            }),
+          },
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.length > 0) {
+            const entry = data[0];
+            setTokenStats({
+              dayChangeErg: entry.day_change_erg,
+              volumeErg: entry.volume_erg,
+              volume: entry.volume,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching token stats:", error);
+      }
+    };
+    fetchStats();
+  }, [baseToken?.tokenId]);
+
   return (
     <Box sx={{ mx: 2, minHeight: "calc(100vh - 120px)" }}>
       {/* Header with Token Pair Selector */}
-      <Grid container spacing={2} sx={{ mb: 3, mt: 1, alignItems: "stretch" }}>
+      <Grid container spacing={2} sx={{ mb: 2, mt: 0.5, alignItems: "stretch" }}>
         {/* Token Search */}
         <Grid xs={12} sm={6} md={5}>
           <Paper
             variant="outlined"
             sx={{
-              p: 1.5,
+              p: 1,
               height: "100%",
-              minHeight: 80,
+              minHeight: 48,
               display: "flex",
               alignItems: "center",
               background: theme.palette.mode === 'dark'
@@ -369,7 +638,7 @@ const TradePage: FC = () => {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Search token..."
+                  placeholder="Search by name or ticker (e.g. USE, CRUX)"
                   value={searchQuery}
                   onChange={handleSearchChange}
                   InputProps={{
@@ -439,18 +708,20 @@ const TradePage: FC = () => {
           </Paper>
         </Grid>
 
-        {/* Pair Price Display */}
+        {/* Pair Price Display - compact horizontal ticker */}
         <Grid xs={12} sm={6} md={7}>
           <Paper
             variant="outlined"
             sx={{
-              p: 1.5,
+              px: 2,
+              py: 1,
               height: "100%",
-              minHeight: 80,
+              minHeight: 48,
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
               background: theme.palette.mode === 'dark'
                 ? 'rgba(255, 255, 255, 0.03)'
                 : 'rgba(0, 0, 0, 0.01)',
@@ -464,29 +735,76 @@ const TradePage: FC = () => {
               } : {},
             }}
             onClick={baseToken ? handleSwapTokens : undefined}
+            role={baseToken ? "button" : undefined}
+            aria-label={baseToken ? "Swap base and quote tokens" : undefined}
           >
             {baseToken ? (
               <>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>1</Typography>
-                  <Avatar src={baseToken.icon} sx={{ width: 24, height: 24 }} />
-                  <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
-                    {baseToken.ticker} = {formatNumber(baseToken.price, 6)}
+                {/* Pair + Price */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Avatar src={baseToken.icon} sx={{ width: 20, height: 20 }} />
+                  <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.15rem' }}>
+                    {baseToken.ticker}/{quoteToken.ticker}
                   </Typography>
-                  <Avatar src={quoteToken.icon} sx={{ width: 24, height: 24 }} />
-                  <Typography component="span" sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
-                    {quoteToken.ticker}
+                  <SwapVertIcon sx={{ fontSize: 16, opacity: 0.4 }} />
+                  <Typography component="span" sx={{ fontWeight: 600, fontSize: '1.15rem', ml: 0.5 }}>
+                    {formatNumber(baseToken.price, 6)}
                   </Typography>
-                  <SwapVertIcon fontSize="small" sx={{ opacity: 0.4, ml: 0.5 }} />
+                  <Typography component="span" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                    ≈${formatNumber(
+                      baseToken.tokenId === ERG_TOKEN_ID
+                        ? ergPrice
+                        : baseToken.price * ergPrice,
+                      2
+                    )}
+                  </Typography>
                 </Box>
-                <Typography component="span" sx={{ opacity: 0.5, fontWeight: 500, fontSize: '0.875rem' }}>
-                  ≈ ${formatNumber(
-                    baseToken.tokenId === ERG_TOKEN_ID
-                      ? ergPrice
-                      : baseToken.price * ergPrice,
-                    4
-                  )} USD
-                </Typography>
+
+                {/* Stats */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  {tokenStats && (
+                    <>
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          color: tokenStats.dayChangeErg >= 0
+                            ? theme.palette.success.main
+                            : theme.palette.error.main,
+                        }}
+                      >
+                        {tokenStats.dayChangeErg >= 0 ? '+' : ''}
+                        {tokenStats.dayChangeErg.toFixed(2)}%
+                      </Typography>
+                      <Typography
+                        component="span"
+                        sx={{ fontSize: '0.8rem', color: 'text.secondary' }}
+                      >
+                        Vol: {formatNumber(tokenStats.volumeErg, 1)} ERG
+                        {ergPrice > 0 && ` ($${formatNumber(tokenStats.volume, 0)})`}
+                      </Typography>
+                    </>
+                  )}
+                  {lpShare !== null && (
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: theme.palette.primary.main,
+                        cursor: 'pointer',
+                        '&:hover': { textDecoration: 'underline' },
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push('/liquidity');
+                      }}
+                    >
+                      LP: {(lpShare * 100).toFixed(2)}%
+                    </Typography>
+                  )}
+                </Box>
               </>
             ) : (
               <Typography color="text.secondary" variant="body2">
@@ -500,14 +818,17 @@ const TradePage: FC = () => {
       {/* Main Content: 3-column layout on large screens */}
       <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
         {/* Left Column: Chart + Recent Trades */}
-        <Grid xs={12} lg={7}>
+        <Grid xs={12} lg={chartFullscreen ? 12 : 7} order={{ xs: 2, md: 2, lg: 1 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {/* Chart Area */}
             <Paper
               variant="outlined"
               sx={{
                 p: 2,
-                height: upMd ? 500 : 400,
+                position: "relative",
+                height: chartFullscreen
+                  ? "calc(100vh - 200px)"
+                  : upMd ? 500 : 400,
                 ...(!baseToken || loading || !defaultWidgetProps
                   ? {
                     display: "flex",
@@ -517,6 +838,22 @@ const TradePage: FC = () => {
                   : {}),
               }}
             >
+              {baseToken && defaultWidgetProps && !loading && (
+                <IconButton
+                  size="small"
+                  onClick={() => setChartFullscreen((f) => !f)}
+                  sx={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    zIndex: 10,
+                    bgcolor: "background.paper",
+                    "&:hover": { bgcolor: "background.hover" },
+                  }}
+                >
+                  {chartFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+                </IconButton>
+              )}
               {!baseToken ? (
                 <Box sx={{ textAlign: "center" }}>
                   <Typography variant="h6" color="text.secondary">
@@ -538,6 +875,7 @@ const TradePage: FC = () => {
                     defaultWidgetProps={defaultWidgetProps}
                     currency="ERG"
                     height="100%"
+                    onChartReady={handleChartReady}
                   />
                 </Box>
               ) : (
@@ -548,48 +886,58 @@ const TradePage: FC = () => {
             </Paper>
 
             {/* Recent Trades */}
-            <RecentTradesPanel
-              baseToken={baseToken}
-              quoteToken={quoteToken}
-              ergPrice={ergPrice}
-            />
+            {!chartFullscreen && (
+              <RecentTradesPanel
+                baseToken={baseToken}
+                quoteToken={quoteToken}
+                ergPrice={ergPrice}
+                onTradeClick={handleOrderBookPriceClick}
+              />
+            )}
           </Box>
         </Grid>
 
         {/* Middle Column: Order Book (full height) */}
-        <Grid xs={12} md={6} lg={2.5} sx={{ display: "flex" }}>
+        <Grid xs={12} md={6} lg={2.5} order={{ xs: 3, md: 3, lg: 2 }} sx={{ display: chartFullscreen ? "none" : "flex" }}>
           <Box sx={{ flex: 1 }}>
-            <OrderBook baseToken={baseToken} quoteToken={quoteToken} />
+            <OrderBook baseToken={baseToken} quoteToken={quoteToken} onPriceClick={handleOrderBookPriceClick} />
           </Box>
         </Grid>
 
         {/* Right Column: Trade Widget */}
-        <Grid xs={12} md={6} lg={2.5} sx={{ display: "flex" }}>
-          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
+        <Grid xs={12} md={6} lg={2.5} order={{ xs: 1, md: 1, lg: 3 }} sx={{ display: chartFullscreen ? "none" : "flex" }}>
+          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column", transition: 'border-color 0.2s', '&:hover': { borderColor: 'rgba(254,107,139,0.35)' } }}>
             <Tabs
               value={orderTab}
               onChange={(_, v) => setOrderTab(v)}
               variant="fullWidth"
               sx={{ borderBottom: 1, borderColor: "divider" }}
             >
-              <Tab label="Market" />
               <Tab label="Limit" />
+              <Tab label="Market" />
             </Tabs>
             <Box sx={{ p: 2 }}>
               {orderTab === 0 ? (
-                <MarketOrderWidget
-                  baseToken={baseToken}
-                  quoteToken={quoteToken}
-                  ergPrice={ergPrice}
-                  disabled={!baseToken}
-                />
-              ) : (
                 <LimitOrderWidget
                   baseToken={baseToken}
                   quoteToken={quoteToken}
                   ergPrice={ergPrice}
                   disabled={!baseToken}
                   onOrderCreated={() => setOrderRefreshTrigger((t) => t + 1)}
+                  externalPrice={externalLimitPrice}
+                  externalAmount={externalLimitAmount}
+                  onExternalPriceConsumed={() => {
+                    setExternalLimitPrice(null);
+                    setExternalLimitAmount(null);
+                  }}
+                />
+              ) : (
+                <MarketOrderWidget
+                  baseToken={baseToken}
+                  quoteToken={quoteToken}
+                  ergPrice={ergPrice}
+                  disabled={!baseToken}
+                  onSwitchToLimit={() => setOrderTab(0)}
                 />
               )}
             </Box>
@@ -600,30 +948,80 @@ const TradePage: FC = () => {
       {/* Full-width bottom: My Orders */}
       <Grid container spacing={2} sx={{ mt: 0 }}>
         <Grid xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", minHeight: 200 }}>
-            <Typography variant="subtitle2" sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
-              Open Orders
-            </Typography>
-            <Box sx={{ p: 2 }}>
-              <OpenOrdersPanel
-                baseToken={baseToken}
-                quoteToken={quoteToken}
-                refreshTrigger={orderRefreshTrigger}
+          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                px: 2,
+                py: 1.5,
+                borderBottom: openOrdersExpanded ? 1 : 0,
+                borderColor: "divider",
+                cursor: "pointer",
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+              onClick={() => setOpenOrdersExpanded(!openOrdersExpanded)}
+            >
+              <Typography variant="subtitle2">Open Orders{openOrderCount !== null ? ` (${openOrderCount})` : ""}</Typography>
+              <ExpandMoreIcon
+                sx={{
+                  fontSize: 20,
+                  transform: openOrdersExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s",
+                  color: "text.secondary",
+                }}
               />
             </Box>
+            <Collapse in={openOrdersExpanded}>
+              <Box sx={{ p: 2 }}>
+                <OpenOrdersPanel
+                  baseToken={baseToken}
+                  quoteToken={quoteToken}
+                  refreshTrigger={orderRefreshTrigger}
+                  onCountChange={setOpenOrderCount}
+                  userAddresses={userAddresses}
+                />
+              </Box>
+            </Collapse>
           </Paper>
         </Grid>
         <Grid xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden", minHeight: 200 }}>
-            <Typography variant="subtitle2" sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
-              Order History
-            </Typography>
-            <Box sx={{ p: 2 }}>
-              <OrderHistoryPanel
-                baseToken={baseToken}
-                quoteToken={quoteToken}
+          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                px: 2,
+                py: 1.5,
+                borderBottom: orderHistoryExpanded ? 1 : 0,
+                borderColor: "divider",
+                cursor: "pointer",
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+              onClick={() => setOrderHistoryExpanded(!orderHistoryExpanded)}
+            >
+              <Typography variant="subtitle2">Order History{orderHistoryCount !== null ? ` (${orderHistoryCount})` : ""}</Typography>
+              <ExpandMoreIcon
+                sx={{
+                  fontSize: 20,
+                  transform: orderHistoryExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s",
+                  color: "text.secondary",
+                }}
               />
             </Box>
+            <Collapse in={orderHistoryExpanded}>
+              <Box sx={{ p: 2 }}>
+                <OrderHistoryPanel
+                  baseToken={baseToken}
+                  quoteToken={quoteToken}
+                  onCountChange={setOrderHistoryCount}
+                  userAddresses={userAddresses}
+                />
+              </Box>
+            </Collapse>
           </Paper>
         </Grid>
       </Grid>

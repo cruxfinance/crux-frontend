@@ -1,7 +1,6 @@
 import React, { FC, useState, useEffect, useCallback } from "react";
 import {
   Box,
-  Paper,
   Typography,
   Table,
   TableBody,
@@ -45,6 +44,8 @@ interface OpenOrdersPanelProps {
   baseToken: TokenInfo | null;
   quoteToken: TokenInfo;
   refreshTrigger?: number;
+  onCountChange?: (count: number) => void;
+  userAddresses: string[];
 }
 
 interface LimitOrder {
@@ -79,6 +80,8 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
   baseToken,
   quoteToken,
   refreshTrigger,
+  onCountChange,
+  userAddresses,
 }) => {
   const theme = useTheme();
   const { addAlert } = useAlert();
@@ -92,34 +95,6 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
   );
   const [confirmCancelOrder, setConfirmCancelOrder] =
     useState<LimitOrder | null>(null);
-
-  // Get user addresses
-  const [userAddresses, setUserAddresses] = useState<string[]>([]);
-
-  useEffect(() => {
-    const fetchAddresses = async () => {
-      if (!dAppWallet.connected || !window.ergoConnector?.nautilus) return;
-
-      try {
-        const ergoCnct = window.ergoConnector.nautilus;
-        const context = await ergoCnct.getContext();
-        const changeAddress = await context.get_change_address();
-        const usedAddresses = await context.get_used_addresses();
-        const unusedAddresses = await context.get_unused_addresses();
-
-        const allAddresses = [
-          changeAddress,
-          ...usedAddresses,
-          ...unusedAddresses,
-        ];
-        setUserAddresses([...new Set(allAddresses)]);
-      } catch (error) {
-        console.error("Error fetching addresses:", error);
-      }
-    };
-
-    fetchAddresses();
-  }, [dAppWallet.connected]);
 
   // Fetch open orders
   const fetchOrders = useCallback(async () => {
@@ -175,6 +150,13 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
     const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, [fetchOrders, refreshTrigger]);
+
+  // Notify parent of count changes
+  useEffect(() => {
+    if (onCountChange) {
+      onCountChange(orders.length);
+    }
+  }, [orders.length, onCountChange]);
 
   const handleCancelClick = (order: LimitOrder) => {
     setConfirmCancelOrder(order);
@@ -343,8 +325,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
 
   if (!dAppWallet.connected) {
     return (
-      <Paper
-        variant="outlined"
+      <Box
         sx={{
           p: 2,
           display: "flex",
@@ -356,13 +337,13 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
         <Typography variant="body2" color="text.secondary">
           Connect wallet to view your orders
         </Typography>
-      </Paper>
+      </Box>
     );
   }
 
   return (
     <>
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Box>
         <Box
           sx={{
             display: "flex",
@@ -546,7 +527,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
             </Table>
           </TableContainer>
         )}
-      </Paper>
+      </Box>
 
       {/* Cancel Confirmation Dialog */}
       <Dialog

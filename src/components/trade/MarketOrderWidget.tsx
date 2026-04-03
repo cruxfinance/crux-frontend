@@ -1,7 +1,6 @@
 import React, { FC, useState, useEffect, useCallback } from "react";
 import {
   Box,
-  Paper,
   Typography,
   TextField,
   Button,
@@ -10,15 +9,13 @@ import {
   CircularProgress,
   InputAdornment,
   Avatar,
-  Collapse,
-  IconButton,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 import { WidgetSettings } from "@components/common/WidgetSettings";
+import TradeConfirmationModal from "@components/trade/TradeConfirmationModal";
 import { formatNumber } from "@lib/utils/general";
 
 declare global {
@@ -41,6 +38,7 @@ interface MarketOrderWidgetProps {
   quoteToken: TokenInfo;
   ergPrice: number;
   disabled?: boolean;
+  onSwitchToLimit?: () => void;
 }
 
 interface SwapQuote {
@@ -72,10 +70,11 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
   quoteToken,
   ergPrice,
   disabled = false,
+  onSwitchToLimit,
 }) => {
   const theme = useTheme();
   const { addAlert } = useAlert();
-  const { dAppWallet } = useWallet();
+  const { dAppWallet, setAddWalletModalOpen } = useWallet();
   const { minerFee, setMinerFee } = useMinerFee();
 
   // Order type: buy or sell
@@ -94,8 +93,8 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
   // Fee settings - default to "erg", will load from localStorage in useEffect
   const [feeToken, setFeeToken] = useState<"erg" | "crux">("erg");
 
-  // Fees expanded
-  const [feesExpanded, setFeesExpanded] = useState(false);
+  // Confirmation modal
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   // Balances
   const [baseBalance, setBaseBalance] = useState<string | null>(null);
@@ -243,7 +242,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
     }
   };
 
-  const handleMaxClick = () => {
+  const handlePercentClick = (pct: number) => {
     const balance = orderType === "buy" ? quoteBalance : baseBalance;
     const decimals =
       orderType === "buy" ? quoteToken.decimals : baseToken?.decimals || 0;
@@ -251,7 +250,8 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
     if (!balance) return;
 
     const balanceNum = parseInt(balance, 10);
-    const formatted = (balanceNum / Math.pow(10, decimals)).toFixed(decimals);
+    const scaled = pct === 100 ? balanceNum : Math.floor(balanceNum * pct / 100);
+    const formatted = (scaled / Math.pow(10, decimals)).toFixed(decimals);
     setAmount(formatted);
   };
 
@@ -344,7 +344,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
     orderType === "buy" ? baseToken?.decimals || 0 : quoteToken.decimals;
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, height: "100%" }}>
+    <Box>
       <Box
         sx={{
           display: "flex",
@@ -452,6 +452,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
           sx={{
             display: "flex",
             justifyContent: "space-between",
+            alignItems: "center",
             mt: 0.5,
           }}
         >
@@ -467,15 +468,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
               : " "}
           </Typography>
           {dAppWallet.connected && (
-            <Typography
-              variant="caption"
-              color="primary"
-              sx={{
-                cursor: "pointer",
-                "&:hover": { textDecoration: "underline" },
-              }}
-              onClick={handleMaxClick}
-            >
+            <Typography variant="caption" color="text.secondary">
               Balance:{" "}
               {formatBalance(
                 orderType === "buy" ? quoteBalance : baseBalance,
@@ -485,6 +478,36 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
             </Typography>
           )}
         </Box>
+        {dAppWallet.connected && (
+          <Box sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
+            {[25, 50, 75, 100].map((pct) => (
+              <Button
+                key={pct}
+                size="small"
+                variant="outlined"
+                onClick={() => handlePercentClick(pct)}
+                disabled={disabled || executing}
+                aria-label={`Set amount to ${pct === 100 ? "maximum" : pct + "%"} of balance`}
+                sx={{
+                  minWidth: 0,
+                  flex: 1,
+                  px: 0.5,
+                  py: 0.25,
+                  fontSize: "0.7rem",
+                  lineHeight: 1.4,
+                  borderColor: theme.palette.divider,
+                  color: "text.secondary",
+                  "&:hover": {
+                    borderColor: theme.palette.primary.main,
+                    color: "text.primary",
+                  },
+                }}
+              >
+                {pct === 100 ? "Max" : `${pct}%`}
+              </Button>
+            ))}
+          </Box>
+        )}
       </Box>
 
       {/* Estimated Output */}
@@ -494,7 +517,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
           color="text.secondary"
           sx={{ mb: 0.5, display: "block" }}
         >
-          {orderType === "buy" ? "You Receive" : "You Get"}
+          You Receive
         </Typography>
         <TextField
           fullWidth
@@ -583,36 +606,11 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
             </Typography>
           </Box>
 
-          {/* Collapsible Fees */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => setFeesExpanded(!feesExpanded)}
-          >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Typography variant="caption" color="text.secondary">
-                Fees
-              </Typography>
-              <IconButton size="small" sx={{ p: 0, ml: 0.5 }}>
-                <ExpandMoreIcon
-                  sx={{
-                    fontSize: 16,
-                    transform: feesExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                    transition: "transform 0.2s",
-                  }}
-                />
-              </IconButton>
-            </Box>
-            <Typography variant="caption">
-              ~${quote.swap_result.fee_usd.toFixed(4)}
+          {/* Fees */}
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Fees
             </Typography>
-          </Box>
-
-          <Collapse in={feesExpanded}>
             <Box
               sx={{
                 pl: 1,
@@ -647,7 +645,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
                   {(minerFee / 1e9).toFixed(4)} ERG
                 </Typography>
               </Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
                 <Typography variant="caption" color="text.secondary">
                   Service Fee
                 </Typography>
@@ -664,57 +662,109 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
                   {quote.swap_result.fee_token.toUpperCase()}
                 </Typography>
               </Box>
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography variant="caption" color="text.secondary">
+                  Total
+                </Typography>
+                <Typography variant="caption">
+                  ~${quote.swap_result.fee_usd.toFixed(4)}
+                </Typography>
+              </Box>
             </Box>
-          </Collapse>
+          </Box>
         </Box>
       )}
 
       {/* No Pool Found */}
       {noPoolFound && (
-        <Typography
-          variant="body2"
-          color="error"
-          sx={{ mb: 2, textAlign: "center" }}
-        >
-          No liquidity pool found for this pair
-        </Typography>
+        <Box sx={{ mb: 2, textAlign: "center" }}>
+          <Typography variant="body2" color="error">
+            No liquidity pool found for this pair
+          </Typography>
+          {onSwitchToLimit && (
+            <Typography
+              variant="body2"
+              color="primary"
+              sx={{ cursor: "pointer", mt: 0.5, textDecoration: "underline" }}
+              onClick={onSwitchToLimit}
+            >
+              Place a limit order instead
+            </Typography>
+          )}
+        </Box>
       )}
-
-      {/* Execute Button */}
-      <Button
-        fullWidth
-        variant="contained"
-        onClick={handleExecuteOrder}
-        disabled={disabled || !quote || loading || executing || noPoolFound}
-        color={orderType === "buy" ? "success" : "error"}
-        sx={{ height: 48 }}
-      >
-        {executing ? (
-          <CircularProgress size={24} color="inherit" />
-        ) : loading ? (
-          "Loading..."
-        ) : !amount ? (
-          "Enter Amount"
-        ) : noPoolFound ? (
-          "No Pool Found"
-        ) : !quote ? (
-          "Getting Quote..."
-        ) : (
-          `${orderType === "buy" ? "Buy" : "Sell"} ${baseToken?.ticker || ""}`
-        )}
-      </Button>
 
       {/* High Price Impact Warning */}
       {quote && quote.swap_result.price_impact > 5 && (
         <Typography
           variant="caption"
           color="error"
-          sx={{ display: "block", mt: 1, textAlign: "center" }}
+          sx={{ display: "block", mb: 1, textAlign: "center" }}
         >
-          Warning: High price impact!
+          Warning: High price impact ({quote.swap_result.price_impact.toFixed(1)}%)
         </Typography>
       )}
-    </Paper>
+
+      {/* Execute Button */}
+      {!dAppWallet.connected ? (
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={() => setAddWalletModalOpen(true)}
+          sx={{ height: 48 }}
+        >
+          Connect Wallet
+        </Button>
+      ) : (
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={() => setConfirmModalOpen(true)}
+          disabled={disabled || !quote || loading || executing || noPoolFound}
+          color={orderType === "buy" ? "success" : "error"}
+          sx={{ height: 48 }}
+        >
+          {executing ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : loading ? (
+            "Loading..."
+          ) : !amount ? (
+            "Enter Amount"
+          ) : noPoolFound ? (
+            "No Pool Found"
+          ) : !quote ? (
+            "Getting Quote..."
+          ) : (
+            `${orderType === "buy" ? "Buy" : "Sell"} ${baseToken?.ticker || ""}`
+          )}
+        </Button>
+      )}
+
+      {/* Confirmation Modal */}
+      {quote && inputToken && outputToken && (
+        <TradeConfirmationModal
+          open={confirmModalOpen}
+          onClose={() => setConfirmModalOpen(false)}
+          onConfirm={() => {
+            setConfirmModalOpen(false);
+            handleExecuteOrder();
+          }}
+          orderType={orderType}
+          inputAmount={amount}
+          inputToken={inputToken}
+          outputAmount={estimatedOutput}
+          outputToken={outputToken}
+          priceImpact={quote.swap_result.price_impact}
+          lpFeePercent={quote.swap_result.lp_fee_percent}
+          feeAmount={quote.swap_result.fee_amount}
+          feeToken={quote.swap_result.fee_token}
+          feeUsd={quote.swap_result.fee_usd}
+          minerFee={minerFee}
+          ergPrice={ergPrice}
+          executing={executing}
+        />
+      )}
+    </Box>
   );
 };
 

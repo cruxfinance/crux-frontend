@@ -31,55 +31,54 @@ const mainTheme = [{
     h1: {
       fontWeight: "700",
     },
-    // h2: {
-    //   fontWeight: "600",
-    // },
-    // h3: {
-    //   fontSize: "3rem",
-    //   fontWeight: "800",
-    //   lineHeight: 1.167,
-    //   marginBottom: "1rem",
-    //   overflowWrap: "break-word",
-    //   hyphens: "manual",
-    // },
-    // h4: {
-    //   fontSize: "2rem",
-    //   fontWeight: "700",
-    //   lineHeight: 1.235,
-    //   marginBottom: "0.5rem",
-    //   overflowWrap: "break-word",
-    //   hyphens: "manual",
-    // },
-    // h5: {
-    //   fontSize: "1.5rem",
-    //   fontWeight: "700",
-    //   lineHeight: 1.6,
-    //   letterSpacing: "0.0075em",
-    //   marginBottom: "0.5rem",
-    //   overflowWrap: "break-word",
-    //   hyphens: "manual",
-    // },
-    // h6: {
-    //   fontSize: "1.2rem",
-    //   fontWeight: "600",
-    //   lineHeight: 1.3,
-    //   letterSpacing: "0.0075em",
-    //   marginBottom: "0",
-    //   overflowWrap: "break-word",
-    //   hyphens: "manual",
-    // },
-    // overline: {
-    //   textTransform: 'uppercase',
-    //   fontSize: '0.75rem',
-    //   display: 'inline-block',
-    // },
+    h2: {
+      fontWeight: "600",
+    },
+    h3: {
+      fontSize: "3rem",
+      fontWeight: "800",
+      lineHeight: 1.167,
+      marginBottom: "1rem",
+      overflowWrap: "break-word",
+      hyphens: "manual",
+    },
+    h4: {
+      fontSize: "2rem",
+      fontWeight: "700",
+      lineHeight: 1.235,
+      marginBottom: "0.5rem",
+      overflowWrap: "break-word",
+      hyphens: "manual",
+    },
+    h5: {
+      fontSize: "1.5rem",
+      fontWeight: "700",
+      lineHeight: 1.6,
+      letterSpacing: "0.0075em",
+      marginBottom: "0.5rem",
+      overflowWrap: "break-word",
+      hyphens: "manual",
+    },
+    h6: {
+      fontSize: "1.2rem",
+      fontWeight: "600",
+      lineHeight: 1.3,
+      letterSpacing: "0.0075em",
+      marginBottom: "0",
+      overflowWrap: "break-word",
+      hyphens: "manual",
+    },
+    overline: {
+      textTransform: 'uppercase',
+      fontSize: '0.75rem',
+      display: 'inline-block',
+    },
     body1: {
       // letterSpacing: '0.04em',
       lineHeight: '1.5'
     },
     body2: {
       lineHeight: '1.5',
-      marginBottom: '24px',
     },
   },
   components: {
@@ -322,7 +321,7 @@ let lightTheme = createTheme({
       main: '#65ce92',
     },
     down: {
-      main: '',
+      main: '#e53935',
     }
   },
   components: {
@@ -358,7 +357,7 @@ let darkTheme = createTheme({
     },
     text: {
       primary: 'rgba(244,244,244,1)',
-      secondary: 'rgba(120,130,150,1)',
+      secondary: 'rgba(140,150,170,1)',
     },
     primary: {
       // main: "#FF2147",

@@ -1,7 +1,6 @@
 import React, { FC, useState, useEffect, useCallback } from "react";
 import {
   Box,
-  Paper,
   Typography,
   TextField,
   Button,
@@ -10,9 +9,8 @@ import {
   CircularProgress,
   InputAdornment,
   Avatar,
-  Slider,
-  FormControlLabel,
-  Checkbox,
+  Chip,
+  Tooltip,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useAlert } from "@contexts/AlertContext";
@@ -20,6 +18,7 @@ import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 import { formatNumber } from "@lib/utils/general";
 import { WidgetSettings } from "@components/common/WidgetSettings";
+import LimitOrderConfirmationModal from "@components/trade/LimitOrderConfirmationModal";
 
 declare global {
   interface Window {
@@ -42,6 +41,9 @@ interface LimitOrderWidgetProps {
   ergPrice: number;
   disabled?: boolean;
   onOrderCreated?: () => void;
+  externalPrice?: number | null;
+  externalAmount?: number | null;
+  onExternalPriceConsumed?: () => void;
 }
 
 const ERG_TOKEN_ID =
@@ -49,16 +51,28 @@ const ERG_TOKEN_ID =
 const CRUX_TOKEN_ID =
   "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
 
+const EXPIRY_PRESETS: { label: string; blocks: number | null }[] = [
+  { label: "1h", blocks: 30 },
+  { label: "6h", blocks: 180 },
+  { label: "24h", blocks: 720 },
+  { label: "7d", blocks: 5040 },
+  { label: "14d", blocks: 10080 },
+  { label: "No Expiry", blocks: null },
+];
+
 const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   baseToken,
   quoteToken,
   ergPrice,
   disabled = false,
   onOrderCreated,
+  externalPrice,
+  externalAmount,
+  onExternalPriceConsumed,
 }) => {
   const theme = useTheme();
   const { addAlert } = useAlert();
-  const { dAppWallet } = useWallet();
+  const { dAppWallet, setAddWalletModalOpen } = useWallet();
   const { minerFee, setMinerFee } = useMinerFee();
 
   // Order type: buy or sell
@@ -82,8 +96,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [total, setTotal] = useState("");
-  const [useExpiry, setUseExpiry] = useState(true);
-  const [expiryBlocks, setExpiryBlocks] = useState(720); // ~24 hours at 2 min blocks
+  const [expiryPreset, setExpiryPreset] = useState<number | null>(720); // blocks, null = no expiry
 
   // State
   const [submitting, setSubmitting] = useState(false);
@@ -94,6 +107,9 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
   // Current block height for expiry calculation
   const [currentHeight, setCurrentHeight] = useState<number | null>(null);
+
+  // Confirmation modal
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   // Fee estimate
   const [feeEstimate, setFeeEstimate] = useState<{
@@ -181,6 +197,23 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
     }
   }, [baseToken, price]);
 
+  // Handle external price/amount from order book click
+  useEffect(() => {
+    if (externalPrice != null) {
+      setPrice(externalPrice.toString());
+      if (externalAmount != null) {
+        const amtStr = externalAmount.toFixed(baseToken?.decimals || 0);
+        setAmount(amtStr);
+        const calculatedTotal = externalPrice * externalAmount;
+        setTotal(calculatedTotal.toFixed(quoteToken.decimals));
+      } else if (amount) {
+        const calculatedTotal = externalPrice * parseFloat(amount);
+        setTotal(calculatedTotal.toFixed(quoteToken.decimals));
+      }
+      onExternalPriceConsumed?.();
+    }
+  }, [externalPrice, externalAmount]);
+
   // Calculate total when price or amount changes
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -224,12 +257,13 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
     }
   };
 
-  const handleMaxClick = () => {
+  const handlePercentClick = (pct: number) => {
     if (orderType === "sell") {
       // Selling base token - use base balance
       if (!baseBalance || !baseToken) return;
       const balanceNum = parseInt(baseBalance, 10);
-      const formatted = (balanceNum / Math.pow(10, baseToken.decimals)).toFixed(
+      const scaled = pct === 100 ? balanceNum : Math.floor(balanceNum * pct / 100);
+      const formatted = (scaled / Math.pow(10, baseToken.decimals)).toFixed(
         baseToken.decimals,
       );
       setAmount(formatted);
@@ -241,7 +275,8 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       // Buying - use quote balance to calculate max amount
       if (!quoteBalance || !price || parseFloat(price) === 0) return;
       const balanceNum = parseInt(quoteBalance, 10);
-      const quoteAmount = balanceNum / Math.pow(10, quoteToken.decimals);
+      const scaled = pct === 100 ? balanceNum : Math.floor(balanceNum * pct / 100);
+      const quoteAmount = scaled / Math.pow(10, quoteToken.decimals);
       setTotal(quoteAmount.toFixed(quoteToken.decimals));
       const calculatedAmount = quoteAmount / parseFloat(price);
       setAmount(calculatedAmount.toFixed(baseToken?.decimals || 0));
@@ -323,7 +358,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         price_denominator: priceDenominator,
         min_fill_amount: 0,
         expiry_height:
-          useExpiry && currentHeight ? currentHeight + expiryBlocks : null,
+          expiryPreset !== null && currentHeight ? currentHeight + expiryPreset : null,
         // executor_fee is calculated by the API based on USD target value
         miner_fee: minerFee,
         fee_token_id: feeToken === "crux" ? CRUX_TOKEN_ID : null,
@@ -383,15 +418,14 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
     return num.toFixed(2);
   };
 
-  const expiryTimeLabel = () => {
-    const hours = Math.round((expiryBlocks * 2) / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.round(hours / 24);
-    return `${days}d`;
+  const expiryTimeLabel = (): string | null => {
+    if (expiryPreset === null) return null;
+    const preset = EXPIRY_PRESETS.find((p) => p.blocks === expiryPreset);
+    return preset ? preset.label : null;
   };
 
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
+    <Box>
       <Box
         sx={{
           display: "flex",
@@ -481,9 +515,29 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           }}
         />
         {baseToken && (
-          <Typography variant="caption" color="text.secondary">
-            Market: {formatNumber(baseToken.price, 6)} {quoteToken.ticker}
-          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="caption" color="text.secondary">
+              Market: {formatNumber(baseToken.price, 6)} {quoteToken.ticker}
+            </Typography>
+            {price && baseToken.price > 0 && (() => {
+              const diff = ((parseFloat(price) - baseToken.price) / baseToken.price) * 100;
+              if (isNaN(diff) || Math.abs(diff) < 0.01) return null;
+              const isFavorable = orderType === "sell" ? diff > 0 : diff < 0;
+              return (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: isFavorable
+                      ? theme.palette.success.main
+                      : theme.palette.error.main,
+                  }}
+                >
+                  {diff > 0 ? "+" : ""}{diff.toFixed(2)}%
+                </Typography>
+              );
+            })()}
+          </Box>
         )}
       </Box>
 
@@ -494,7 +548,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           color="text.secondary"
           sx={{ mb: 0.5, display: "block" }}
         >
-          Amount
+          Amount ({baseToken?.ticker || "token"})
         </Typography>
         <TextField
           fullWidth
@@ -528,17 +582,9 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
             ),
           }}
         />
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
-          {dAppWallet.connected && (
-            <Typography
-              variant="caption"
-              color="primary"
-              sx={{
-                cursor: "pointer",
-                "&:hover": { textDecoration: "underline" },
-              }}
-              onClick={handleMaxClick}
-            >
+        {dAppWallet.connected && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
               Balance:{" "}
               {formatBalance(
                 orderType === "sell" ? baseBalance : quoteBalance,
@@ -548,8 +594,38 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
               )}{" "}
               {orderType === "sell" ? baseToken?.ticker : quoteToken.ticker}
             </Typography>
-          )}
-        </Box>
+          </Box>
+        )}
+        {dAppWallet.connected && (
+          <Box sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
+            {[25, 50, 75, 100].map((pct) => (
+              <Button
+                key={pct}
+                size="small"
+                variant="outlined"
+                onClick={() => handlePercentClick(pct)}
+                disabled={disabled || submitting}
+                aria-label={`Set amount to ${pct === 100 ? "maximum" : pct + "%"} of balance`}
+                sx={{
+                  minWidth: 0,
+                  flex: 1,
+                  px: 0.5,
+                  py: 0.25,
+                  fontSize: "0.7rem",
+                  lineHeight: 1.4,
+                  borderColor: theme.palette.divider,
+                  color: "text.secondary",
+                  "&:hover": {
+                    borderColor: theme.palette.primary.main,
+                    color: "text.primary",
+                  },
+                }}
+              >
+                {pct === 100 ? "Max" : `${pct}%`}
+              </Button>
+            ))}
+          </Box>
+        )}
       </Box>
 
       {/* Total Input */}
@@ -597,39 +673,25 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
       {/* Expiry Option */}
       <Box sx={{ mb: 2 }}>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={useExpiry}
-              onChange={(e) => setUseExpiry(e.target.checked)}
-              disabled={disabled || submitting}
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
+          Expiry
+        </Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+          {EXPIRY_PRESETS.map((p) => (
+            <Chip
+              key={p.label}
+              label={p.label}
               size="small"
-            />
-          }
-          label={
-            <Typography variant="body2">
-              Order expires in {expiryTimeLabel()}
-            </Typography>
-          }
-        />
-        {useExpiry && (
-          <Box sx={{ px: 2 }}>
-            <Slider
-              value={expiryBlocks}
-              onChange={(_, value) => setExpiryBlocks(value as number)}
-              min={30}
-              max={10080}
-              step={30}
+              variant={expiryPreset === p.blocks ? "filled" : "outlined"}
+              color={expiryPreset === p.blocks ? "primary" : "default"}
+              onClick={() => setExpiryPreset(p.blocks)}
               disabled={disabled || submitting}
-              marks={[
-                { value: 30, label: "1h" },
-                { value: 720, label: "24h" },
-                { value: 5040, label: "7d" },
-                { value: 10080, label: "14d" },
-              ]}
             />
-          </Box>
-        )}
+          ))}
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+          Expired orders return funds automatically
+        </Typography>
       </Box>
 
       {/* Order Summary */}
@@ -713,9 +775,11 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
           {/* Fee Reserve */}
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography variant="caption" color="text.secondary">
-              Fee Reserve (20 fills)
-            </Typography>
+            <Tooltip title="Refundable ERG reserved to cover miner fees when your order is filled. Unused reserve is returned when the order is cancelled or expires." arrow>
+              <Typography variant="caption" color="text.secondary" sx={{ cursor: "help", textDecoration: "underline dotted" }}>
+                Fee Reserve (20 fills)
+              </Typography>
+            </Tooltip>
             <Typography variant="caption">
               {((minerFee * 20) / 1e9).toFixed(4)} ERG
             </Typography>
@@ -724,23 +788,58 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       )}
 
       {/* Submit Button */}
-      <Button
-        fullWidth
-        variant="contained"
-        onClick={handleSubmitOrder}
-        disabled={disabled || !price || !amount || submitting}
-        color={orderType === "buy" ? "success" : "error"}
-        sx={{ height: 48 }}
-      >
-        {submitting ? (
-          <CircularProgress size={24} color="inherit" />
-        ) : !price || !amount ? (
-          "Enter Price & Amount"
-        ) : (
-          `Place ${orderType === "buy" ? "Buy" : "Sell"} Order`
-        )}
-      </Button>
-    </Paper>
+      {!dAppWallet.connected ? (
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={() => setAddWalletModalOpen(true)}
+          sx={{ height: 48 }}
+        >
+          Connect Wallet
+        </Button>
+      ) : (
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={() => setConfirmModalOpen(true)}
+          disabled={disabled || !price || !amount || submitting}
+          color={orderType === "buy" ? "success" : "error"}
+          sx={{ height: 48 }}
+        >
+          {submitting ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : !price || !amount ? (
+            "Enter Price & Amount"
+          ) : (
+            `Place ${orderType === "buy" ? "Buy" : "Sell"} Order`
+          )}
+        </Button>
+      )}
+
+      {/* Confirmation Modal */}
+      {baseToken && price && amount && (
+        <LimitOrderConfirmationModal
+          open={confirmModalOpen}
+          onClose={() => setConfirmModalOpen(false)}
+          onConfirm={() => {
+            setConfirmModalOpen(false);
+            handleSubmitOrder();
+          }}
+          orderType={orderType}
+          baseToken={baseToken}
+          quoteToken={quoteToken}
+          price={price}
+          amount={amount}
+          total={total}
+          marketPrice={baseToken.price}
+          ergPrice={ergPrice}
+          feeEstimate={feeEstimate}
+          minerFee={minerFee}
+          expiryLabel={expiryTimeLabel()}
+          submitting={submitting}
+        />
+      )}
+    </Box>
   );
 };
 

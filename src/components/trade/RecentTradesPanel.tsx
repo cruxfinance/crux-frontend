@@ -1,5 +1,6 @@
-import React, { FC, useState, useEffect, useCallback, useRef } from "react";
+import React, { FC, useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
+  Avatar,
   Box,
   Paper,
   Typography,
@@ -9,9 +10,17 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   CircularProgress,
+  ToggleButtonGroup,
+  ToggleButton,
+  Tooltip,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 import { formatNumber } from "@lib/utils/general";
 
 interface TokenInfo {
@@ -27,6 +36,7 @@ interface RecentTradesPanelProps {
   baseToken: TokenInfo | null;
   quoteToken: TokenInfo;
   ergPrice: number;
+  onTradeClick?: (price: number) => void;
 }
 
 interface Trade {
@@ -38,16 +48,31 @@ interface Trade {
   total: number;
 }
 
+type SortField = "timestamp" | "price" | "amount" | "total";
+type SortDirection = "asc" | "desc";
 
 const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
   baseToken,
   quoteToken,
   ergPrice,
+  onTradeClick,
 }) => {
   const theme = useTheme();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<"all" | "buy" | "sell">("all");
+  const [sortField, setSortField] = useState<SortField>("timestamp");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [wsConnected, setWsConnected] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Force re-render every 5s so "Updated Xs ago" stays current
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((n) => n + 1), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Fetch initial trades using /dex/order_history
   const fetchTrades = useCallback(async () => {
@@ -60,6 +85,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
     try {
       const params = new URLSearchParams({
         token_id: baseToken.tokenId,
+        base_token_id: quoteToken.tokenId,
         offset: "0",
         limit: "50",
       });
@@ -95,12 +121,13 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
         });
 
       setTrades(formattedTrades);
+      setLastUpdateTime(Date.now());
     } catch (error) {
       console.error("Error fetching trades:", error);
     } finally {
       setLoading(false);
     }
-  }, [baseToken]);
+  }, [baseToken, quoteToken]);
 
   // Initial fetch and polling
   useEffect(() => {
@@ -121,8 +148,12 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
     const connectWebSocket = () => {
       try {
         const ws = new WebSocket(
-          `${wsUrl}/dex/order_history/ws?token_id=${baseToken.tokenId}&offset=0&limit=50`,
+          `${wsUrl}/dex/order_history/ws?token_id=${baseToken.tokenId}&base_token_id=${quoteToken.tokenId}&offset=0&limit=50`,
         );
+
+        ws.onopen = () => {
+          setWsConnected(true);
+        };
 
         ws.onmessage = (event) => {
           try {
@@ -149,19 +180,24 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
               });
 
             setTrades(formattedTrades);
+            setLastUpdateTime(Date.now());
           } catch (err) {
             console.error("Error parsing WebSocket message:", err);
           }
         };
 
+        ws.onclose = () => {
+          setWsConnected(false);
+        };
+
         ws.onerror = () => {
-          // WebSocket not available, fall back to polling
+          setWsConnected(false);
           ws.close();
         };
 
         wsRef.current = ws;
       } catch {
-        // WebSocket connection failed, polling will handle updates
+        setWsConnected(false);
       }
     };
 
@@ -172,16 +208,82 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
         wsRef.current.close();
         wsRef.current = null;
       }
+      setWsConnected(false);
     };
-  }, [baseToken]);
+  }, [baseToken, quoteToken]);
 
-  const formatTime = (timestamp: number): string => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], {
+  const formatDateTime = (timestamp: number): string => {
+    const d = new Date(timestamp);
+    const now = new Date();
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    const time = d.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     });
+
+    if (isToday) {
+      return `Today ${time}`;
+    }
+
+    const date = d.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+    });
+    return `${date} ${time}`;
+  };
+
+  const formatFullDateTime = (timestamp: number): string => {
+    return new Date(timestamp).toLocaleString([], {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
+
+  const filteredTrades =
+    filter === "all" ? trades : trades.filter((t) => t.side === filter);
+
+  const sortedTrades = useMemo(() => {
+    return [...filteredTrades].sort((a, b) => {
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+      return sortDirection === "desc" ? bVal - aVal : aVal - bVal;
+    });
+  }, [filteredTrades, sortField, sortDirection]);
+
+  const updateStatusText = useMemo(() => {
+    if (wsConnected) return null;
+    if (!lastUpdateTime) return null;
+    const seconds = Math.floor((Date.now() - lastUpdateTime) / 1000);
+    if (seconds < 5) return "Updated just now";
+    if (seconds < 60) return `Updated ${seconds}s ago`;
+    return `Updated ${Math.floor(seconds / 60)}m ago`;
+  }, [wsConnected, lastUpdateTime]);
+
+  const headerCellSx = {
+    py: 0.5,
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    color: "text.secondary",
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    whiteSpace: "nowrap" as const,
   };
 
   if (!baseToken) {
@@ -190,7 +292,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
         variant="outlined"
         sx={{
           p: 2,
-          height: 300,
+          height: 360,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -204,7 +306,8 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
   }
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, height: 300 }}>
+    <Paper variant="outlined" sx={{ p: 2, height: 360, display: "flex", flexDirection: "column", transition: 'border-color 0.2s', '&:hover': { borderColor: 'rgba(254,107,139,0.35)' } }}>
+      {/* Header: title + live indicator + filter */}
       <Box
         sx={{
           display: "flex",
@@ -213,74 +316,256 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
           mb: 1,
         }}
       >
-        <Typography variant="h6">Recent Trades</Typography>
-        {loading && <CircularProgress size={16} />}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography variant="h6" sx={{ fontSize: "1rem" }}>Recent Trades</Typography>
+          {loading && <CircularProgress size={20} />}
+          {wsConnected ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <FiberManualRecordIcon
+                sx={{
+                  fontSize: 8,
+                  color: theme.palette.success.main,
+                  "@keyframes pulse": {
+                    "0%": { opacity: 1 },
+                    "50%": { opacity: 0.4 },
+                    "100%": { opacity: 1 },
+                  },
+                  animation: "pulse 2s ease-in-out infinite",
+                }}
+              />
+              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem" }}>
+                Live
+              </Typography>
+            </Box>
+          ) : updateStatusText ? (
+            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem" }}>
+              {updateStatusText}
+            </Typography>
+          ) : null}
+        </Box>
+        <ToggleButtonGroup
+          value={filter}
+          exclusive
+          onChange={(_, val) => val && setFilter(val)}
+          size="small"
+          sx={{
+            height: 24,
+            "& .MuiToggleButton-root": {
+              px: 1,
+              py: 0,
+              fontSize: "0.7rem",
+              textTransform: "none",
+              lineHeight: 1,
+              border: `1px solid ${theme.palette.divider}`,
+            },
+          }}
+        >
+          <ToggleButton value="all">All</ToggleButton>
+          <ToggleButton
+            value="buy"
+            sx={{
+              "&.Mui-selected": {
+                color: theme.palette.success.main,
+                bgcolor: `${theme.palette.success.main}15`,
+              },
+            }}
+          >
+            Buy
+          </ToggleButton>
+          <ToggleButton
+            value="sell"
+            sx={{
+              "&.Mui-selected": {
+                color: theme.palette.error.main,
+                bgcolor: `${theme.palette.error.main}15`,
+              },
+            }}
+          >
+            Sell
+          </ToggleButton>
+        </ToggleButtonGroup>
       </Box>
 
-      <TableContainer sx={{ maxHeight: 240 }}>
+      {/* Table */}
+      <TableContainer sx={{ flex: 1, overflow: "auto" }}>
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ py: 0.5 }}>Time</TableCell>
-              <TableCell sx={{ py: 0.5 }} align="right">
-                Price
+              <TableCell sx={{ ...headerCellSx, width: 130 }}>
+                <TableSortLabel
+                  active={sortField === "timestamp"}
+                  direction={sortField === "timestamp" ? sortDirection : "desc"}
+                  onClick={() => handleSort("timestamp")}
+                >
+                  Time
+                </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ py: 0.5 }} align="right">
-                Amount
+              <TableCell sx={{ ...headerCellSx, width: 110 }} align="right">
+                <TableSortLabel
+                  active={sortField === "price"}
+                  direction={sortField === "price" ? sortDirection : "desc"}
+                  onClick={() => handleSort("price")}
+                >
+                  Price
+                </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ py: 0.5 }} align="right">
-                Total
+              <TableCell sx={{ ...headerCellSx, width: 100 }} align="right">
+                <TableSortLabel
+                  active={sortField === "amount"}
+                  direction={sortField === "amount" ? sortDirection : "desc"}
+                  onClick={() => handleSort("amount")}
+                >
+                  Amount
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 110 }} align="right">
+                <TableSortLabel
+                  active={sortField === "total"}
+                  direction={sortField === "total" ? sortDirection : "desc"}
+                  onClick={() => handleSort("total")}
+                >
+                  Total
+                </TableSortLabel>
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {trades.length === 0 && !loading ? (
+            {sortedTrades.length === 0 && !loading ? (
               <TableRow>
-                <TableCell colSpan={4} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    No recent trades
-                  </Typography>
+                <TableCell colSpan={4} align="center" sx={{ py: 6, border: "none" }}>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+                    <ShowChartIcon sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      No recent trades
+                    </Typography>
+                  </Box>
                 </TableCell>
               </TableRow>
             ) : (
-              trades.map((trade) => (
-                <TableRow
-                  key={trade.id}
-                  sx={{
-                    "&:hover": { bgcolor: theme.palette.action.hover },
-                  }}
-                >
-                  <TableCell sx={{ py: 0.5 }}>
-                    <Typography variant="caption">
-                      {formatTime(trade.timestamp)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{
-                      py: 0.5,
-                      color:
-                        trade.side === "buy"
-                          ? theme.palette.success.main
-                          : theme.palette.error.main,
-                    }}
+              sortedTrades.map((trade) => {
+                const sideColor =
+                  trade.side === "buy"
+                    ? theme.palette.success.main
+                    : theme.palette.error.main;
+
+                return (
+                  <Tooltip
+                    key={trade.id}
+                    placement="left"
+                    arrow
+                    enterDelay={400}
+                    title={
+                      <Box>
+                        <Typography variant="caption" display="block">
+                          {formatFullDateTime(trade.timestamp)}
+                        </Typography>
+                        <Typography variant="caption" display="block">
+                          Type: {trade.side === "buy" ? "Buy" : "Sell"}
+                        </Typography>
+                        <Typography variant="caption" display="block">
+                          Price: {formatNumber(trade.price, 6)} {quoteToken.ticker}
+                        </Typography>
+                      </Box>
+                    }
                   >
-                    <Typography variant="caption">
-                      {formatNumber(trade.price, 6)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right" sx={{ py: 0.5 }}>
-                    <Typography variant="caption">
-                      {formatNumber(trade.amount, 4)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right" sx={{ py: 0.5 }}>
-                    <Typography variant="caption">
-                      {formatNumber(trade.total, 4)} {quoteToken.ticker}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))
+                    <TableRow
+                      onClick={() => onTradeClick?.(trade.price)}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${trade.side} trade at ${trade.price}, click to use price`}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onTradeClick?.(trade.price);
+                        }
+                      }}
+                      sx={{
+                        cursor: onTradeClick ? "pointer" : "default",
+                        "&:hover": {
+                          bgcolor: `${sideColor}08`,
+                          borderLeft: `2px solid ${sideColor}`,
+                        },
+                        borderLeft: "2px solid transparent",
+                        transition: "background-color 0.15s, border-color 0.15s",
+                      }}
+                    >
+                      {/* Time: side arrow + inline date & time */}
+                      <TableCell sx={{ py: 0.75, pr: 0.5, whiteSpace: "nowrap", width: 130 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          {trade.side === "buy" ? (
+                            <ArrowUpwardIcon
+                              sx={{ fontSize: 12, color: theme.palette.success.main }}
+                              aria-label="Buy"
+                            />
+                          ) : (
+                            <ArrowDownwardIcon
+                              sx={{ fontSize: 12, color: theme.palette.error.main }}
+                              aria-label="Sell"
+                            />
+                          )}
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "text.secondary", fontSize: "0.7rem" }}
+                          >
+                            {formatDateTime(trade.timestamp)}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      {/* Price: value + quoteToken logo */}
+                      <TableCell align="right" sx={{ py: 0.75, whiteSpace: "nowrap", width: 110 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
+                          <Typography
+                            sx={{
+                              fontSize: "0.8rem",
+                              fontWeight: 600,
+                              color: sideColor,
+                            }}
+                          >
+                            {formatNumber(trade.price, 6)}
+                          </Typography>
+                          <Avatar
+                            src={quoteToken.icon || undefined}
+                            sx={{ width: 14, height: 14, fontSize: "0.5rem" }}
+                          >
+                            {quoteToken.ticker?.[0]}
+                          </Avatar>
+                        </Box>
+                      </TableCell>
+
+                      {/* Amount: value + baseToken logo */}
+                      <TableCell align="right" sx={{ py: 0.75, whiteSpace: "nowrap", width: 100 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>
+                            {formatNumber(trade.amount, 4)}
+                          </Typography>
+                          <Avatar
+                            src={baseToken.icon || undefined}
+                            sx={{ width: 14, height: 14, fontSize: "0.5rem" }}
+                          >
+                            {baseToken.ticker?.[0]}
+                          </Avatar>
+                        </Box>
+                      </TableCell>
+
+                      {/* Total: value + quoteToken logo */}
+                      <TableCell align="right" sx={{ py: 0.75, whiteSpace: "nowrap", width: 110 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>
+                            {formatNumber(trade.total, 4)}
+                          </Typography>
+                          <Avatar
+                            src={quoteToken.icon || undefined}
+                            sx={{ width: 14, height: 14, fontSize: "0.5rem" }}
+                          >
+                            {quoteToken.ticker?.[0]}
+                          </Avatar>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  </Tooltip>
+                );
+              })
             )}
           </TableBody>
         </Table>

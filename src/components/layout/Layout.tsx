@@ -14,7 +14,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <Box sx={{ display: "flex" }}>
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
-      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+      <Box sx={{ flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <Header onMenuClick={handleDrawerToggle} />
         <Box
           sx={{
