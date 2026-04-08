@@ -114,7 +114,7 @@ const LiquidityPage: FC = () => {
   const [ergPrice, setErgPrice] = useState(0);
 
   // User authentication
-  const { sessionStatus } = useWallet();
+  const { sessionStatus, dAppWallet } = useWallet();
   const isAuthenticated = sessionStatus === "authenticated";
 
   const walletQuery = trpc.user.getWallets.useQuery(undefined, {
@@ -122,6 +122,9 @@ const LiquidityPage: FC = () => {
   });
 
   const userAddresses = useMemo(() => {
+    if (dAppWallet.connected && dAppWallet.addresses.length > 0) {
+      return dAppWallet.addresses;
+    }
     if (!walletQuery.data) return [];
     const extractAddresses = (
       wallets: typeof walletQuery.data.walletList | undefined,
@@ -136,7 +139,7 @@ const LiquidityPage: FC = () => {
       ...extractAddresses(walletQuery.data.addedWalletList),
     ];
     return [...new Set(addresses)];
-  }, [walletQuery.data]);
+  }, [dAppWallet, walletQuery.data]);
 
   // Fetch ERG price
   useEffect(() => {

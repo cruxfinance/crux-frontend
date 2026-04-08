@@ -132,7 +132,7 @@ const TradePage: FC = () => {
   const orderLinesRef = useRef<any[]>([]);
 
   // User authentication for trade markers
-  const { sessionStatus } = useWallet();
+  const { sessionStatus, dAppWallet } = useWallet();
   const isAuthenticated = sessionStatus === "authenticated";
 
   const walletQuery = trpc.user.getWallets.useQuery(undefined, {
@@ -140,6 +140,9 @@ const TradePage: FC = () => {
   });
 
   const userAddresses = useMemo(() => {
+    if (dAppWallet.connected && dAppWallet.addresses.length > 0) {
+      return dAppWallet.addresses;
+    }
     if (!walletQuery.data) return [];
 
     const extractAddresses = (
@@ -157,7 +160,7 @@ const TradePage: FC = () => {
     ];
 
     return [...new Set(addresses)];
-  }, [walletQuery.data]);
+  }, [dAppWallet, walletQuery.data]);
 
   // Fetch ERG price on mount
   useEffect(() => {
