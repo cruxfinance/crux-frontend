@@ -1,30 +1,55 @@
-export const getIconUrlFromServer = async (tokenId: string) => {
-  try {
-    const response = await fetch(`/api/icon/${tokenId}`);
-    if (!response.ok) {
-      throw new Error('Server responded with an error.');
+const iconCache = new Map<string, string>();
+
+/**
+ * Resolve icons for multiple tokens in a single request.
+ * Returns a map of tokenId -> icon path.
+ */
+export const resolveIcons = async (
+  tokenIds: string[]
+): Promise<Record<string, string>> => {
+  // Split into cached and uncached
+  const result: Record<string, string> = {};
+  const uncached: string[] = [];
+
+  for (const id of tokenIds) {
+    if (iconCache.has(id)) {
+      result[id] = iconCache.get(id)!;
+    } else {
+      uncached.push(id);
     }
-    // Expecting the response to contain the path
-    const data = await response.json();
-    return data.iconPath;
-  } catch (error) {
-    console.error('Failed to fetch icon from server:', error);
-    return null;
   }
+
+  if (uncached.length === 0) return result;
+
+  // Single batch request for all uncached icons
+  try {
+    const res = await fetch("/api/icon/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tokenIds: uncached }),
+    });
+    if (res.ok) {
+      const data: Record<string, string> = await res.json();
+      for (const [id, path] of Object.entries(data)) {
+        iconCache.set(id, path);
+        result[id] = path;
+      }
+    }
+  } catch {}
+
+  return result;
 };
 
-export const checkLocalIcon = async (tokenId: string) => {
-  const extensions = ['svg', 'jpg', 'png'];
-  for (const ext of extensions) {
-    const localIconPath = `/icons/tokens/${tokenId}.${ext}`;
-    try {
-      const response = await fetch(localIconPath, { method: 'HEAD' });
-      if (response.ok) {
-        return localIconPath;
-      }
-    } catch (error) {
-      // Ignore and try next extension
-    }
-  }
-  return null;
+/**
+ * Get a single icon (uses cache, falls back to batch endpoint).
+ */
+export const getCachedIcon = async (
+  tokenId: string
+): Promise<string | null> => {
+  if (iconCache.has(tokenId)) return iconCache.get(tokenId)!;
+  const result = await resolveIcons([tokenId]);
+  return result[tokenId] || null;
 };
+
+export const checkLocalIcon = getCachedIcon;
+export const getIconUrlFromServer = getCachedIcon;

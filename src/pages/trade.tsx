@@ -34,7 +34,7 @@ import {
 } from "@lib/charts/charting_library";
 import { TVChartContainer } from "@components/charts/AdvancedChart";
 import { createTradeMarkerManager, TradeMarkerManager } from "@lib/charts/tradeMarkers";
-import { checkLocalIcon, getIconUrlFromServer } from "@lib/utils/icons";
+import { getCachedIcon, resolveIcons as batchResolveIcons } from "@lib/utils/icons";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
 import { formatNumber } from "@lib/utils/general";
@@ -180,7 +180,7 @@ const TradePage: FC = () => {
   // Fetch ERG icon on mount
   useEffect(() => {
     const fetchErgIcon = async () => {
-      const icon = await checkLocalIcon(ERG_TOKEN_ID);
+      const icon = await getCachedIcon(ERG_TOKEN_ID);
       if (icon) {
         setQuoteToken((prev) => ({ ...prev, icon }));
       }
@@ -214,17 +214,16 @@ const TradePage: FC = () => {
             const data: TokenSearchResult[] = await response.json();
             setSearchResults(data);
 
-            // Resolve icons for results in parallel
-            data.forEach(async (token) => {
-              if (searchIcons[token.token_id]) return;
-              let icon = await checkLocalIcon(token.token_id);
-              if (!icon) {
-                icon = await getIconUrlFromServer(token.token_id);
+            // Resolve icons for results in single batch
+            const uncachedIds = data
+              .map((t) => t.token_id)
+              .filter((id) => !searchIcons[id]);
+            if (uncachedIds.length > 0) {
+              const resolved = await batchResolveIcons(uncachedIds);
+              if (Object.keys(resolved).length > 0) {
+                setSearchIcons((prev) => ({ ...prev, ...resolved }));
               }
-              if (icon) {
-                setSearchIcons((prev) => ({ ...prev, [token.token_id]: icon! }));
-              }
-            });
+            }
           }
         } catch (error) {
           console.error("Error searching tokens:", error);
@@ -246,11 +245,8 @@ const TradePage: FC = () => {
     try {
       // Fetch icons for both tokens in parallel
       const [baseIcon, quoteIcon] = await Promise.all([
-        checkLocalIcon(token.token_id).then(async (icon) =>
-          icon || await getIconUrlFromServer(token.token_id) || ""
-        ),
-        checkLocalIcon(token.quote_token_id).then(async (icon) =>
-          icon || await getIconUrlFromServer(token.quote_token_id) || ""
+        getCachedIcon(token.token_id).then(icon => icon || ""),
+        getCachedIcon(token.quote_token_id).then(icon => icon || ""
         ),
       ]);
 

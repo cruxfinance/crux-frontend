@@ -32,6 +32,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
   const {
     wallet,
     setWallet,
+    clearAllWalletState,
     sessionData,
     sessionStatus,
     providerLoading,
@@ -101,7 +102,7 @@ const UserMenu: FC<IUserMenuProps> = () => {
   };
 
   const clearWallet = async () => {
-    window?.ergoConnector?.nautilus.disconnect();
+    await clearAllWalletState();
     signOut();
   };
 

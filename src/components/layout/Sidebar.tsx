@@ -54,6 +54,11 @@ const pages: PageItem[] = [
         icon: <TradeIcon />,
     },
     {
+        name: "Liquidity",
+        link: "/liquidity",
+        icon: <SwapCallsIcon />,
+    },
+    {
         name: "Portfolio",
         link: "/portfolio",
         icon: <AccountBalanceWalletIcon />,
