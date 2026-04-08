@@ -230,11 +230,8 @@ const LiquidityPage: FC = () => {
     fetchPositions();
   }, [userAddresses]);
 
-  // Icon resolution — single batch request to server
-  const resolveIcons = async (tokenIds: string[]) => {
-    const uncached = tokenIds.filter((id) => !icons[id]);
-    if (uncached.length === 0) return;
-    const resolved = await batchResolveIcons(uncached);
+  const resolveIcons = (tokenIds: string[]) => {
+    const resolved = batchResolveIcons(tokenIds);
     if (Object.keys(resolved).length > 0) {
       setIcons((prev) => ({ ...prev, ...resolved }));
     }

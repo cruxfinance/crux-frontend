@@ -1,28 +1,24 @@
-import fs from "fs";
 import type { NextApiRequest, NextApiResponse } from "next";
-import path from "path";
+import iconManifest from "../../../lib/utils/icon-manifest.json";
 
-const localIconDirectory = "./public/icons/tokens";
-const extensions = ["svg", "png", "webp", "jpg"];
+const baseIconUrl =
+  "https://raw.githubusercontent.com/spectrum-finance/token-logos/09655f0b3328762b22fdb3266952f74a3e30be36/logos/ergo/";
 
-// Server-side cache persists across requests
 const iconPathCache = new Map<string, string>();
 
-function findLocalIcon(tokenId: string): string {
+function getIconPath(tokenId: string): string {
   if (iconPathCache.has(tokenId)) return iconPathCache.get(tokenId)!;
 
-  for (const ext of extensions) {
-    const filePath = path.join(localIconDirectory, `${tokenId}.${ext}`);
-    if (fs.existsSync(filePath)) {
-      const iconPath = `/icons/tokens/${tokenId}.${ext}`;
-      iconPathCache.set(tokenId, iconPath);
-      return iconPath;
-    }
+  const extension = iconManifest[tokenId as keyof typeof iconManifest];
+  if (extension) {
+    const localPath = `/icons/tokens/${tokenId}.${extension}`;
+    iconPathCache.set(tokenId, localPath);
+    return localPath;
   }
 
-  const placeholder = `/icons/tokens/placeholder.svg`;
-  iconPathCache.set(tokenId, placeholder);
-  return placeholder;
+  const externalUrl = `${baseIconUrl}${tokenId}.svg`;
+  iconPathCache.set(tokenId, externalUrl);
+  return externalUrl;
 }
 
 export default async function handler(
@@ -43,7 +39,7 @@ export default async function handler(
   const result: Record<string, string> = {};
   for (const id of tokenIds) {
     if (typeof id === "string") {
-      result[id] = findLocalIcon(id);
+      result[id] = getIconPath(id);
     }
   }
 

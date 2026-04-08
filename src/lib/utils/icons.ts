@@ -1,55 +1,80 @@
+import iconManifest from "./icon-manifest.json";
+
 const iconCache = new Map<string, string>();
 
-/**
- * Resolve icons for multiple tokens in a single request.
- * Returns a map of tokenId -> icon path.
- */
-export const resolveIcons = async (
+const baseIconUrl =
+  "https://raw.githubusercontent.com/spectrum-finance/token-logos/09655f0b3328762b22fdb3266952f74a3e30be36/logos/ergo/";
+
+function getLocalIconPath(tokenId: string): string | null {
+  const extension = iconManifest[tokenId as keyof typeof iconManifest];
+  if (extension) {
+    return `/icons/tokens/${tokenId}.${extension}`;
+  }
+  return null;
+}
+
+export const checkLocalIcon = (tokenId: string): string | null => {
+  if (iconCache.has(tokenId)) return iconCache.get(tokenId)!;
+
+  const localPath = getLocalIconPath(tokenId);
+  if (localPath) {
+    iconCache.set(tokenId, localPath);
+    return localPath;
+  }
+
+  return null;
+};
+
+export const getIconUrlFromServer = (tokenId: string): string | null => {
+  if (iconCache.has(tokenId)) return iconCache.get(tokenId)!;
+
+  const localPath = getLocalIconPath(tokenId);
+  if (localPath) {
+    iconCache.set(tokenId, localPath);
+    return localPath;
+  }
+
+  const externalUrl = `${baseIconUrl}${tokenId}.svg`;
+  iconCache.set(tokenId, externalUrl);
+  return externalUrl;
+};
+
+export const resolveIcons = (
   tokenIds: string[]
-): Promise<Record<string, string>> => {
-  // Split into cached and uncached
+): Record<string, string> => {
   const result: Record<string, string> = {};
-  const uncached: string[] = [];
 
   for (const id of tokenIds) {
     if (iconCache.has(id)) {
       result[id] = iconCache.get(id)!;
-    } else {
-      uncached.push(id);
+      continue;
     }
+
+    const localPath = getLocalIconPath(id);
+    if (localPath) {
+      iconCache.set(id, localPath);
+      result[id] = localPath;
+      continue;
+    }
+
+    const externalUrl = `${baseIconUrl}${id}.svg`;
+    iconCache.set(id, externalUrl);
+    result[id] = externalUrl;
   }
-
-  if (uncached.length === 0) return result;
-
-  // Single batch request for all uncached icons
-  try {
-    const res = await fetch("/api/icon/batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tokenIds: uncached }),
-    });
-    if (res.ok) {
-      const data: Record<string, string> = await res.json();
-      for (const [id, path] of Object.entries(data)) {
-        iconCache.set(id, path);
-        result[id] = path;
-      }
-    }
-  } catch {}
 
   return result;
 };
 
-/**
- * Get a single icon (uses cache, falls back to batch endpoint).
- */
-export const getCachedIcon = async (
-  tokenId: string
-): Promise<string | null> => {
+export const getCachedIcon = (tokenId: string): string | null => {
   if (iconCache.has(tokenId)) return iconCache.get(tokenId)!;
-  const result = await resolveIcons([tokenId]);
-  return result[tokenId] || null;
-};
 
-export const checkLocalIcon = getCachedIcon;
-export const getIconUrlFromServer = getCachedIcon;
+  const localPath = getLocalIconPath(tokenId);
+  if (localPath) {
+    iconCache.set(tokenId, localPath);
+    return localPath;
+  }
+
+  const externalUrl = `${baseIconUrl}${tokenId}.svg`;
+  iconCache.set(tokenId, externalUrl);
+  return externalUrl;
+};

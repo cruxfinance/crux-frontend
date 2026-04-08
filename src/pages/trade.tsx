@@ -243,12 +243,8 @@ const TradePage: FC = () => {
     setLoading(true);
 
     try {
-      // Fetch icons for both tokens in parallel
-      const [baseIcon, quoteIcon] = await Promise.all([
-        getCachedIcon(token.token_id).then(icon => icon || ""),
-        getCachedIcon(token.quote_token_id).then(icon => icon || ""
-        ),
-      ]);
+      const baseIcon = getCachedIcon(token.token_id) || "";
+      const quoteIcon = getCachedIcon(token.quote_token_id) || "";
 
       // Fetch price from token_info
       let price = 0;
