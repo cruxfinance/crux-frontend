@@ -421,7 +421,16 @@ const TradePage: FC = () => {
         (order, idx, self) => idx === self.findIndex((o) => o.order_id === order.order_id),
       );
 
-      for (const order of uniqueOrders) {
+      const pairOrders = uniqueOrders.filter((order) => {
+        const givenId = order.given_token_id || ERG_TOKEN_ID;
+        const takenId = order.taken_token_id || ERG_TOKEN_ID;
+        return (
+          (givenId === quoteToken.tokenId && takenId === baseToken.tokenId) ||
+          (givenId === baseToken.tokenId && takenId === quoteToken.tokenId)
+        );
+      });
+
+      for (const order of pairOrders) {
         // Determine side and price (same logic as OpenOrdersPanel)
         const givenIsQuote =
           order.given_token_id === null ||
