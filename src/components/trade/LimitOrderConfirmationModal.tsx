@@ -12,7 +12,8 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { CRUX_DECIMALS } from "@lib/configs/paymentTokens";
 
 interface TokenInfo {
   tokenId: string;
@@ -125,7 +126,7 @@ const LimitOrderConfirmationModal: FC<LimitOrderConfirmationModalProps> = ({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Avatar src={baseToken.icon} sx={{ width: 28, height: 28 }} />
               <Typography variant="h6" fontWeight={600}>
-                {formatNumber(parseFloat(amount), baseToken.decimals > 4 ? 4 : baseToken.decimals)} {baseToken.ticker}
+                {formatFullNumber(parseFloat(amount), baseToken.decimals > 4 ? 4 : baseToken.decimals)} {baseToken.ticker}
               </Typography>
             </Box>
             <Typography
@@ -157,7 +158,7 @@ const LimitOrderConfirmationModal: FC<LimitOrderConfirmationModalProps> = ({
                 src={quoteToken.icon}
                 sx={{ width: 18, height: 18, borderRadius: "50%" }}
               />
-              {formatNumber(priceFloat, 6)} {quoteToken.ticker}
+              {formatFullNumber(priceFloat, 6)} {quoteToken.ticker}
             </Typography>
           </Box>
 
@@ -167,11 +168,11 @@ const LimitOrderConfirmationModal: FC<LimitOrderConfirmationModalProps> = ({
             </Typography>
             <Box sx={{ textAlign: "right" }}>
               <Typography variant="body2" fontWeight={500}>
-                {formatNumber(parseFloat(total), quoteToken.decimals > 4 ? 4 : quoteToken.decimals)} {quoteToken.ticker}
+                {formatFullNumber(parseFloat(total), quoteToken.decimals > 4 ? 4 : quoteToken.decimals)} {quoteToken.ticker}
               </Typography>
               {totalUsd > 0 && (
                 <Typography variant="caption" color="text.secondary">
-                  ~${formatNumber(totalUsd, 2)}
+                  ~${formatFullNumber(totalUsd, 2)}
                 </Typography>
               )}
             </Box>
@@ -232,7 +233,7 @@ const LimitOrderConfirmationModal: FC<LimitOrderConfirmationModalProps> = ({
               <Typography variant="body2" fontWeight={500}>
                 {feeEstimate.fee_token === "erg"
                   ? `${(feeEstimate.fee_amount / 1e9).toFixed(4)} ERG`
-                  : `${feeEstimate.fee_amount} CRUX`}
+                  : `${(feeEstimate.fee_amount / Math.pow(10, CRUX_DECIMALS)).toFixed(CRUX_DECIMALS)} CRUX`}
                 {feeEstimate.fee_usd > 0 && ` (~$${feeEstimate.fee_usd.toFixed(4)})`}
               </Typography>
             </Box>
