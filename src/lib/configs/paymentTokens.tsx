@@ -13,13 +13,23 @@ export const getIcon = async (id: string) => {
 export const ERG_TOKEN_ID_MAP =
   "0000000000000000000000000000000000000000000000000000000000000000";
 
+/** Shorter alias — preferred for new code */
+export const ERG_TOKEN_ID = ERG_TOKEN_ID_MAP;
+
+export const ERG_DECIMALS = 9;
+
 export const USE_TOKEN_ID =
   "a55b8735ed1a99e46c2c89f8994aacdf4b1109bdcf682f1e5b34479c6e392669";
+
+export const CRUX_TOKEN_ID =
+  "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
+
+export const CRUX_DECIMALS = 4;
 
 export const allowedTokens: AllowedToken[] = [
   {
     id: "0000000000000000000000000000000000000000000000000000000000000000",
-    name: "erg",
+    name: "ERG",
     icon: null,
     decimals: 9,
   },
