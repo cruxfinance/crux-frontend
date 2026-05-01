@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import { useRouter } from "next/router";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 import { currencies, Currencies } from "@lib/utils/currencies";
 import TradeHistory from "@components/tokenInfo/TradeHistory";
 import TokenStats from "@components/tokenInfo/TokenStats";
@@ -317,7 +317,7 @@ const TokenInfo: FC = () => {
                     src="/icons/tokens/0000000000000000000000000000000000000000000000000000000000000000.svg"
                     sx={{ width: 18, height: 18, background: 'transparent' }}
                   />
-                  Erg
+                  ERG
                 </ToggleButton>
               </ToggleButtonGroup>
               <Typography variant="h4">
@@ -325,11 +325,11 @@ const TokenInfo: FC = () => {
                 {isGraphInverted ? "" : currencies[currency]}
                 {isGraphInverted
                   ? (currency === "USE"
-                    ? formatNumber(1 / ((tokenInfo?.price || 1) * exchangeRate), 4)
-                    : formatNumber(1 / (tokenInfo?.price || 1), 4))
+                    ? formatFullNumber(1 / ((tokenInfo?.price || 1) * exchangeRate), 4)
+                    : formatFullNumber(1 / (tokenInfo?.price || 1), 4))
                   : (currency === "USE"
-                    ? formatNumber(tokenInfo.price * exchangeRate, 4)
-                    : formatNumber(tokenInfo.price, 4))}
+                    ? formatFullNumber(tokenInfo.price * exchangeRate, 4)
+                    : formatFullNumber(tokenInfo.price, 4))}
                 {isGraphInverted ? ` ${tokenInfo.ticker}` : ""}
               </Typography>
             </Grid>
@@ -366,7 +366,7 @@ const TokenInfo: FC = () => {
                   <TVChartContainer
                     defaultWidgetProps={{
                       ...defaultWidgetProps,
-                      symbol: (isGraphInverted && tokenId === USE_TOKEN_ID) ? "Ergo" : tokenInfo.name
+                      symbol: (isGraphInverted && tokenId === USE_TOKEN_ID) ? "ERG" : tokenInfo.name
                     }}
                     currency={(isGraphInverted && tokenId === USE_TOKEN_ID) ? "USE" : currency}
                   />
