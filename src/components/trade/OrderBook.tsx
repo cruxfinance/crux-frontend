@@ -14,7 +14,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -476,7 +476,7 @@ const TableView: FC<TableViewProps> = ({
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            {formatNumber(row.price, 6)}
+            {formatFullNumber(row.price, 6)}
             {onlyVirtual && (
               <Box
                 component="span"
@@ -512,10 +512,10 @@ const TableView: FC<TableViewProps> = ({
           </Box>
         </TableCell>
         <TableCell align="right" sx={{ py: 0.5 }}>
-          {formatNumber(displayBaseAmount, 4)}
+          {formatFullNumber(displayBaseAmount, 4)}
         </TableCell>
         <TableCell align="right" sx={{ py: 0.5 }}>
-          {formatNumber(displayTotal, 2)}
+          {formatFullNumber(displayTotal, 2)}
         </TableCell>
       </TableRow>
     );
@@ -562,8 +562,8 @@ const TableView: FC<TableViewProps> = ({
               >
                 <Typography variant="body2" fontWeight={600}>
                   {orderBook?.pool_mid_price
-                    ? formatNumber(orderBook.pool_mid_price, 6)
-                    : formatNumber(bestAsk, 6)}
+                    ? formatFullNumber(orderBook.pool_mid_price, 6)
+                    : formatFullNumber(bestAsk, 6)}
                 </Typography>
                 {spread !== null && (
                   <Typography
@@ -576,7 +576,7 @@ const TableView: FC<TableViewProps> = ({
                           : theme.palette.error.main,
                     }}
                   >
-                    Spread: {formatNumber(spread, 2)}%
+                    Spread: {spread.toFixed(2)}%
                   </Typography>
                 )}
               </TableCell>
