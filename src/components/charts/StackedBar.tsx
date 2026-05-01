@@ -3,7 +3,7 @@ import { Box, useTheme, Tooltip, Typography } from '@mui/material';
 import { SxProps } from '@mui/system';
 import { Currencies, currencies } from '@lib/utils/currencies';
 import { ITvl } from '../portfolio/ValueLocked';
-import { formatNumber } from '@lib/utils/general';
+import { formatNumber, formatFullNumber } from '@lib/utils/general';
 import Grid from '@mui/system/Unstable_Grid/Grid';
 
 interface IStacked extends ITvl {
@@ -43,8 +43,8 @@ const StackedBar: React.FC<IStacked> = ({
 
   const initialTokenTooltip = () => {
     const tokenAmt = totalTokens - (earnedTokens || 0)
-    const worth = currencies[currency] + formatNumber(tokenAmt * (currency === 'ERG' ? value : value * exchangeRate))
-    return formatNumber(tokenAmt) + ' (' + worth + ') ' + name
+    const worth = currencies[currency] + formatFullNumber(tokenAmt * (currency === 'ERG' ? value : value * exchangeRate))
+    return formatFullNumber(tokenAmt) + ' (' + worth + ') ' + name
       + (type.includes('YF') ? ' LP' : '')
       + (type.includes('Staked')
         ? ' initial tokens'
@@ -54,8 +54,8 @@ const StackedBar: React.FC<IStacked> = ({
   }
   const earnedTokensTooltip = () => {
     if (earnedTokens) {
-      const worth = currencies[currency] + formatNumber(earnedTokens * (currency === 'ERG' ? value : value * exchangeRate))
-      return formatNumber(earnedTokens) + ' (' + worth + ') ' + name + ' tokens earned or added'
+      const worth = currencies[currency] + formatFullNumber(earnedTokens * (currency === 'ERG' ? value : value * exchangeRate))
+      return formatFullNumber(earnedTokens) + ' (' + worth + ') ' + name + ' tokens earned or added'
     }
   }
 

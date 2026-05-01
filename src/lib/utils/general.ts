@@ -74,6 +74,26 @@ export const formatNumber = (
   }
 };
 
+/**
+ * Format a number as a full-precision financial value with locale-aware
+ * thousands separators and no abbreviations (K, M, B, T).
+ *
+ * Use this for TVL, volume, balances, position values, and other financial
+ * absolute numbers where precision matters. For compact display contexts
+ * (tooltips, badges, sparklines), use {@link formatNumber} instead.
+ *
+ * @param value  - The number to format
+ * @param decimals - Number of decimal places (default: 2, max: 9)
+ * @returns Formatted string with thousands separators (e.g. "1,234,567.89")
+ */
+export const formatFullNumber = (value: number, decimals?: number): string => {
+  const maxDecimals = Math.min(decimals ?? 2, 9);
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: maxDecimals,
+    maximumFractionDigits: maxDecimals,
+  }).format(value);
+};
+
 export const stringToUrl = (str: string): string | undefined => {
   if (str) {
     // Replace all spaces with dashes and convert to lowercase

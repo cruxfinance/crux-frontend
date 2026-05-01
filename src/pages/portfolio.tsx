@@ -19,7 +19,7 @@ import TokenSummary from "@components/portfolio/TokenSummary";
 // import NftList from "@components/portfolio/NftList";
 import { tokenListInfo } from "../lib/utils/assetsNew";
 // import ValueLocked from "@components/portfolio/ValueLocked";
-import { adjustDecimals, formatNumber } from "../lib/utils/general";
+import { adjustDecimals, formatNumber, formatFullNumber } from "../lib/utils/general";
 import HistoricValues from "@components/portfolio/HistoricValues";
 import StakedPositions from "@components/portfolio/positions/StakedPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";

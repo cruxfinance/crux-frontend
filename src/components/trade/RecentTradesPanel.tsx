@@ -21,7 +21,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 
 interface TokenInfo {
   tokenId: string;
@@ -463,7 +463,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                           Type: {trade.side === "buy" ? "Buy" : "Sell"}
                         </Typography>
                         <Typography variant="caption" display="block">
-                          Price: {formatNumber(trade.price, 6)} {quoteToken.ticker}
+                          Price: {formatFullNumber(trade.price, 6)} {quoteToken.ticker}
                         </Typography>
                       </Box>
                     }
@@ -522,7 +522,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                               color: sideColor,
                             }}
                           >
-                            {formatNumber(trade.price, 6)}
+                            {formatFullNumber(trade.price, 6)}
                           </Typography>
                           <Avatar
                             src={quoteToken.icon || undefined}
@@ -537,7 +537,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                       <TableCell align="right" sx={{ py: 0.75, whiteSpace: "nowrap", width: 100 }}>
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
                           <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>
-                            {formatNumber(trade.amount, 4)}
+                            {formatFullNumber(trade.amount, 4)}
                           </Typography>
                           <Avatar
                             src={baseToken.icon || undefined}
@@ -552,7 +552,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                       <TableCell align="right" sx={{ py: 0.75, whiteSpace: "nowrap", width: 110 }}>
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
                           <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>
-                            {formatNumber(trade.total, 4)}
+                            {formatFullNumber(trade.total, 4)}
                           </Typography>
                           <Avatar
                             src={quoteToken.icon || undefined}

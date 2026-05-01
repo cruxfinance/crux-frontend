@@ -16,7 +16,7 @@ import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useAlert } from "@contexts/AlertContext";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 
 declare global {
   interface Window {
@@ -144,7 +144,7 @@ const RemoveLiquidityModal: FC<RemoveLiquidityModalProps> = ({
   };
 
   const formatTokenAmount = (amount: number, decimals: number) =>
-    formatNumber(amount / Math.pow(10, decimals), decimals > 4 ? 4 : 2);
+    formatFullNumber(amount / Math.pow(10, decimals), decimals > 4 ? 4 : 2);
 
   return (
     <Dialog
@@ -227,7 +227,7 @@ const RemoveLiquidityModal: FC<RemoveLiquidityModalProps> = ({
               fontWeight={600}
               sx={{ ml: "auto", mb: 0 }}
             >
-              ${formatNumber(position.total_value_usd, 2)}
+              ${formatFullNumber(position.total_value_usd, 2)}
             </Typography>
           )}
         </Box>

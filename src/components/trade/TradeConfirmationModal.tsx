@@ -14,7 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 
 interface TokenInfo {
   tokenId: string;
@@ -138,10 +138,10 @@ const TradeConfirmationModal: FC<TradeConfirmationModalProps> = ({
             </Box>
             <Box sx={{ textAlign: "right" }}>
               <Typography variant="h6" fontWeight={600}>
-                {formatNumber(parseFloat(inputAmount), inputToken.decimals > 4 ? 4 : inputToken.decimals)}
+                {formatFullNumber(parseFloat(inputAmount), inputToken.decimals > 4 ? 4 : inputToken.decimals)}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                ~${formatNumber(inputUsd, 2)}
+                ~${formatFullNumber(inputUsd, 2)}
               </Typography>
             </Box>
           </Box>
@@ -175,10 +175,10 @@ const TradeConfirmationModal: FC<TradeConfirmationModalProps> = ({
             </Box>
             <Box sx={{ textAlign: "right" }}>
               <Typography variant="h6" fontWeight={600}>
-                {formatNumber(parseFloat(outputAmount), outputToken.decimals > 4 ? 4 : outputToken.decimals)}
+                {formatFullNumber(parseFloat(outputAmount), outputToken.decimals > 4 ? 4 : outputToken.decimals)}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                ~${formatNumber(outputUsd, 2)}
+                ~${formatFullNumber(outputUsd, 2)}
               </Typography>
             </Box>
           </Box>
@@ -229,7 +229,7 @@ const TradeConfirmationModal: FC<TradeConfirmationModalProps> = ({
               Service Fee
             </Typography>
             <Typography variant="body2" fontWeight={500}>
-              {formatNumber(
+              {formatFullNumber(
                 feeAmount / Math.pow(10, feeToken === "erg" ? 9 : 4),
                 4,
               )}{" "}

@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useInView } from "react-intersection-observer";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import { formatNumber, getShorterAddress } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, getShorterAddress } from "@lib/utils/general";
 import { timeFromNow } from "@lib/utils/daytime";
 import { currencies, Currencies } from "@lib/utils/currencies";
 import Link from "../Link";
@@ -235,7 +235,7 @@ const TradeHistory: FC<PropsType> = ({
     if (currency === "USE" && !inverted) {
       displayPrice = price * exchangeRate;
     }
-    return formatNumber(displayPrice, decimals ?? 6, true);
+    return formatFullNumber(displayPrice, decimals ?? 6);
   };
 
   const removeCurrentForTesting = () => {
@@ -363,7 +363,7 @@ const TradeHistory: FC<PropsType> = ({
                       </Grid>
                       <Grid xs={2}>
                         <Typography sx={{ color: itemColor }}>
-                          {formatNumber(
+                          {formatFullNumber(
                             inverted ? Number(item.total_filled_quote_amount) : Number(item.total_filled_base_amount),
                             4,
                           )}
@@ -371,10 +371,9 @@ const TradeHistory: FC<PropsType> = ({
                       </Grid>
                       <Grid xs={2}>
                         <Typography sx={{ color: itemColor }}>
-                          {formatNumber(
+                          {formatFullNumber(
                             inverted ? Number(item.total_filled_base_amount) : Number(item.total_filled_quote_amount),
                             2,
-                            true,
                           )}
                         </Typography>
                       </Grid>
@@ -592,17 +591,15 @@ const TradeHistory: FC<PropsType> = ({
                       </Grid>
                       <Grid xs={2} sx={{ textAlign: "left" }}>
                         <Typography sx={{ color: itemColor }}>
-                          {formatNumber(
+                          {formatFullNumber(
                             inverted ? Number(item.filled_quote_amount) : Number(item.order_base_amount),
                             2,
-                            true,
                           )}
                         </Typography>
                         <Typography sx={{ color: itemColor }}>
-                          {formatNumber(
+                          {formatFullNumber(
                             inverted ? Number(item.order_base_amount) : Number(item.filled_quote_amount),
                             2,
-                            true,
                           )}
                         </Typography>
                       </Grid>

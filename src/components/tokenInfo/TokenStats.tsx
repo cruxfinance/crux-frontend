@@ -7,7 +7,7 @@ import {
   Button,
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import { formatNumber, getShortAddress } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, getShortAddress } from "@lib/utils/general";
 import { currencies, Currencies } from '@lib/utils/currencies';
 import { TokenDataPlus } from "@pages/tokens/[tokenId]";
 import Link from "../Link";
@@ -31,31 +31,31 @@ const TokenStats: FC<PropsType> = ({ currency, tokenInfo }) => {
       <Box sx={{ mb: 2 }}>
         <Grid container justifyContent="space-between">
           <Grid>Minted: </Grid>
-          <Grid>{formatNumber(tokenInfo.totalMinted)}</Grid>
+          <Grid>{formatFullNumber(tokenInfo.totalMinted)}</Grid>
         </Grid>
         {tokenInfo.burnedSupply > 0 && (
           <>
             <Grid container justifyContent="space-between">
               <Grid>Burned: </Grid>
-              <Grid>{formatNumber(tokenInfo.burnedSupply)}</Grid>
+              <Grid>{formatFullNumber(tokenInfo.burnedSupply)}</Grid>
             </Grid>
             <Grid container justifyContent="space-between">
               <Grid>Current: </Grid>
-              <Grid>{formatNumber(tokenInfo.totalMinted - tokenInfo.burnedSupply)}</Grid>
+              <Grid>{formatFullNumber(tokenInfo.totalMinted - tokenInfo.burnedSupply)}</Grid>
             </Grid>
           </>
         )}
         <Grid container justifyContent="space-between">
           <Grid>Liquid supply: </Grid>
-          <Grid>{formatNumber(tokenInfo.liquidSupply)}</Grid>
+          <Grid>{formatFullNumber(tokenInfo.liquidSupply)}</Grid>
         </Grid>
         <Grid container justifyContent="space-between">
           <Grid>TVL: </Grid>
-          <Grid>{formatNumber(tokenInfo.lockedSupply)}</Grid>
+          <Grid>{formatFullNumber(tokenInfo.lockedSupply)}</Grid>
         </Grid>
         <Grid container justifyContent="space-between">
           <Grid>Diluted market cap: </Grid>
-          <Grid>{currencies[currency] + formatNumber(tokenInfo.mktCap)}</Grid>
+          <Grid>{currencies[currency] + formatFullNumber(tokenInfo.mktCap)}</Grid>
         </Grid>
         {/* <Grid container justifyContent="space-between">
           <Grid>Liquidity: </Grid>

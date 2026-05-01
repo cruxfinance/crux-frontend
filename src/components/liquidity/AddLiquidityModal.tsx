@@ -15,7 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useAlert } from "@contexts/AlertContext";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 
 declare global {
   interface Window {
@@ -325,7 +325,7 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
           </Box>
           {quoteNum > 0 && (pool.quote_token_name?.toLowerCase() === "erg" || isQuoteStable) && (
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0, textAlign: "right", mt: 0.5 }}>
-              {"\u2248"} ${formatNumber(isQuoteStable ? quoteNum : quoteNum * ergPrice, 2)}
+              {"\u2248"} ${formatFullNumber(isQuoteStable ? quoteNum : quoteNum * ergPrice, 2)}
             </Typography>
           )}
         </Box>
@@ -389,7 +389,7 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
           </Box>
           {baseNum > 0 && (pool.base_token_name?.toLowerCase() === "erg" || isBaseStable) && (
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0, textAlign: "right", mt: 0.5 }}>
-              {"\u2248"} ${formatNumber(isBaseStable ? baseNum : baseNum * ergPrice, 2)}
+              {"\u2248"} ${formatFullNumber(isBaseStable ? baseNum : baseNum * ergPrice, 2)}
             </Typography>
           )}
         </Box>
@@ -420,8 +420,8 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
             </Typography>
             <Typography variant="body2" fontWeight={500} sx={{ mb: 0 }}>
               {rateInverted
-                ? `1 ${pool.quote_token_name} = ${formatNumber(1 / poolRatio, 4)} ${pool.base_token_name}`
-                : `1 ${pool.base_token_name} = ${formatNumber(poolRatio, 4)} ${pool.quote_token_name}`}
+                ? `1 ${pool.quote_token_name} = ${formatFullNumber(1 / poolRatio, 4)} ${pool.base_token_name}`
+                : `1 ${pool.base_token_name} = ${formatFullNumber(poolRatio, 4)} ${pool.quote_token_name}`}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
