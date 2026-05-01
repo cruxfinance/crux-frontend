@@ -242,7 +242,7 @@ export function createTradeMarkerManager(
             disableUndo: true,
             overrides: {
               color: isBuy ? "#4caf50" : "#f44336",
-              fontsize: 28,
+              fontsize: 9,
               showLabel: false,
             },
           },
