@@ -16,7 +16,7 @@ import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 import { WidgetSettings } from "@components/common/WidgetSettings";
 import TradeConfirmationModal from "@components/trade/TradeConfirmationModal";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 
 declare global {
   interface Window {
@@ -60,10 +60,11 @@ interface SwapQuote {
   };
 }
 
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
-const ERG_DECIMALS = 9;
-const CRUX_DECIMALS = 4;
+import {
+  ERG_TOKEN_ID,
+  ERG_DECIMALS,
+  CRUX_DECIMALS,
+} from "@lib/configs/paymentTokens";
 
 const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
   baseToken,
@@ -458,7 +459,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
         >
           <Typography variant="caption" color="text.secondary">
             {amount && ergPrice
-              ? `~$${formatNumber(
+              ? `~$${formatFullNumber(
                   parseFloat(amount) *
                     (orderType === "buy"
                       ? ergPrice
@@ -553,7 +554,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
         <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
           <Typography variant="caption" color="text.secondary">
             {estimatedOutput && ergPrice
-              ? `~$${formatNumber(
+              ? `~$${formatFullNumber(
                   parseFloat(estimatedOutput) *
                     (orderType === "buy"
                       ? (baseToken?.price || 0) * ergPrice

@@ -153,12 +153,12 @@ interface RawMintStatus {
   fee_usd: number;
 }
 
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
-const ERG_DECIMALS = 9;
-const CRUX_TOKEN_ID =
-  "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
-const CRUX_DECIMALS = 4;
+import {
+  ERG_TOKEN_ID,
+  ERG_DECIMALS,
+  CRUX_TOKEN_ID,
+  CRUX_DECIMALS,
+} from "@lib/configs/paymentTokens";
 
 const getDecimalPlaces = (value: string): number => {
   const parts = value.split(".");

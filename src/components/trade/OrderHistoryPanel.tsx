@@ -3,6 +3,7 @@ import {
   Avatar,
   Box,
   Button,
+  IconButton,
   LinearProgress,
   Skeleton,
   Typography,
@@ -18,11 +19,17 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   CircularProgress,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useWallet } from "@contexts/WalletContext";
-import { formatNumber } from "@lib/utils/general";
+import { useAlert } from "@contexts/AlertContext";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { copyToClipboard } from "@lib/utils/clipboard";
+import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 
 declare global {
   interface Window {
@@ -76,9 +83,6 @@ type StatusFilter = "all" | "filled" | "cancelled";
 type SortField = "date" | "price" | "amount" | "filled" | "total";
 type SortDirection = "asc" | "desc";
 
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
-
 const FETCH_LIMIT = 50;
 
 const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
@@ -89,14 +93,17 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
 }) => {
   const theme = useTheme();
   const { dAppWallet } = useWallet();
+  const { addAlert } = useAlert();
 
   const [allOrders, setAllOrders] = useState<LimitOrder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [currentPairOnly, setCurrentPairOnly] = useState(false);
 
   // Always fetch all statuses, filter client-side for counts
   const fetchOrders = useCallback(
@@ -152,6 +159,7 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
       } catch (error) {
         console.error("Error fetching order history:", error);
       } finally {
+        setInitialLoading(false);
         setLoading(false);
       }
     },
@@ -190,15 +198,30 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
 
   // --- Client-side filter ---
   const filteredOrders = useMemo(() => {
-    if (statusFilter === "all") return allOrders;
-    if (statusFilter === "filled")
-      return allOrders.filter((o) => o.status.toLowerCase() === "filled");
-    // cancelled filter includes expired
-    return allOrders.filter((o) => {
-      const s = o.status.toLowerCase();
-      return s === "cancelled" || s === "expired";
-    });
-  }, [allOrders, statusFilter]);
+    let result = allOrders;
+
+    if (statusFilter === "filled") {
+      result = result.filter((o) => o.status.toLowerCase() === "filled");
+    } else if (statusFilter === "cancelled") {
+      result = result.filter((o) => {
+        const s = o.status.toLowerCase();
+        return s === "cancelled" || s === "expired";
+      });
+    }
+
+    if (currentPairOnly && baseToken) {
+      result = result.filter((o) => {
+        const side = getOrderSide(o);
+        const baseId = side === "buy" ? o.taken_token_id : o.given_token_id;
+        const quoteId = side === "buy" ? o.given_token_id : o.taken_token_id;
+        const matchesBase = baseId === baseToken.tokenId;
+        const matchesQuote = quoteId === quoteToken.tokenId || quoteId === null || quoteId === ERG_TOKEN_ID;
+        return matchesBase && matchesQuote;
+      });
+    }
+
+    return result;
+  }, [allOrders, statusFilter, currentPairOnly, baseToken, quoteToken]);
 
   // --- Helpers ---
   const getOrderSide = (order: LimitOrder): "buy" | "sell" => {
@@ -512,38 +535,58 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
   };
 
   return (
-    <Box>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-          flexWrap: "wrap",
-          gap: 1,
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography variant="h6">Order History</Typography>
-          {loading && <CircularProgress size={18} />}
-        </Box>
-        <ToggleButtonGroup
-          value={statusFilter}
-          exclusive
-          onChange={handleStatusFilterChange}
-          size="small"
+      <Box>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2,
+            flexWrap: "wrap",
+            gap: 1,
+          }}
         >
-          <ToggleButton value="all">All ({filterCounts.all})</ToggleButton>
-          <ToggleButton value="filled">
-            Filled ({filterCounts.filled})
-          </ToggleButton>
-          <ToggleButton value="cancelled">
-            Cancelled / Expired ({filterCounts.cancelledExpired})
-          </ToggleButton>
-        </ToggleButtonGroup>
+          {loading && !initialLoading && (
+            <CircularProgress size={18} />
+          )}
+          <Box sx={{ flex: 1 }} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {baseToken && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={currentPairOnly}
+                  onChange={(e) => setCurrentPairOnly(e.target.checked)}
+                  size="small"
+                  sx={{ py: 0.3 }}
+                />
+              }
+              label={
+                <Typography variant="caption" color="text.secondary">
+                  {baseToken.ticker}/{quoteToken.ticker} only
+                </Typography>
+              }
+              sx={{ mr: 0 }}
+            />
+          )}
+          <ToggleButtonGroup
+            value={statusFilter}
+            exclusive
+            onChange={handleStatusFilterChange}
+            size="small"
+          >
+            <ToggleButton value="all">All ({filterCounts.all})</ToggleButton>
+            <ToggleButton value="filled">
+              Filled ({filterCounts.filled})
+            </ToggleButton>
+            <ToggleButton value="cancelled">
+              Cancelled / Expired ({filterCounts.cancelledExpired})
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
 
-      {loading && allOrders.length === 0 ? (
+      {initialLoading ? (
         <TableContainer sx={{ maxHeight: 400 }}>
           <Table size="small" stickyHeader>
             <TableHead>
@@ -726,7 +769,7 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
                             }}
                           >
                             <Typography variant="caption">
-                              {formatNumber(price, 6)}
+                              {formatFullNumber(price, 6)}
                             </Typography>
                             <TokenAvatar
                               token={quoteTokenInfo.token}
@@ -746,7 +789,7 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
                             }}
                           >
                             <Typography variant="body2" sx={{ fontWeight: 500, fontSize: "0.8rem" }}>
-                              {formatNumber(baseAmount, 4)}
+                              {formatFullNumber(baseAmount, 4)}
                             </Typography>
                             <TokenAvatar
                               token={baseTokenInfo.token}
@@ -766,7 +809,7 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
                             }}
                           >
                             <Typography variant="caption">
-                              {formatNumber(total, 4)}
+                              {formatFullNumber(total, 4)}
                             </Typography>
                             <TokenAvatar
                               token={quoteTokenInfo.token}
@@ -780,15 +823,30 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
                           {renderFilledCell(filledPercent)}
                         </TableCell>
 
-                        {/* Status - outlined chip (filled for pending) */}
+                        {/* Status - outlined chip (filled for pending) + copy order ID */}
                         <TableCell align="center" sx={{ py: 0.5 }}>
-                          <Chip
-                            label={getStatusLabel(order.status)}
-                            size="small"
-                            color={getStatusColor(order.status)}
-                            variant={isPending ? "filled" : "outlined"}
-                            sx={{ height: 20, fontSize: "0.7rem" }}
-                          />
+                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.25 }}>
+                            <Chip
+                              label={getStatusLabel(order.status)}
+                              size="small"
+                              color={getStatusColor(order.status)}
+                              variant={isPending ? "filled" : "outlined"}
+                              sx={{ height: 20, fontSize: "0.7rem" }}
+                            />
+                            <Tooltip title="Copy Order ID">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copyToClipboard(order.order_id);
+                                  addAlert("success", "Order ID copied");
+                                }}
+                                sx={{ p: 0.25 }}
+                              >
+                                <ContentCopyIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     </Tooltip>

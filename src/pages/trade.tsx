@@ -37,8 +37,8 @@ import { createTradeMarkerManager, TradeMarkerManager } from "@lib/charts/tradeM
 import { getCachedIcon, resolveIcons as batchResolveIcons } from "@lib/utils/icons";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
-import { formatNumber } from "@lib/utils/general";
-import { USE_TOKEN_ID } from "@lib/configs/paymentTokens";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { USE_TOKEN_ID, ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import MarketOrderWidget from "@components/trade/MarketOrderWidget";
 import RecentTradesPanel from "@components/trade/RecentTradesPanel";
 import LimitOrderWidget from "@components/trade/LimitOrderWidget";
@@ -46,9 +46,6 @@ import OrderBook from "@components/trade/OrderBook";
 import OpenOrdersPanel from "@components/trade/OpenOrdersPanel";
 import OrderHistoryPanel from "@components/trade/OrderHistoryPanel";
 import { useRouter } from "next/router";
-
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
 
 interface TokenInfo {
   tokenId: string;
@@ -698,7 +695,7 @@ const TradePage: FC = () => {
                               </ListItemAvatar>
                               <ListItemText
                                 primary={`${token.token_name} / ${token.quote_token_name}`}
-                                secondary={`Liquidity: ${formatNumber(token.liquidity, 2)} ERG`}
+                                secondary={`Liquidity: ${formatFullNumber(token.liquidity, 2)} ERG`}
                               />
                             </ListItem>
                           ))}
@@ -752,10 +749,10 @@ const TradePage: FC = () => {
                   </Typography>
                   <SwapVertIcon sx={{ fontSize: 16, opacity: 0.4 }} />
                   <Typography component="span" sx={{ fontWeight: 600, fontSize: '1.15rem', ml: 0.5 }}>
-                    {formatNumber(baseToken.price, 6)}
+                    {formatFullNumber(baseToken.price, 6)}
                   </Typography>
                   <Typography component="span" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
-                    ≈${formatNumber(
+                    ≈${formatFullNumber(
                       baseToken.tokenId === ERG_TOKEN_ID
                         ? ergPrice
                         : baseToken.price * ergPrice,
@@ -785,8 +782,8 @@ const TradePage: FC = () => {
                         component="span"
                         sx={{ fontSize: '0.8rem', color: 'text.secondary' }}
                       >
-                        Vol: {formatNumber(tokenStats.volumeErg, 1)} ERG
-                        {ergPrice > 0 && ` ($${formatNumber(tokenStats.volume, 0)})`}
+                        Vol: {formatFullNumber(tokenStats.volumeErg, 1)} ERG
+                        {ergPrice > 0 && ` ($${formatFullNumber(tokenStats.volume, 0)})`}
                       </Typography>
                     </>
                   )}
@@ -951,6 +948,31 @@ const TradePage: FC = () => {
 
       {/* Full-width bottom: My Orders */}
       <Grid container spacing={2} sx={{ mt: 0 }}>
+        <Grid xs={12}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              py: 0.5,
+            }}
+          >
+            {openOrderCount !== null && (
+              <Typography variant="caption" color="text.secondary">
+                Open: {openOrderCount} order{openOrderCount !== 1 ? "s" : ""}
+              </Typography>
+            )}
+            {openOrderCount !== null && orderHistoryCount !== null && (
+              <Typography variant="caption" color="text.secondary">|</Typography>
+            )}
+            {orderHistoryCount !== null && (
+              <Typography variant="caption" color="text.secondary">
+                History: {orderHistoryCount} order{orderHistoryCount !== 1 ? "s" : ""}
+              </Typography>
+            )}
+          </Box>
+        </Grid>
         <Grid xs={12} md={6}>
           <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
             <Box
@@ -967,7 +989,7 @@ const TradePage: FC = () => {
               }}
               onClick={() => setOpenOrdersExpanded(!openOrdersExpanded)}
             >
-              <Typography variant="subtitle2">Open Orders{openOrderCount !== null ? ` (${openOrderCount})` : ""}</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Open Orders{openOrderCount !== null ? ` (${openOrderCount})` : ""}</Typography>
               <ExpandMoreIcon
                 sx={{
                   fontSize: 20,
@@ -1006,7 +1028,7 @@ const TradePage: FC = () => {
               }}
               onClick={() => setOrderHistoryExpanded(!orderHistoryExpanded)}
             >
-              <Typography variant="subtitle2">Order History{orderHistoryCount !== null ? ` (${orderHistoryCount})` : ""}</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Order History{orderHistoryCount !== null ? ` (${orderHistoryCount})` : ""}</Typography>
               <ExpandMoreIcon
                 sx={{
                   fontSize: 20,

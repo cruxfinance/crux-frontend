@@ -16,7 +16,7 @@ import { useTheme } from "@mui/material/styles";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 import { WidgetSettings } from "@components/common/WidgetSettings";
 import LimitOrderConfirmationModal from "@components/trade/LimitOrderConfirmationModal";
 
@@ -46,10 +46,12 @@ interface LimitOrderWidgetProps {
   onExternalPriceConsumed?: () => void;
 }
 
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
-const CRUX_TOKEN_ID =
-  "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
+import {
+  ERG_TOKEN_ID,
+  ERG_DECIMALS,
+  CRUX_TOKEN_ID,
+  CRUX_DECIMALS,
+} from "@lib/configs/paymentTokens";
 
 const EXPIRY_PRESETS: { label: string; blocks: number | null }[] = [
   { label: "1h", blocks: 30 },
@@ -517,7 +519,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         {baseToken && (
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography variant="caption" color="text.secondary">
-              Market: {formatNumber(baseToken.price, 6)} {quoteToken.ticker}
+              Market: {formatFullNumber(baseToken.price, 6)} {quoteToken.ticker}
             </Typography>
             {price && baseToken.price > 0 && (() => {
               const diff = ((parseFloat(price) - baseToken.price) / baseToken.price) * 100;
@@ -742,7 +744,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
                 Total Value
               </Typography>
               <Typography variant="caption">
-                ~${formatNumber(parseFloat(total) * ergPrice, 2)} USD
+                ~${formatFullNumber(parseFloat(total) * ergPrice, 2)} USD
               </Typography>
             </Box>
           )}
@@ -756,7 +758,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
               <Typography variant="caption">
                 {feeEstimate.fee_token === "erg"
                   ? `${(feeEstimate.fee_amount / 1e9).toFixed(4)} ERG`
-                  : `${feeEstimate.fee_amount} CRUX`}
+                  : `${(feeEstimate.fee_amount / Math.pow(10, CRUX_DECIMALS)).toFixed(CRUX_DECIMALS)} CRUX`}
                 {feeEstimate.fee_usd > 0 && ` (~$${feeEstimate.fee_usd.toFixed(4)})`}
               </Typography>
             </Box>

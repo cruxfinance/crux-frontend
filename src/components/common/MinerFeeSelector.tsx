@@ -8,8 +8,8 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { MIN_MINER_FEE } from "@contexts/MinerFeeContext";
+import { ERG_DECIMALS } from "@lib/configs/paymentTokens";
 
-const ERG_DECIMALS = 9;
 const ERG_MULTIPLIER = 10 ** ERG_DECIMALS; // 1_000_000_000
 export const MAX_SLIDER_FEE = 10_000_000_000; // 10 ERG in nanoERG
 

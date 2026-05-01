@@ -31,13 +31,11 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { resolveIcons as batchResolveIcons } from "@lib/utils/icons";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import { useRouter } from "next/router";
 import AddLiquidityModal from "@components/liquidity/AddLiquidityModal";
 import RemoveLiquidityModal from "@components/liquidity/RemoveLiquidityModal";
-
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
 
 interface PoolWithApr {
   pool_id: string;
@@ -259,7 +257,7 @@ const LiquidityPage: FC = () => {
   };
 
   const formatTokenAmount = (amount: number, decimals: number) => {
-    return formatNumber(amount / Math.pow(10, decimals), decimals > 4 ? 4 : 2);
+    return formatFullNumber(amount / Math.pow(10, decimals), decimals > 4 ? 4 : 2);
   };
 
   const renderTokenPair = (
@@ -367,7 +365,7 @@ const LiquidityPage: FC = () => {
             Total Value Locked
           </Typography>
           <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-            ${formatNumber(totalTvlUsd, 0)}
+            ${formatFullNumber(totalTvlUsd, 0)}
           </Typography>
         </Box>
         {isAuthenticated && positions.length > 0 && (
@@ -376,7 +374,7 @@ const LiquidityPage: FC = () => {
               Your Positions
             </Typography>
             <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-              ${formatNumber(totalPositionsUsd, 2)}
+              ${formatFullNumber(totalPositionsUsd, 2)}
             </Typography>
           </Box>
         )}
@@ -433,7 +431,7 @@ const LiquidityPage: FC = () => {
                           )}
                         </TableCell>
                         <TableCell align="right">
-                          ${formatNumber(pos.total_value_usd, 2)}
+                          ${formatFullNumber(pos.total_value_usd, 2)}
                         </TableCell>
                         <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                           {formatTokenAmount(
@@ -611,13 +609,13 @@ const LiquidityPage: FC = () => {
                       )}
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                      {formatNumber(pool.tvl_erg, 2)} ERG{" "}
+                      {formatFullNumber(pool.tvl_erg, 2)} ERG{" "}
                       <Typography
                         variant="caption"
                         color="text.secondary"
                         component="span"
                       >
-                        (${formatNumber(pool.tvl_erg * ergPrice, 0)})
+                        (${formatFullNumber(pool.tvl_erg * ergPrice, 0)})
                       </Typography>
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: "nowrap", display: { xs: "none", md: "table-cell" } }}>
@@ -626,7 +624,7 @@ const LiquidityPage: FC = () => {
                           —
                         </Typography>
                       ) : (
-                        <>{formatNumber(pool.volume_24h, 2)} ERG</>
+                        <>{formatFullNumber(pool.volume_24h, 2)} ERG</>
                       )}
                     </TableCell>
                     <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>

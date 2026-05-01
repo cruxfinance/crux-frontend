@@ -1,5 +1,6 @@
 import React, { FC, useState, useEffect, useCallback } from "react";
 import {
+  Avatar,
   Box,
   Typography,
   Table,
@@ -10,20 +11,26 @@ import {
   TableRow,
   CircularProgress,
   IconButton,
-  Chip,
+  LinearProgress,
+  Skeleton,
   Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
+  Chip,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CancelIcon from "@mui/icons-material/Cancel";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { copyToClipboard } from "@lib/utils/clipboard";
+import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 
 declare global {
   interface Window {
@@ -73,8 +80,6 @@ interface LimitOrder {
   is_mempool?: boolean;
 }
 
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
 
 const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
   baseToken,
@@ -90,13 +95,13 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
 
   const [orders, setOrders] = useState<LimitOrder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(
     null,
   );
   const [confirmCancelOrder, setConfirmCancelOrder] =
     useState<LimitOrder | null>(null);
 
-  // Fetch open orders
   const fetchOrders = useCallback(async () => {
     if (userAddresses.length === 0) {
       setOrders([]);
@@ -105,11 +110,9 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
 
     setLoading(true);
     try {
-      // Fetch orders for each address
       const allOrders: LimitOrder[] = [];
 
       for (const address of userAddresses.slice(0, 5)) {
-        // Limit to first 5 addresses
         const params = new URLSearchParams({
           owner_address: address,
           status: "open,partial",
@@ -128,19 +131,18 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
         }
       }
 
-      // Remove duplicates by order_id
       const uniqueOrders = allOrders.filter(
         (order, index, self) =>
           index === self.findIndex((o) => o.order_id === order.order_id),
       );
 
-      // Sort by created_at descending
       uniqueOrders.sort((a, b) => b.created_at - a.created_at);
 
       setOrders(uniqueOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {
+      setInitialLoading(false);
       setLoading(false);
     }
   }, [userAddresses]);
@@ -151,7 +153,6 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
     return () => clearInterval(interval);
   }, [fetchOrders, refreshTrigger]);
 
-  // Notify parent of count changes
   useEffect(() => {
     if (onCountChange) {
       onCountChange(orders.length);
@@ -198,19 +199,11 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
         throw new Error("No transaction returned from API");
       }
 
-      console.log("=== UNSIGNED TX ===");
-      console.log(JSON.stringify(result.unsigned_tx, null, 2));
-
       const signedTx = await context.sign_tx(result.unsigned_tx);
-
-      console.log("=== SIGNED TX ===");
-      console.log(JSON.stringify(signedTx, null, 2));
-
       const txId = await context.submit_tx(signedTx);
 
       addAlert("success", `Order cancelled! TX: ${txId.slice(0, 8)}...`);
 
-      // Remove from local state
       setOrders((prev) => prev.filter((o) => o.order_id !== order.order_id));
     } catch (error: any) {
       console.error("Error cancelling order:", error);
@@ -224,7 +217,6 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
   };
 
   const getOrderSide = (order: LimitOrder): "buy" | "sell" => {
-    // If giving ERG (or quote token), it's a buy order
     const givenIsQuote =
       order.given_token_id === null ||
       order.given_token_id === ERG_TOKEN_ID ||
@@ -237,10 +229,6 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
     const rawRatio = order.price_numerator / order.price_denominator;
     const givenDec = order.given_token_decimals || 9;
     const takenDec = order.taken_token_decimals || 9;
-    // rawRatio = rate * 10^takenDec / 10^givenDec (where rate is taken/given in human units)
-    // For display we want quote per base (ERG per token):
-    // Buy (give ERG, take token): display = 1/rate = 10^takenDec / (rawRatio * 10^givenDec)
-    // Sell (give token, take ERG): display = rate = rawRatio * 10^givenDec / 10^takenDec
     const side = getOrderSide(order);
     if (side === "buy") {
       return Math.pow(10, takenDec) / (rawRatio * Math.pow(10, givenDec));
@@ -253,23 +241,16 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
     if (order.original_given_amount === 0) return 0;
     const filled = order.original_given_amount - order.remaining_given_amount;
     const percent = (filled / order.original_given_amount) * 100;
-    // Clamp to valid range [0, 100] to handle data inconsistencies
     return Math.max(0, Math.min(100, percent));
   };
 
-  // Get display amount for an order
-  // For BUY orders: show expected token amount to receive (filled/original)
-  // For SELL orders: show token amount being sold (filled/original)
   const getDisplayAmount = (
     order: LimitOrder,
   ): { filled: number; original: number; token: string } => {
     const side = getOrderSide(order);
     const givenDec = order.given_token_decimals || 9;
-    const takenDec = order.taken_token_decimals || 9;
 
     if (side === "buy") {
-      // BUY order: giving ERG/quote, receiving base token
-      // Calculate expected token amount based on price
       const price = getPrice(order);
       if (price === 0) {
         return {
@@ -288,7 +269,6 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
         token: order.taken_token_name || "token",
       };
     } else {
-      // SELL order: giving token, receiving ERG/quote
       const filled =
         (order.original_given_amount - order.remaining_given_amount) /
         Math.pow(10, givenDec);
@@ -301,26 +281,137 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
     }
   };
 
-  // Get pair display string (base/quote format)
   const getPairDisplay = (order: LimitOrder): string => {
     const side = getOrderSide(order);
     if (side === "buy") {
-      // BUY: receiving taken_token (base), giving given_token (quote)
       return `${order.taken_token_name || "token"}/${order.given_token_name || "ERG"}`;
     } else {
-      // SELL: giving given_token (base), receiving taken_token (quote)
       return `${order.given_token_name || "token"}/${order.taken_token_name || "ERG"}`;
     }
   };
 
+  const getTokenForAvatar = (
+    order: LimitOrder,
+    side: "buy" | "sell",
+    which: "base" | "quote",
+  ): { token: TokenInfo | null; fallback: string } => {
+    if (which === "base") {
+      const id = side === "buy" ? order.taken_token_id : order.given_token_id;
+      const name = side === "buy" ? order.taken_token_name : order.given_token_name;
+      if (baseToken && id === baseToken.tokenId) return { token: baseToken, fallback: baseToken.ticker };
+      if (id === quoteToken.tokenId) return { token: quoteToken, fallback: quoteToken.ticker };
+      return { token: null, fallback: name || "?" };
+    }
+    const id = side === "buy" ? order.given_token_id : order.taken_token_id;
+    const name = side === "buy" ? order.given_token_name : order.taken_token_name;
+    if (id === quoteToken.tokenId || id === null || id === ERG_TOKEN_ID)
+      return { token: quoteToken, fallback: quoteToken.ticker };
+    if (baseToken && id === baseToken.tokenId) return { token: baseToken, fallback: baseToken.ticker };
+    return { token: null, fallback: name || "?" };
+  };
+
   const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+
+    const time = date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (isToday) return `Today ${time}`;
     return date.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+    }) + ` ${time}`;
+  };
+
+  const formatFullTime = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString([], {
+      year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     });
+  };
+
+  const headerCellSx = {
+    py: 0.5,
+    whiteSpace: "nowrap" as const,
+    backgroundColor: theme.palette.background.paper,
+  };
+
+  const renderSkeletonRows = () =>
+    Array.from({ length: 3 }).map((_, i) => (
+      <TableRow key={`skeleton-${i}`}>
+        {Array.from({ length: 6 }).map((_, j) => (
+          <TableCell key={j} sx={{ py: 0.5 }}>
+            <Skeleton variant="text" width={j === 0 ? 90 : j === 1 ? 50 : 60} />
+          </TableCell>
+        ))}
+      </TableRow>
+    ));
+
+  const renderFilledCell = (filledPercent: number, amt: { filled: number; original: number; token: string }) => {
+    if (filledPercent === 0) {
+      return (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "flex-end" }}>
+          <Typography variant="caption" color="text.secondary">
+            0%
+          </Typography>
+        </Box>
+      );
+    }
+    if (filledPercent >= 100) {
+      return (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "flex-end" }}>
+          <Typography variant="caption" color="success.main" fontWeight={500}>
+            100%
+          </Typography>
+        </Box>
+      );
+    }
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 0.25 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "flex-end" }}>
+          <Typography variant="caption" color="primary">
+            {formatFullNumber(amt.filled, 4)}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            /
+          </Typography>
+          <Typography variant="caption">
+            {formatFullNumber(amt.original, 4)} {amt.token}
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "flex-end" }}>
+          <Box sx={{ width: 50 }}>
+            <LinearProgress
+              variant="determinate"
+              value={filledPercent}
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: "rgba(255,255,255,0.08)",
+                "& .MuiLinearProgress-bar": {
+                  borderRadius: 3,
+                },
+              }}
+            />
+          </Box>
+          <Typography variant="caption" color="primary">
+            {filledPercent.toFixed(0)}%
+          </Typography>
+        </Box>
+      </Box>
+    );
   };
 
   if (!dAppWallet.connected) {
@@ -344,48 +435,56 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
   return (
     <>
       <Box>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 1,
-          }}
-        >
-          <Typography variant="h6">Open Orders ({orders.length})</Typography>
-          {loading && <CircularProgress size={16} />}
-        </Box>
+        {loading && !initialLoading && orders.length > 0 && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+            <CircularProgress size={18} />
+          </Box>
+        )}
 
-        {orders.length === 0 ? (
+        {initialLoading ? (
+          <TableContainer sx={{ maxHeight: 400 }}>
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={headerCellSx}>Date</TableCell>
+                  <TableCell sx={headerCellSx}>Pair</TableCell>
+                  <TableCell sx={headerCellSx}>Side</TableCell>
+                  <TableCell sx={headerCellSx} align="right">Price</TableCell>
+                  <TableCell sx={headerCellSx} align="right">Amount</TableCell>
+                  <TableCell sx={headerCellSx} align="right">Filled</TableCell>
+                  <TableCell sx={headerCellSx} align="center">Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>{renderSkeletonRows()}</TableBody>
+            </Table>
+          </TableContainer>
+        ) : orders.length === 0 ? (
           <Box
             sx={{
-              py: 4,
-              textAlign: "center",
+              py: 6,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 1,
             }}
           >
+            <ShowChartIcon sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }} />
             <Typography variant="body2" color="text.secondary">
               No open orders
             </Typography>
           </Box>
         ) : (
-          <TableContainer sx={{ maxHeight: 300 }}>
+          <TableContainer sx={{ maxHeight: 400 }}>
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ py: 0.5 }}>Pair</TableCell>
-                  <TableCell sx={{ py: 0.5 }}>Side</TableCell>
-                  <TableCell sx={{ py: 0.5 }} align="right">
-                    Price
-                  </TableCell>
-                  <TableCell sx={{ py: 0.5 }} align="right">
-                    Amount
-                  </TableCell>
-                  <TableCell sx={{ py: 0.5 }} align="right">
-                    Filled
-                  </TableCell>
-                  <TableCell sx={{ py: 0.5 }} align="center">
-                    Action
-                  </TableCell>
+                  <TableCell sx={{ ...headerCellSx, width: 120 }}>Date</TableCell>
+                  <TableCell sx={{ ...headerCellSx, width: 100 }}>Pair</TableCell>
+                  <TableCell sx={{ ...headerCellSx, width: 50 }}>Side</TableCell>
+                  <TableCell sx={{ ...headerCellSx, width: 110 }} align="right">Price</TableCell>
+                  <TableCell sx={{ ...headerCellSx, width: 110 }} align="right">Amount</TableCell>
+                  <TableCell sx={{ ...headerCellSx, width: 120 }} align="right">Filled</TableCell>
+                  <TableCell sx={{ ...headerCellSx, width: 60 }} align="center">Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -394,6 +493,9 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
                   const price = getPrice(order);
                   const filledPercent = getFilledPercent(order);
                   const isCancelling = cancellingOrderId === order.order_id;
+                  const amt = getDisplayAmount(order);
+                  const baseTokenInfo = getTokenForAvatar(order, side, "base");
+                  const quoteTokenInfo = getTokenForAvatar(order, side, "quote");
 
                   const isMempool = order.is_mempool === true;
                   const isPendingFill =
@@ -403,124 +505,209 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
                   const hasMempoolStatus =
                     isMempool || isPendingFill || isPendingCancel;
 
+                  const tooltipContent = [
+                    `Created: ${formatFullTime(order.created_at)}`,
+                    order.updated_at !== order.created_at
+                      ? `Updated: ${formatFullTime(order.updated_at)}`
+                      : null,
+                    `Order ID: ${order.order_id.slice(0, 16)}...`,
+                    isMempool ? "Status: Unconfirmed (in mempool)" : null,
+                    isPendingFill ? "Status: Pending fill" : null,
+                    isPendingCancel ? "Status: Pending cancellation" : null,
+                  ]
+                    .filter(Boolean)
+                    .join("\n");
+
                   return (
-                    <TableRow
+                    <Tooltip
                       key={order.order_id}
-                      sx={{
-                        ...(hasMempoolStatus && {
-                          opacity: 0.7,
-                          borderLeft: `3px dashed ${
-                            isPendingCancel
-                              ? theme.palette.error.main
-                              : isPendingFill
-                                ? theme.palette.success.main
-                                : theme.palette.warning.main
-                          }`,
-                        }),
-                      }}
-                    >
-                      <TableCell sx={{ py: 0.5 }}>
-                        <Typography variant="caption">
-                          {getPairDisplay(order)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ py: 0.5 }}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 0.5,
-                          }}
-                        >
-                          <Chip
-                            label={side.toUpperCase()}
-                            size="small"
-                            color={side === "buy" ? "success" : "error"}
-                            sx={{ height: 20, fontSize: "0.7rem" }}
-                          />
-                          {isMempool && (
-                            <Chip
-                              label="UNCONFIRMED"
-                              size="small"
-                              variant="outlined"
-                              color="warning"
-                              sx={{ height: 18, fontSize: "0.6rem" }}
-                            />
-                          )}
-                          {isPendingFill && (
-                            <Chip
-                              label="FILLING"
-                              size="small"
-                              variant="outlined"
-                              color="success"
-                              sx={{ height: 18, fontSize: "0.6rem" }}
-                            />
-                          )}
-                          {isPendingCancel && (
-                            <Chip
-                              label="CANCELLING"
-                              size="small"
-                              variant="outlined"
-                              color="error"
-                              sx={{ height: 18, fontSize: "0.6rem" }}
-                            />
-                          )}
+                      title={
+                        <Box sx={{ whiteSpace: "pre-line", fontSize: "0.75rem" }}>
+                          {tooltipContent}
                         </Box>
-                      </TableCell>
-                      <TableCell align="right" sx={{ py: 0.5 }}>
-                        <Typography variant="caption">
-                          {formatNumber(price, 6)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right" sx={{ py: 0.5 }}>
-                        <Typography variant="caption">
-                          {(() => {
-                            const amt = getDisplayAmount(order);
-                            return `${formatNumber(amt.filled, 4)} / ${formatNumber(amt.original, 4)} ${amt.token}`;
-                          })()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right" sx={{ py: 0.5 }}>
-                        <Typography
-                          variant="caption"
-                          color={
-                            filledPercent > 0 ? "primary" : "text.secondary"
-                          }
-                        >
-                          {filledPercent.toFixed(0)}%
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center" sx={{ py: 0.5 }}>
-                        {isPendingCancel ? (
-                          <CircularProgress size={16} />
-                        ) : (
-                          <Tooltip
-                            title={
-                              isMempool
-                                ? "Cannot cancel unconfirmed order"
-                                : "Cancel Order"
-                            }
+                      }
+                      placement="left"
+                      enterDelay={400}
+                      arrow
+                    >
+                      <TableRow
+                        sx={{
+                          cursor: "pointer",
+                          "&:hover": {
+                            backgroundColor: theme.palette.background.hover || "rgba(255,255,255,0.03)",
+                          },
+                          ...(hasMempoolStatus && {
+                            opacity: 0.7,
+                            borderLeft: `3px dashed ${
+                              isPendingCancel
+                                ? theme.palette.error.main
+                                : isPendingFill
+                                  ? theme.palette.success.main
+                                  : theme.palette.warning.main
+                            }`,
+                          }),
+                        }}
+                      >
+                        <TableCell sx={{ py: 0.5 }}>
+                          <Typography variant="caption">
+                            {formatTime(order.created_at)}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell sx={{ py: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, fontSize: "0.8rem" }}>
+                            {getPairDisplay(order)}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell sx={{ py: 0.5 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: 700,
+                                color:
+                                  side === "buy"
+                                    ? theme.palette.up.main
+                                    : theme.palette.down.main,
+                              }}
+                            >
+                              {side.toUpperCase()}
+                            </Typography>
+                            {isMempool && (
+                              <Chip
+                                label="UNCONFIRMED"
+                                size="small"
+                                variant="outlined"
+                                color="warning"
+                                sx={{ height: 18, fontSize: "0.6rem" }}
+                              />
+                            )}
+                            {isPendingFill && (
+                              <Chip
+                                label="FILLING"
+                                size="small"
+                                variant="outlined"
+                                color="success"
+                                sx={{ height: 18, fontSize: "0.6rem" }}
+                              />
+                            )}
+                            {isPendingCancel && (
+                              <Chip
+                                label="CANCELLING"
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                sx={{ height: 18, fontSize: "0.6rem" }}
+                              />
+                            )}
+                          </Box>
+                        </TableCell>
+
+                        <TableCell align="right" sx={{ py: 0.5 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              gap: 0.5,
+                            }}
                           >
-                            <span>
+                            <Typography variant="caption">
+                              {formatFullNumber(price, 6)}
+                            </Typography>
+                            <Avatar
+                              src={quoteTokenInfo.token?.icon || ""}
+                              sx={{
+                                width: 14,
+                                height: 14,
+                                fontSize: "0.5rem",
+                                bgcolor: "rgba(255,255,255,0.1)",
+                              }}
+                            >
+                              {quoteTokenInfo.fallback[0]?.toUpperCase() || "?"}
+                            </Avatar>
+                          </Box>
+                        </TableCell>
+
+                        <TableCell align="right" sx={{ py: 0.5 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: "0.8rem" }}>
+                              {formatFullNumber(amt.original, 4)}
+                            </Typography>
+                            <Avatar
+                              src={baseTokenInfo.token?.icon || ""}
+                              sx={{
+                                width: 14,
+                                height: 14,
+                                fontSize: "0.5rem",
+                                bgcolor: "rgba(255,255,255,0.1)",
+                              }}
+                            >
+                              {baseTokenInfo.fallback[0]?.toUpperCase() || "?"}
+                            </Avatar>
+                          </Box>
+                        </TableCell>
+
+                        <TableCell align="right" sx={{ py: 0.5 }}>
+                          {renderFilledCell(filledPercent, amt)}
+                        </TableCell>
+
+                        <TableCell align="center" sx={{ py: 0.5 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.25 }}>
+                            <Tooltip title="Copy Order ID">
                               <IconButton
                                 size="small"
-                                onClick={() => handleCancelClick(order)}
-                                disabled={
-                                  isCancelling || isMempool || isPendingFill
-                                }
-                                color="error"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copyToClipboard(order.order_id);
+                                  addAlert("success", "Order ID copied");
+                                }}
+                                sx={{ p: 0.25 }}
                               >
-                                {isCancelling ? (
-                                  <CircularProgress size={16} />
-                                ) : (
-                                  <CancelIcon fontSize="small" />
-                                )}
+                                <ContentCopyIcon sx={{ fontSize: 14, color: "text.secondary" }} />
                               </IconButton>
-                            </span>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                            </Tooltip>
+                            {isPendingCancel ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <Tooltip
+                                title={
+                                  isMempool
+                                    ? "Cannot cancel unconfirmed order"
+                                    : "Cancel Order"
+                                }
+                              >
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleCancelClick(order)}
+                                    disabled={
+                                      isCancelling || isMempool || isPendingFill
+                                    }
+                                    color="error"
+                                    sx={{ p: 0.25 }}
+                                  >
+                                    {isCancelling ? (
+                                      <CircularProgress size={16} />
+                                    ) : (
+                                      <CancelIcon fontSize="small" />
+                                    )}
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    </Tooltip>
                   );
                 })}
               </TableBody>
@@ -529,7 +716,6 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
         )}
       </Box>
 
-      {/* Cancel Confirmation Dialog */}
       <Dialog
         open={!!confirmCancelOrder}
         onClose={() => setConfirmCancelOrder(null)}
@@ -554,13 +740,13 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
               </Typography>
               <Typography variant="body2">
                 <strong>Price:</strong>{" "}
-                {formatNumber(getPrice(confirmCancelOrder), 6)}
+                {formatFullNumber(getPrice(confirmCancelOrder), 6)}
               </Typography>
               <Typography variant="body2">
                 <strong>Amount:</strong>{" "}
                 {(() => {
                   const amt = getDisplayAmount(confirmCancelOrder);
-                  return `${formatNumber(amt.original, 4)} ${amt.token}`;
+                  return `${formatFullNumber(amt.original, 4)} ${amt.token}`;
                 })()}
               </Typography>
             </Box>
