@@ -12,6 +12,8 @@ import {
   CircularProgress,
   Tooltip,
   IconButton,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { formatNumber, formatFullNumber } from "@lib/utils/general";
@@ -78,6 +80,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
   const [loading, setLoading] = useState(false);
   const [showVirtual, setShowVirtual] = useState(true);
   const [isStale, setIsStale] = useState(false);
+  const [viewMode, setViewMode] = useState<"buy" | "sell" | "both">("both");
   const lastFetchRef = useRef<number>(Date.now());
 
   const fetchOrderBook = useCallback(async () => {
@@ -117,6 +120,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
 
   useEffect(() => {
     fetchOrderBook();
+    setViewMode("both");
     const interval = setInterval(fetchOrderBook, 5000);
     return () => clearInterval(interval);
   }, [fetchOrderBook]);
@@ -317,6 +321,20 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
         </Box>
       </Box>
 
+      {/* View mode toggle */}
+      <ToggleButtonGroup
+        value={viewMode}
+        exclusive
+        onChange={(_e, newMode) => newMode && setViewMode(newMode)}
+        size="small"
+        fullWidth
+        sx={{ mb: 1 }}
+      >
+        <ToggleButton value="sell">Sell</ToggleButton>
+        <ToggleButton value="buy">Buy</ToggleButton>
+        <ToggleButton value="both">Both</ToggleButton>
+      </ToggleButtonGroup>
+
       {!hasData ? (
         <Box
           sx={{
@@ -339,6 +357,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
           quoteToken={quoteToken}
           orderBook={orderBook}
           onPriceClick={onPriceClick}
+          viewMode={viewMode}
         />
       )}
     </Paper>
@@ -357,6 +376,7 @@ interface TableViewProps {
   quoteToken: TokenInfo;
   orderBook: OrderBookData | null;
   onPriceClick?: (price: number, amount?: number) => void;
+  viewMode: "buy" | "sell" | "both";
 }
 
 const TableView: FC<TableViewProps> = ({
@@ -367,6 +387,7 @@ const TableView: FC<TableViewProps> = ({
   quoteToken,
   orderBook,
   onPriceClick,
+  viewMode,
 }) => {
   const theme = useTheme();
   const baseDec = Math.pow(10, baseToken.decimals);
@@ -386,7 +407,7 @@ const TableView: FC<TableViewProps> = ({
 
   // Auto-scroll to spread row on initial load or pair change only
   useEffect(() => {
-    if (shouldScrollRef.current && spreadRef.current && containerRef.current && orderBook) {
+    if (viewMode === "both" && shouldScrollRef.current && spreadRef.current && containerRef.current && orderBook) {
       const container = containerRef.current;
       const row = spreadRef.current;
       container.scrollTop = row.offsetTop - container.clientHeight / 2;
@@ -539,16 +560,17 @@ const TableView: FC<TableViewProps> = ({
         </TableHead>
         <TableBody>
           {/* Asks - reversed so highest is at top */}
-          {mergedAsks
-            .slice()
-            .reverse()
-            .map((row, i) => {
-              const originalIdx = mergedAsks.length - 1 - i;
-              return renderRow(row, "ask", i, askCumulativeBase[originalIdx]);
-            })}
+          {(viewMode === "sell" || viewMode === "both") &&
+            mergedAsks
+              .slice()
+              .reverse()
+              .map((row, i) => {
+                const originalIdx = mergedAsks.length - 1 - i;
+                return renderRow(row, "ask", i, askCumulativeBase[originalIdx]);
+              })}
 
           {/* Spread indicator */}
-          {bestAsk && bestBid && (
+          {viewMode === "both" && bestAsk && bestBid && (
             <TableRow ref={spreadRef}>
               <TableCell
                 colSpan={3}
@@ -584,7 +606,8 @@ const TableView: FC<TableViewProps> = ({
           )}
 
           {/* Bids */}
-          {mergedBids.map((row, i) => renderRow(row, "bid", i, bidCumulativeBase[i]))}
+          {(viewMode === "buy" || viewMode === "both") &&
+            mergedBids.map((row, i) => renderRow(row, "bid", i, bidCumulativeBase[i]))}
         </TableBody>
       </Table>
     </TableContainer>
