@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import { useRouter } from "next/router";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { currencies, Currencies } from "@lib/utils/currencies";
 import TradeHistory from "@components/tokenInfo/TradeHistory";
 import TokenStats from "@components/tokenInfo/TokenStats";
@@ -143,7 +143,7 @@ const TokenInfo: FC = () => {
       const isLocalIcon = await checkLocalIcon(tokenId);
       const thisTokenInfo = {
         name: data.token_name,
-        ticker: data.token_name,
+        ticker: normalizeTicker(data.token_name),
         tokenId: tokenId,
         icon: isLocalIcon ?? "",
         price: data.value_in_erg,

@@ -236,7 +236,8 @@ export function createTradeMarkerManager(
             price: adjustedPrice,
           },
           {
-            shape: isBuy ? "arrow_up" : "arrow_down",
+            shape: "anchored_text",
+            text: isBuy ? "▲" : "▼",
             lock: true,
             disableSave: true,
             disableUndo: true,

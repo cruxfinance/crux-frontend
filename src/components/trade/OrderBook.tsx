@@ -82,6 +82,8 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
   const [isStale, setIsStale] = useState(false);
   const [viewMode, setViewMode] = useState<"buy" | "sell" | "both">("both");
   const lastFetchRef = useRef<number>(Date.now());
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
 
   const fetchOrderBook = useCallback(async () => {
     if (!baseToken) {
@@ -94,7 +96,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
       const params = new URLSearchParams({
         base_token_id: baseToken.tokenId,
         quote_token_id: quoteToken.tokenId,
-        depth: "10",
+        depth: viewModeRef.current === "both" ? "10" : "20",
       });
 
       const response = await fetch(

@@ -94,6 +94,15 @@ export const formatFullNumber = (value: number, decimals?: number): string => {
   }).format(value);
 };
 
+/**
+ * Normalize a ticker string for display.
+ * "erg" → "ERG" (the blockchain's native token has a special-cased lowercase name from the API).
+ * All other tickers pass through unchanged to preserve readability (e.g., "rsBTC").
+ */
+export const normalizeTicker = (ticker: string): string => {
+  return ticker === "erg" ? "ERG" : ticker;
+};
+
 export const stringToUrl = (str: string): string | undefined => {
   if (str) {
     // Replace all spaces with dashes and convert to lowercase

@@ -37,7 +37,7 @@ import { createTradeMarkerManager, TradeMarkerManager } from "@lib/charts/tradeM
 import { getCachedIcon, resolveIcons as batchResolveIcons } from "@lib/utils/icons";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { USE_TOKEN_ID, ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import MarketOrderWidget from "@components/trade/MarketOrderWidget";
 import RecentTradesPanel from "@components/trade/RecentTradesPanel";
@@ -261,7 +261,7 @@ const TradePage: FC = () => {
       const newBaseToken: TokenInfo = {
         tokenId: token.token_id,
         name: token.token_name,
-        ticker: token.token_name,
+        ticker: normalizeTicker(token.token_name),
         icon: baseIcon,
         decimals: token.token_decimals,
         price,
@@ -270,7 +270,7 @@ const TradePage: FC = () => {
       const newQuoteToken: TokenInfo = {
         tokenId: token.quote_token_id,
         name: token.quote_token_name,
-        ticker: token.quote_token_name,
+        ticker: normalizeTicker(token.quote_token_name),
         icon: quoteIcon,
         decimals: token.quote_token_decimals,
         price: 1,

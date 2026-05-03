@@ -31,7 +31,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { resolveIcons as batchResolveIcons } from "@lib/utils/icons";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import { useRouter } from "next/router";
 import AddLiquidityModal from "@components/liquidity/AddLiquidityModal";
@@ -424,9 +424,9 @@ const LiquidityPage: FC = () => {
                         <TableCell>
                           {renderTokenPair(
                             pos.base_token.token_id,
-                            pos.base_token.name,
+                            normalizeTicker(pos.base_token.name),
                             pos.quote_token.token_id,
-                            pos.quote_token.name,
+                            normalizeTicker(pos.quote_token.name),
                             pos.pool_type,
                           )}
                         </TableCell>
@@ -602,9 +602,9 @@ const LiquidityPage: FC = () => {
                     <TableCell>
                       {renderTokenPair(
                         pool.base_token_id,
-                        pool.base_token_name,
+                        normalizeTicker(pool.base_token_name),
                         pool.quote_token_id,
-                        pool.quote_token_name,
+                        normalizeTicker(pool.quote_token_name),
                         pool.pool_type,
                       )}
                     </TableCell>

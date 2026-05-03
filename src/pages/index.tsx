@@ -22,7 +22,7 @@ import {
 import Grid from "@mui/material/Unstable_Grid2";
 import TokenSort from "@components/tokens/TokenSort";
 import TokenFilterOptions from "@components/tokens/Filters";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { useRouter } from "next/router";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { currencies, Currencies } from "@lib/utils/currencies";
@@ -495,7 +495,7 @@ const Tokens: FC = () => {
 
     return {
       name,
-      ticker,
+      ticker: normalizeTicker(ticker),
       tokenId: id,
       icon: url || "",
       price: price_erg,
@@ -1349,7 +1349,7 @@ const Tokens: FC = () => {
                                   {token.name}
                                 </Typography>
                                 {/* <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {token.ticker.toUpperCase()}
+                                        {normalizeTicker(token.ticker)}
                                       </Typography> */}
                               </Box>
                             </Box>
