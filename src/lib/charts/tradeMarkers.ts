@@ -227,9 +227,12 @@ export function createTradeMarkerManager(
       if (price === 0) continue;
 
       try {
-        // Offset the price to position arrows outside candles
-        const priceOffset = price * 0.02;
-        const adjustedPrice = isBuy ? price - priceOffset : price + priceOffset;
+        // Offset arrows outside candles. Buys execute near candle high (at ask), so use
+        // larger offset to push arrow below the candle low. Sells execute near candle low
+        // (at bid), so a smaller offset above the candle is sufficient.
+        const buyOffset = price * 0.05;  // 5% down from execution price
+        const sellOffset = price * 0.02; // 2% up from execution price
+        const adjustedPrice = isBuy ? price - buyOffset : price + sellOffset;
         const time = Math.floor(trade.chain_time / 1000);
 
         const shapeId = chart.createShape(
