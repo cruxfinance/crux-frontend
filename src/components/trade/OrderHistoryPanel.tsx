@@ -27,7 +27,7 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useWallet } from "@contexts/WalletContext";
 import { useAlert } from "@contexts/AlertContext";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { copyToClipboard } from "@lib/utils/clipboard";
 import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 
@@ -196,6 +196,60 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
     return { all: allOrders.length, filled, cancelledExpired };
   }, [allOrders]);
 
+  // --- Helpers (must be declared before useMemo hooks that use them) ---
+  const getOrderSide = (order: LimitOrder): "buy" | "sell" => {
+    const givenIsQuote =
+      order.given_token_id === null ||
+      order.given_token_id === ERG_TOKEN_ID ||
+      order.given_token_id === quoteToken.tokenId;
+    return givenIsQuote ? "buy" : "sell";
+  };
+
+  const getPairDisplay = (order: LimitOrder, side: "buy" | "sell"): string => {
+    if (side === "buy") {
+      return `${normalizeTicker(order.taken_token_name || "token")}/${normalizeTicker(order.given_token_name || "ERG")}`;
+    }
+    return `${normalizeTicker(order.given_token_name || "token")}/${normalizeTicker(order.taken_token_name || "ERG")}`;
+  };
+
+  const getPrice = (order: LimitOrder, side: "buy" | "sell"): number => {
+    if (order.price_denominator === 0) return 0;
+    const rawPrice = order.price_numerator / order.price_denominator;
+    const givenDecimals = order.given_token_decimals ?? 9;
+    const takenDecimals = order.taken_token_decimals ?? 9;
+    const decimalAdjustment = Math.pow(10, givenDecimals - takenDecimals);
+    const adjustedPrice = rawPrice * decimalAdjustment;
+    return side === "buy" ? 1 / adjustedPrice : adjustedPrice;
+  };
+
+  const getBaseAmount = (order: LimitOrder, side: "buy" | "sell"): number => {
+    const givenDecimals = order.given_token_decimals ?? 9;
+    const givenAmount =
+      order.original_given_amount / Math.pow(10, givenDecimals);
+
+    if (side === "sell") {
+      return givenAmount;
+    }
+    const price = getPrice(order, side);
+    if (price === 0) return 0;
+    return givenAmount / price;
+  };
+
+  const getTotal = (
+    order: LimitOrder,
+    side: "buy" | "sell",
+    price: number,
+    baseAmount: number,
+  ): number => {
+    return price * baseAmount;
+  };
+
+  const getFilledPercent = (order: LimitOrder): number => {
+    if (order.original_given_amount === 0) return 0;
+    const filled = order.original_given_amount - order.remaining_given_amount;
+    return Math.min(100, Math.max(0, (filled / order.original_given_amount) * 100));
+  };
+
   // --- Client-side filter ---
   const filteredOrders = useMemo(() => {
     let result = allOrders;
@@ -222,62 +276,6 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
 
     return result;
   }, [allOrders, statusFilter, currentPairOnly, baseToken, quoteToken]);
-
-  // --- Helpers ---
-  const getOrderSide = (order: LimitOrder): "buy" | "sell" => {
-    const givenIsQuote =
-      order.given_token_id === null ||
-      order.given_token_id === ERG_TOKEN_ID ||
-      order.given_token_id === quoteToken.tokenId;
-    return givenIsQuote ? "buy" : "sell";
-  };
-
-  const getPairDisplay = (order: LimitOrder, side: "buy" | "sell"): string => {
-    if (side === "buy") {
-      return `${order.taken_token_name || "token"}/${order.given_token_name || "ERG"}`;
-    }
-    return `${order.given_token_name || "token"}/${order.taken_token_name || "ERG"}`;
-  };
-
-  const getPrice = (order: LimitOrder, side: "buy" | "sell"): number => {
-    if (order.price_denominator === 0) return 0;
-    const rawPrice = order.price_numerator / order.price_denominator;
-    const givenDecimals = order.given_token_decimals ?? 9;
-    const takenDecimals = order.taken_token_decimals ?? 9;
-    const decimalAdjustment = Math.pow(10, givenDecimals - takenDecimals);
-    const adjustedPrice = rawPrice * decimalAdjustment;
-    return side === "buy" ? 1 / adjustedPrice : adjustedPrice;
-  };
-
-  const getBaseAmount = (order: LimitOrder, side: "buy" | "sell"): number => {
-    const givenDecimals = order.given_token_decimals ?? 9;
-    const givenAmount =
-      order.original_given_amount / Math.pow(10, givenDecimals);
-
-    if (side === "sell") {
-      // Selling: given token IS the base token
-      return givenAmount;
-    }
-    // Buying: given token is quote, compute base amount from price
-    const price = getPrice(order, side);
-    if (price === 0) return 0;
-    return givenAmount / price;
-  };
-
-  const getTotal = (
-    order: LimitOrder,
-    side: "buy" | "sell",
-    price: number,
-    baseAmount: number,
-  ): number => {
-    return price * baseAmount;
-  };
-
-  const getFilledPercent = (order: LimitOrder): number => {
-    if (order.original_given_amount === 0) return 0;
-    const filled = order.original_given_amount - order.remaining_given_amount;
-    return Math.min(100, Math.max(0, (filled / order.original_given_amount) * 100));
-  };
 
   const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
