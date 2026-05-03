@@ -11,6 +11,7 @@ interface TradeMarkerData {
 export interface TradeMarkerManager {
   loadMarkers: (from: number, to: number) => Promise<void>;
   clearMarkers: () => void;
+  setEnabled: (enabled: boolean) => void;
   destroy: () => void;
 }
 
@@ -74,6 +75,7 @@ export function createTradeMarkerManager(
 ): TradeMarkerManager {
   const markers: TradeMarkerData[] = [];
   let isDestroyed = false;
+  let isEnabled = true;
 
   // Create tooltip element
   const tooltip = createTooltipElement();
@@ -199,7 +201,7 @@ export function createTradeMarkerManager(
   crosshairMoved.subscribe(null, crosshairCallback);
 
   const loadMarkersInternal = async (from: number, to: number) => {
-    if (isDestroyed) return;
+    if (isDestroyed || !isEnabled) return;
 
     // Clear existing markers first
     clearMarkers();
@@ -236,14 +238,12 @@ export function createTradeMarkerManager(
             price: adjustedPrice,
           },
           {
-            shape: "anchored_text",
-            text: isBuy ? "▲" : "▼",
+            shape: isBuy ? "arrow_up" : "arrow_down",
             lock: true,
             disableSave: true,
             disableUndo: true,
             overrides: {
               color: isBuy ? "#4caf50" : "#f44336",
-              fontsize: 9,
               showLabel: false,
             },
           },
@@ -270,6 +270,16 @@ export function createTradeMarkerManager(
     tooltip.style.display = "none";
   };
 
+  const setEnabled = (enabled: boolean) => {
+    isEnabled = enabled;
+    if (!enabled) {
+      clearMarkers();
+    } else {
+      const range = chart.getVisibleRange();
+      loadMarkersInternal(range.from, range.to);
+    }
+  };
+
   const destroy = () => {
     isDestroyed = true;
     clearMarkers();
@@ -280,6 +290,7 @@ export function createTradeMarkerManager(
   return {
     loadMarkers: loadMarkersInternal,
     clearMarkers,
+    setEnabled,
     destroy,
   };
 }

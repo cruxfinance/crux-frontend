@@ -27,6 +27,8 @@ import SwapVertIcon from "@mui/icons-material/SwapVert";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import {
   ChartingLibraryWidgetOptions,
   IChartWidgetApi,
@@ -120,6 +122,7 @@ const TradePage: FC = () => {
   const [externalLimitPrice, setExternalLimitPrice] = useState<number | null>(null);
   const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
   const [chartFullscreen, setChartFullscreen] = useState(false);
+  const [showMarkers, setShowMarkers] = useState(true);
   const [openOrderCount, setOpenOrderCount] = useState<number | null>(null);
   const [orderHistoryCount, setOrderHistoryCount] = useState<number | null>(null);
 
@@ -840,20 +843,36 @@ const TradePage: FC = () => {
               }}
             >
               {baseToken && defaultWidgetProps && !loading && (
-                <IconButton
-                  size="small"
-                  onClick={() => setChartFullscreen((f) => !f)}
-                  sx={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    zIndex: 10,
-                    bgcolor: "background.paper",
-                    "&:hover": { bgcolor: "background.hover" },
-                  }}
-                >
-                  {chartFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
-                </IconButton>
+                <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 10, display: "flex", gap: 0.5 }}>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      const newState = !showMarkers;
+                      setShowMarkers(newState);
+                      markerManagerRef.current?.setEnabled(newState);
+                    }}
+                    sx={{
+                      bgcolor: "background.paper",
+                      "&:hover": { bgcolor: "background.hover" },
+                    }}
+                  >
+                    {showMarkers ? (
+                      <VisibilityIcon fontSize="small" />
+                    ) : (
+                      <VisibilityOffIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => setChartFullscreen((f) => !f)}
+                    sx={{
+                      bgcolor: "background.paper",
+                      "&:hover": { bgcolor: "background.hover" },
+                    }}
+                  >
+                    {chartFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+                  </IconButton>
+                </Box>
               )}
               {!baseToken ? (
                 <Box sx={{ textAlign: "center" }}>
