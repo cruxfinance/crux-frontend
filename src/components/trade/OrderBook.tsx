@@ -12,8 +12,7 @@ import {
   CircularProgress,
   Tooltip,
   IconButton,
-  ToggleButtonGroup,
-  ToggleButton,
+  Button,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { formatNumber, formatFullNumber } from "@lib/utils/general";
@@ -291,7 +290,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 1,
+          mb: 1.5,
         }}
       >
         <Typography variant="h6">Order Book</Typography>
@@ -301,7 +300,26 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
               <WarningAmberIcon sx={{ fontSize: 16, color: "warning.main" }} />
             </Tooltip>
           )}
-          {loading && <CircularProgress size={16} />}
+          {loading && <CircularProgress size={14} />}
+          {(["sell", "both", "buy"] as const).map((mode) => (
+            <Button
+              key={mode}
+              size="small"
+              variant={viewMode === mode ? "contained" : "outlined"}
+              onClick={() => setViewMode(mode)}
+              sx={{
+                minWidth: 0,
+                px: 1.5,
+                py: 0.3,
+                fontSize: "0.7rem",
+                textTransform: "none",
+                lineHeight: 1.2,
+                borderRadius: 1,
+              }}
+            >
+              {mode === "sell" ? "Sell" : mode === "buy" ? "Buy" : "Both"}
+            </Button>
+          ))}
           {hasVirtualData && (
             <Tooltip title={showVirtual ? "Hide AMM liquidity" : "Show AMM liquidity"}>
               <IconButton
@@ -322,20 +340,6 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
           )}
         </Box>
       </Box>
-
-      {/* View mode toggle */}
-      <ToggleButtonGroup
-        value={viewMode}
-        exclusive
-        onChange={(_e, newMode) => newMode && setViewMode(newMode)}
-        size="small"
-        fullWidth
-        sx={{ mb: 1 }}
-      >
-        <ToggleButton value="sell">Sell</ToggleButton>
-        <ToggleButton value="buy">Buy</ToggleButton>
-        <ToggleButton value="both">Both</ToggleButton>
-      </ToggleButtonGroup>
 
       {!hasData ? (
         <Box
@@ -417,9 +421,13 @@ const TableView: FC<TableViewProps> = ({
     }
   }, [orderBook]);
 
-  // Best bid/ask for spread
-  const bestAsk = mergedAsks.length > 0 ? mergedAsks[0].price : null;
-  const bestBid = mergedBids.length > 0 ? mergedBids[0].price : null;
+  // Best bid/ask for spread — use real orders only (virtual always at mid ± 0.5%)
+  const bestAsk = mergedAsks.length > 0
+    ? (mergedAsks.find(r => r.isReal) ?? mergedAsks[0]).price
+    : null;
+  const bestBid = mergedBids.length > 0
+    ? (mergedBids.find(r => r.isReal) ?? mergedBids[0]).price
+    : null;
   const spread = bestAsk && bestBid ? ((bestAsk - bestBid) / bestAsk) * 100 : null;
 
   // Compute cumulative base amounts for click-to-fill
