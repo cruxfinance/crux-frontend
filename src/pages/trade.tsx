@@ -967,31 +967,6 @@ const TradePage: FC = () => {
 
       {/* Full-width bottom: My Orders */}
       <Grid container spacing={2} sx={{ mt: 0 }}>
-        <Grid xs={12}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
-              py: 0.5,
-            }}
-          >
-            {openOrderCount !== null && (
-              <Typography variant="caption" color="text.secondary">
-                Open: {openOrderCount} order{openOrderCount !== 1 ? "s" : ""}
-              </Typography>
-            )}
-            {openOrderCount !== null && orderHistoryCount !== null && (
-              <Typography variant="caption" color="text.secondary">|</Typography>
-            )}
-            {orderHistoryCount !== null && (
-              <Typography variant="caption" color="text.secondary">
-                History: {orderHistoryCount} order{orderHistoryCount !== 1 ? "s" : ""}
-              </Typography>
-            )}
-          </Box>
-        </Grid>
         <Grid xs={12} md={6}>
           <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
             <Box
