@@ -87,6 +87,11 @@ const metricOptions: MetricOption[] = [
     formatValue: (v) =>
       "$" + v.toLocaleString(undefined, { maximumFractionDigits: 0 }),
   },
+  {
+    value: "lp_bank_ratio",
+    label: "LP/Bank Ratio",
+    formatValue: (v) => v.toFixed(3),
+  },
 ];
 
 const timeRangeConfig: Record<

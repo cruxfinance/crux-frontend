@@ -12,6 +12,7 @@ const dexyMetricSchema = z.enum([
   "erg_in_bank",
   "erg_tvl",
   "protocol_tvl_usd",
+  "lp_bank_ratio",
 ]);
 
 const dexyResolutionSchema = z.enum(["1h", "1d", "1w"]);
