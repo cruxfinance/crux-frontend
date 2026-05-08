@@ -81,8 +81,6 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
   const [isStale, setIsStale] = useState(false);
   const [viewMode, setViewMode] = useState<"buy" | "sell" | "both">("both");
   const lastFetchRef = useRef<number>(Date.now());
-  const viewModeRef = useRef(viewMode);
-  viewModeRef.current = viewMode;
 
   const fetchOrderBook = useCallback(async () => {
     if (!baseToken) {
@@ -95,7 +93,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
       const params = new URLSearchParams({
         base_token_id: baseToken.tokenId,
         quote_token_id: quoteToken.tokenId,
-        depth: viewModeRef.current === "both" ? "10" : "20",
+        depth: "20",
       });
 
       const response = await fetch(
@@ -399,6 +397,9 @@ const TableView: FC<TableViewProps> = ({
   const baseDec = Math.pow(10, baseToken.decimals);
   const quoteDec = Math.pow(10, quoteToken.decimals);
 
+  const displayAsks = viewMode === "both" ? mergedAsks.slice(0, 10) : mergedAsks;
+  const displayBids = viewMode === "both" ? mergedBids.slice(0, 10) : mergedBids;
+
   // Refs for auto-scroll to spread on initial load or pair change
   const spreadRef = useRef<HTMLTableRowElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -443,19 +444,19 @@ const TableView: FC<TableViewProps> = ({
 
   const askCumulativeBase = useMemo(() => {
     let cum = 0;
-    return mergedAsks.map(row => {
+    return displayAsks.map(row => {
       cum += computeDisplayBaseAmount(row, "ask");
       return cum;
     });
-  }, [mergedAsks, baseDec]);
+  }, [displayAsks, baseDec]);
 
   const bidCumulativeBase = useMemo(() => {
     let cum = 0;
-    return mergedBids.map(row => {
+    return displayBids.map(row => {
       cum += computeDisplayBaseAmount(row, "bid");
       return cum;
     });
-  }, [mergedBids, baseDec, quoteDec]);
+  }, [displayBids, baseDec, quoteDec]);
 
   const renderRow = (row: MergedRow, side: "ask" | "bid", index: number, cumulativeBaseAmount?: number) => {
     const depthPercent = maxCumulativeErg > 0
@@ -569,13 +570,14 @@ const TableView: FC<TableViewProps> = ({
           </TableRow>
         </TableHead>
         <TableBody>
-          {/* Asks - reversed so highest is at top */}
+          {/* Asks - reversed (highest at top) in "both" mode; ascending (lowest at top) in "sell" mode */}
           {(viewMode === "sell" || viewMode === "both") &&
-            mergedAsks
-              .slice()
-              .reverse()
+            (viewMode === "both"
+              ? displayAsks.slice().reverse()
+              : displayAsks
+            )
               .map((row, i) => {
-                const originalIdx = mergedAsks.length - 1 - i;
+                const originalIdx = viewMode === "both" ? displayAsks.length - 1 - i : i;
                 return renderRow(row, "ask", i, askCumulativeBase[originalIdx]);
               })}
 
@@ -617,7 +619,7 @@ const TableView: FC<TableViewProps> = ({
 
           {/* Bids */}
           {(viewMode === "buy" || viewMode === "both") &&
-            mergedBids.map((row, i) => renderRow(row, "bid", i, bidCumulativeBase[i]))}
+            displayBids.map((row, i) => renderRow(row, "bid", i, bidCumulativeBase[i]))}
         </TableBody>
       </Table>
     </TableContainer>
