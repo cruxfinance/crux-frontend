@@ -135,6 +135,10 @@ declare global {
     feeAmount: number;
     feeToken: string;
     feeUsd: number;
+    /** Oracle rate at contract scale (nanoERG per raw stablecoin unit) */
+    rawOracleRate: number;
+    /** Number of decimal places for the stablecoin token */
+    stablecoinDecimals: number;
   };
 
   // Result of mint transaction building

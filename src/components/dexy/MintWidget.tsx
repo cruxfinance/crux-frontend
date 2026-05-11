@@ -151,6 +151,10 @@ interface RawMintStatus {
   fee_amount: number;
   fee_token: string;
   fee_usd: number;
+  /** Oracle rate at contract scale (nanoERG per raw stablecoin unit) */
+  raw_oracle_rate: number;
+  /** Number of decimal places for the stablecoin token */
+  stablecoin_decimals: number;
 }
 
 import {
@@ -428,6 +432,9 @@ const MintWidget: FC = () => {
 
   // Calculate mint output after applying dexy protocol fees (bank_fee + buyback_fee)
   // Uses the same formula as the backend: mint = (erg * fee_denom) / (rate * total_multiplier)
+  // oracle_rate is now at display scale (nanoERG per whole stablecoin unit) from the API,
+  // so mint_amount (in raw stablecoin units) is simply:
+  //   mint_amount = (erg_amount * fee_denom * 10^decimals) / (oracle_rate * total_multiplier)
   const calculateMintOutputWithFees = useCallback(
     (
       rawErgAmount: number,
@@ -451,11 +458,10 @@ const MintWidget: FC = () => {
 
       if (totalMultiplier === 0) return 0;
 
-      // Match backend formula:
-      // mint_amount = (erg_amount * fee_denom) / (oracle_rate * total_multiplier)
-      //
-      // Since frontend oracle_rate is "per whole unit", we scale by decimals:
-      // mint_amount = (erg_amount * fee_denom * 10^decimals) / (oracle_rate * total_multiplier)
+      // Backend formula (contract scale):
+      //   mint_raw = (erg_nano * fee_denom) / (oracle_rate_contract * total_multiplier)
+      // Frontend has display-scale oracle_rate (oracle_rate_contract * 10^decimals):
+      //   mint_raw = (erg_nano * fee_denom * 10^decimals) / (oracle_rate_display * total_multiplier)
       const divisor = oracleRate * totalMultiplier;
       if (divisor === 0) return 0;
 
@@ -470,7 +476,10 @@ const MintWidget: FC = () => {
   );
 
   // Calculate required ERG input for a desired mint output (inverse of calculateMintOutputWithFees)
-  // Formula: erg_amount = (desired_mint_amount * oracle_rate * total_multiplier) / (fee_denom * 10^decimals)
+  // Backend formula (contract scale):
+  //   erg_nano = (mint_raw * oracle_rate_contract * total_multiplier) / fee_denom
+  // Frontend has display-scale oracle_rate (oracle_rate_contract * 10^decimals):
+  //   erg_nano = (mint_raw * oracle_rate_display * total_multiplier) / (fee_denom * 10^decimals)
   const calculateErgInputForMint = useCallback(
     (
       desiredMintAmount: number,
@@ -493,8 +502,6 @@ const MintWidget: FC = () => {
 
       if (feeDenom === 0 || totalMultiplier === 0) return 0;
 
-      // Inverse formula:
-      // erg_amount = (desired_mint_amount * oracle_rate * total_multiplier) / (fee_denom * 10^decimals)
       // Use ceiling to ensure user provides enough ERG
       const divisor = feeDenom * Math.pow(10, stablecoinDecimals);
       if (divisor === 0) return 0;

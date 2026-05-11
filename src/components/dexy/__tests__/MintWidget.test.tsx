@@ -53,7 +53,7 @@ const mockMintStatus = {
   erg_required_for_max: 1000000000000, // 1000 ERG
   box_state: {
     current_height: 1000000,
-    oracle_rate: 1000000000, // 1 ERG per USE (in nanoERG)
+    oracle_rate: 1000000000, // 1 ERG per USE (display scale: nanoERG per whole USE)
     lp_erg_reserves: 10000000000000,
     lp_stablecoin_reserves: 10000000,
     lp_rate: 1000000000,
@@ -70,6 +70,8 @@ const mockMintStatus = {
   fee_amount: 1000000,
   fee_token: "erg",
   fee_usd: 0.01,
+  raw_oracle_rate: 1000000, // 1 ERG per USE (contract scale: nanoERG per raw USE unit)
+  stablecoin_decimals: 3,
 };
 
 const mockBestSwapResponse = {
