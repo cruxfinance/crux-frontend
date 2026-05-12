@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+import ErrorBoundary from "@components/ErrorBoundary";
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -194,6 +196,7 @@ const Portfolio = () => {
       });
     } catch (error) {
       console.error("Error fetching exchange rate:", error);
+      Sentry.captureException(error);
       setLoading((prev) => {
         return {
           ...prev,
@@ -233,6 +236,7 @@ const Portfolio = () => {
         return data;
       } catch (error) {
         console.error("Error fetching token data:", error);
+        Sentry.captureException(error);
         setLoading((prev) => {
           return {
             ...prev,
@@ -472,6 +476,7 @@ const Portfolio = () => {
       return combinedData;
     } catch (error) {
       console.error("Error fetching token data:", error);
+      Sentry.captureException(error);
       return [];
     }
   };
@@ -843,8 +848,6 @@ const Portfolio = () => {
   );
 };
 
-export default Portfolio;
-
 // helper functions
 
 const chunkArray = (array: any[], chunkSize: number) => {
@@ -975,4 +978,12 @@ function calculatePortfolioPL(
   });
 
   return { pl24h, plAllTime };
+}
+
+export default function PortfolioWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <Portfolio />
+    </ErrorBoundary>
+  );
 }

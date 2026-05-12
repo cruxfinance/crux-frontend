@@ -1,3 +1,4 @@
+import ErrorBoundary from "@components/ErrorBoundary";
 import React, { FC, useState, useEffect, useMemo, useCallback } from "react";
 import {
   Typography,
@@ -729,4 +730,10 @@ const LiquidityPage: FC = () => {
   );
 };
 
-export default LiquidityPage;
+export default function LiquidityPageWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <LiquidityPage />
+    </ErrorBoundary>
+  );
+}

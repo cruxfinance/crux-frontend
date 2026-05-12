@@ -1,3 +1,4 @@
+import ErrorBoundary from "@components/ErrorBoundary";
 import React from "react";
 import type { NextPage } from "next";
 import { Container, Typography, Box, Paper, useTheme } from "@mui/material";
@@ -96,4 +97,10 @@ const DexyMint: NextPage = () => {
   );
 };
 
-export default DexyMint;
+export default function DexyMintWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <DexyMint />
+    </ErrorBoundary>
+  );
+}

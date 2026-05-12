@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/nextjs";
+import ErrorBoundary from "@components/ErrorBoundary";
 import React, { FC, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Typography,
@@ -175,6 +177,7 @@ const TradePage: FC = () => {
         }
       } catch (error) {
         console.error("Error fetching ERG price:", error);
+        Sentry.captureException(error);
       }
     };
     fetchErgPrice();
@@ -230,6 +233,7 @@ const TradePage: FC = () => {
           }
         } catch (error) {
           console.error("Error searching tokens:", error);
+        Sentry.captureException(error);
         } finally {
           setSearchLoading(false);
         }
@@ -297,6 +301,7 @@ const TradePage: FC = () => {
       });
     } catch (error) {
       console.error("Error fetching token info:", error);
+      Sentry.captureException(error);
     } finally {
       setLoading(false);
     }
@@ -330,6 +335,7 @@ const TradePage: FC = () => {
         });
       } catch (error) {
         console.error("Error loading default token:", error);
+        Sentry.captureException(error);
       } finally {
         setLoading(false);
       }
@@ -474,10 +480,12 @@ const TradePage: FC = () => {
           orderLinesRef.current.push(line);
         } catch (e) {
           console.error("Error creating order line:", e);
+          Sentry.captureException(e);
         }
       }
     } catch (error) {
       console.error("Error loading order lines:", error);
+      Sentry.captureException(error);
     }
   }, [userAddresses, baseToken, quoteToken]);
 
@@ -570,6 +578,7 @@ const TradePage: FC = () => {
         }
       } catch (error) {
         console.error("Error fetching LP position:", error);
+        Sentry.captureException(error);
       }
     };
     fetchLpShare();
@@ -606,6 +615,7 @@ const TradePage: FC = () => {
         }
       } catch (error) {
         console.error("Error fetching token stats:", error);
+        Sentry.captureException(error);
       }
     };
     fetchStats();
@@ -1049,4 +1059,10 @@ const TradePage: FC = () => {
   );
 };
 
-export default TradePage;
+export default function TradePageWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <TradePage />
+    </ErrorBoundary>
+  );
+}

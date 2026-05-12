@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import React, {
   FC,
   useState,
@@ -297,6 +298,7 @@ const MintWidget: FC = () => {
           }
         } catch (error) {
           console.error("Error fetching token decimals:", error);
+          Sentry.captureException(error);
           setStablecoinDecimals(2); // Default fallback
         }
       };
@@ -314,6 +316,7 @@ const MintWidget: FC = () => {
           }
         } catch (error) {
           console.error("Error fetching stablecoin price:", error);
+          Sentry.captureException(error);
           setStablecoinPrice(null);
         }
       };
@@ -384,6 +387,7 @@ const MintWidget: FC = () => {
         }
       } catch (error) {
         console.error("Error fetching ERG price:", error);
+        Sentry.captureException(error);
       }
     };
     fetchErgPrice();
@@ -404,6 +408,7 @@ const MintWidget: FC = () => {
       }
     } catch (error) {
       console.error("Error fetching balances:", error);
+      Sentry.captureException(error);
     }
   }, [dAppWallet.connected, stablecoinToken]);
 
@@ -870,6 +875,7 @@ const MintWidget: FC = () => {
       } catch (error: any) {
         if (error.name === "AbortError") return;
         console.error("Error fetching quotes:", error);
+        Sentry.captureException(error);
         addAlert("error", "Failed to fetch quotes");
       } finally {
         setLoading(false);
@@ -1161,6 +1167,7 @@ const MintWidget: FC = () => {
       setSelectedMethod(null);
     } catch (error: any) {
       console.error("Error during mint/swap:", error);
+      Sentry.captureException(error);
       addAlert("error", error.info || error.message || "Transaction failed");
     } finally {
       setMinting(false);
