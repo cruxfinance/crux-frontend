@@ -21,7 +21,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, getShortAddress } from "@lib/utils/general";
 
 interface TokenInfo {
   tokenId: string;
@@ -37,6 +37,7 @@ interface RecentTradesPanelProps {
   quoteToken: TokenInfo;
   ergPrice: number;
   onTradeClick?: (price: number) => void;
+  noPaper?: boolean;
 }
 
 interface Trade {
@@ -46,6 +47,8 @@ interface Trade {
   price: number;
   amount: number;
   total: number;
+  makerAddress: string;
+  takerAddress: string;
 }
 
 type SortField = "timestamp" | "price" | "amount" | "total";
@@ -56,6 +59,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
   quoteToken,
   ergPrice,
   onTradeClick,
+  noPaper = false,
 }) => {
   const theme = useTheme();
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -117,6 +121,8 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
             price: order.price,
             amount: filledQuote,
             total: filledBase,
+            makerAddress: order.maker_address,
+            takerAddress: order.taker_address,
           };
         });
 
@@ -145,6 +151,10 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
     const wsUrl = process.env.CRUX_API?.replace("http", "ws");
     if (!wsUrl) return;
 
+    let reconnectAttempts = 0;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    const MAX_RECONNECT_DELAY = 30000;
+
     const connectWebSocket = () => {
       try {
         const ws = new WebSocket(
@@ -153,11 +163,16 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
 
         ws.onopen = () => {
           setWsConnected(true);
+          reconnectAttempts = 0;
         };
 
         ws.onmessage = (event) => {
           try {
-            const orders: DexOrder[] = JSON.parse(event.data);
+            const parsed = JSON.parse(event.data);
+            // Defensive: server may send a single object instead of an array
+            const orders: DexOrder[] = Array.isArray(parsed)
+              ? parsed
+              : [parsed];
             const formattedTrades: Trade[] = orders
               .filter(
                 (order) =>
@@ -176,6 +191,8 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                   price: order.price,
                   amount: filledQuote,
                   total: filledBase,
+                  makerAddress: order.maker_address,
+                  takerAddress: order.taker_address,
                 };
               });
 
@@ -188,6 +205,13 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
 
         ws.onclose = () => {
           setWsConnected(false);
+          // Exponential backoff reconnect
+          reconnectAttempts += 1;
+          const delay = Math.min(
+            1000 * Math.pow(2, reconnectAttempts),
+            MAX_RECONNECT_DELAY,
+          );
+          reconnectTimeout = setTimeout(connectWebSocket, delay);
         };
 
         ws.onerror = () => {
@@ -204,6 +228,9 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
     connectWebSocket();
 
     return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -286,27 +313,22 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
     whiteSpace: "nowrap" as const,
   };
 
-  if (!baseToken) {
-    return (
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          height: 360,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Typography variant="body2" color="text.secondary">
-          Select a token to view recent trades
-        </Typography>
-      </Paper>
-    );
-  }
-
-  return (
-    <Paper variant="outlined" sx={{ p: 2, height: 360, display: "flex", flexDirection: "column", transition: 'border-color 0.2s', '&:hover': { borderColor: 'rgba(254,107,139,0.35)' } }}>
+  const content = !baseToken ? (
+    <Box
+      sx={{
+        p: 2,
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        Select a token to view recent trades
+      </Typography>
+    </Box>
+  ) : (
+    <Box sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Header: title + live indicator + filter */}
       <Box
         sx={{
@@ -400,7 +422,10 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                   Time
                 </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 110 }} align="right">
+              <TableCell sx={{ ...headerCellSx, width: 140 }} align="center">
+                Wallet
+              </TableCell>
+              <TableCell sx={{ ...headerCellSx, width: 100 }} align="right">
                 <TableSortLabel
                   active={sortField === "price"}
                   direction={sortField === "price" ? sortDirection : "desc"}
@@ -418,7 +443,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                   Amount
                 </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ ...headerCellSx, width: 110 }} align="right">
+              <TableCell sx={{ ...headerCellSx, width: 100 }} align="right">
                 <TableSortLabel
                   active={sortField === "total"}
                   direction={sortField === "total" ? sortDirection : "desc"}
@@ -432,7 +457,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
           <TableBody>
             {sortedTrades.length === 0 && !loading ? (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 6, border: "none" }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 6, border: "none" }}>
                   <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                     <ShowChartIcon sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }} />
                     <Typography variant="body2" color="text.secondary">
@@ -451,7 +476,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                 return (
                   <Tooltip
                     key={trade.id}
-                    placement="left"
+                    placement="top"
                     arrow
                     enterDelay={400}
                     title={
@@ -464,6 +489,12 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                         </Typography>
                         <Typography variant="caption" display="block">
                           Price: {formatFullNumber(trade.price, 6)} {quoteToken.ticker}
+                        </Typography>
+                        <Typography variant="caption" display="block" sx={{ mt: 0.5, color: "text.secondary" }}>
+                          Maker: {getShortAddress(trade.makerAddress)}
+                        </Typography>
+                        <Typography variant="caption" display="block" sx={{ color: "text.secondary" }}>
+                          Taker: {getShortAddress(trade.takerAddress)}
                         </Typography>
                       </Box>
                     }
@@ -510,6 +541,23 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                             {formatDateTime(trade.timestamp)}
                           </Typography>
                         </Box>
+                      </TableCell>
+
+                      {/* Wallet: truncated maker address */}
+                      <TableCell align="center" sx={{ py: 0.75, whiteSpace: "nowrap", width: 140 }}>
+                        <Tooltip title={`Maker: ${trade.makerAddress}\nTaker: ${trade.takerAddress}`} arrow placement="top">
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontSize: "0.7rem",
+                              color: "text.secondary",
+                              cursor: "help",
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            {getShortAddress(trade.makerAddress)}
+                          </Typography>
+                        </Tooltip>
                       </TableCell>
 
                       {/* Price: value + quoteToken logo */}
@@ -570,6 +618,14 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
+    </Box>
+  );
+
+  if (noPaper) return content;
+
+  return (
+    <Paper variant="outlined" sx={{ height: 360, display: "flex", flexDirection: "column", transition: 'border-color 0.2s', '&:hover': { borderColor: 'rgba(254,107,139,0.35)' } }}>
+      {content}
     </Paper>
   );
 };

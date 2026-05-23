@@ -21,12 +21,10 @@ import {
   Fade,
   Tabs,
   Tab,
-  Collapse,
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import SearchIcon from "@mui/icons-material/Search";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -44,11 +42,9 @@ import { trpc } from "@lib/trpc";
 import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { USE_TOKEN_ID, ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import MarketOrderWidget from "@components/trade/MarketOrderWidget";
-import RecentTradesPanel from "@components/trade/RecentTradesPanel";
+import TradeTabsPanel from "@components/trade/TradeTabsPanel";
 import LimitOrderWidget from "@components/trade/LimitOrderWidget";
 import OrderBook from "@components/trade/OrderBook";
-import OpenOrdersPanel from "@components/trade/OpenOrdersPanel";
-import OrderHistoryPanel from "@components/trade/OrderHistoryPanel";
 import { useRouter } from "next/router";
 
 interface TokenInfo {
@@ -119,14 +115,12 @@ const TradePage: FC = () => {
 
   // Tab state for order type and order panels
   const [orderTab, setOrderTab] = useState(0); // 0 = Limit, 1 = Market
-  const [openOrdersExpanded, setOpenOrdersExpanded] = useState(true);
-  const [orderHistoryExpanded, setOrderHistoryExpanded] = useState(false);
   const [externalLimitPrice, setExternalLimitPrice] = useState<number | null>(null);
   const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
   const [chartFullscreen, setChartFullscreen] = useState(false);
   const [showMarkers, setShowMarkers] = useState(true);
-  const [openOrderCount, setOpenOrderCount] = useState<number | null>(null);
-  const [orderHistoryCount, setOrderHistoryCount] = useState<number | null>(null);
+  const [, setOpenOrderCount] = useState<number | null>(null);
+  const [, setOrderHistoryCount] = useState<number | null>(null);
 
   // Chart refs for trade markers and order lines
   const chartRef = useRef<IChartWidgetApi | null>(null);
@@ -390,9 +384,7 @@ const TradePage: FC = () => {
   const handleOrderBookPriceClick = useCallback((price: number, amount?: number) => {
     setOrderTab(0); // Switch to Limit tab
     setExternalLimitPrice(price);
-    if (amount !== undefined) {
-      setExternalLimitAmount(amount);
-    }
+    setExternalLimitAmount(amount ?? null);
   }, []);
 
   // Load open order price lines on chart
@@ -831,18 +823,17 @@ const TradePage: FC = () => {
 
       {/* Main Content: 3-column layout on large screens */}
       <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
-        {/* Left Column: Chart + Recent Trades */}
+        {/* Left Column: Chart */}
         <Grid xs={12} lg={chartFullscreen ? 12 : 7} order={{ xs: 2, md: 2, lg: 1 }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
             {/* Chart Area */}
             <Paper
               variant="outlined"
               sx={{
                 p: 2,
                 position: "relative",
-                height: chartFullscreen
-                  ? "calc(100vh - 200px)"
-                  : upMd ? 500 : 400,
+                flex: 1,
+                minHeight: 0,
                 ...(!baseToken || loading || !defaultWidgetProps
                   ? {
                     display: "flex",
@@ -914,16 +905,6 @@ const TradePage: FC = () => {
                 </Typography>
               )}
             </Paper>
-
-            {/* Recent Trades */}
-            {!chartFullscreen && (
-              <RecentTradesPanel
-                baseToken={baseToken}
-                quoteToken={quoteToken}
-                ergPrice={ergPrice}
-                onTradeClick={handleOrderBookPriceClick}
-              />
-            )}
           </Box>
         </Grid>
 
@@ -975,86 +956,23 @@ const TradePage: FC = () => {
         </Grid>
       </Grid>
 
-      {/* Full-width bottom: My Orders */}
-      <Grid container spacing={2} sx={{ mt: 0 }}>
-        <Grid xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                px: 2,
-                py: 1.5,
-                borderBottom: openOrdersExpanded ? 1 : 0,
-                borderColor: "divider",
-                cursor: "pointer",
-                "&:hover": { bgcolor: "action.hover" },
-              }}
-              onClick={() => setOpenOrdersExpanded(!openOrdersExpanded)}
-            >
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Open Orders{openOrderCount !== null ? ` (${openOrderCount})` : ""}</Typography>
-              <ExpandMoreIcon
-                sx={{
-                  fontSize: 20,
-                  transform: openOrdersExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s",
-                  color: "text.secondary",
-                }}
-              />
-            </Box>
-            <Collapse in={openOrdersExpanded}>
-              <Box sx={{ p: 2 }}>
-                <OpenOrdersPanel
-                  baseToken={baseToken}
-                  quoteToken={quoteToken}
-                  refreshTrigger={orderRefreshTrigger}
-                  onCountChange={setOpenOrderCount}
-                  userAddresses={userAddresses}
-                />
-              </Box>
-            </Collapse>
-          </Paper>
+      {/* Full-width Trade Tabs: Recent Trades / Open Orders / Order History */}
+      {!chartFullscreen && (
+        <Grid container spacing={2} sx={{ mt: 2 }}>
+          <Grid xs={12}>
+            <TradeTabsPanel
+              baseToken={baseToken}
+              quoteToken={quoteToken}
+              ergPrice={ergPrice}
+              onTradeClick={handleOrderBookPriceClick}
+              orderRefreshTrigger={orderRefreshTrigger}
+              userAddresses={userAddresses}
+              onOpenOrderCountChange={setOpenOrderCount}
+              onOrderHistoryCountChange={setOrderHistoryCount}
+            />
+          </Grid>
         </Grid>
-        <Grid xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                px: 2,
-                py: 1.5,
-                borderBottom: orderHistoryExpanded ? 1 : 0,
-                borderColor: "divider",
-                cursor: "pointer",
-                "&:hover": { bgcolor: "action.hover" },
-              }}
-              onClick={() => setOrderHistoryExpanded(!orderHistoryExpanded)}
-            >
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Order History{orderHistoryCount !== null ? ` (${orderHistoryCount})` : ""}</Typography>
-              <ExpandMoreIcon
-                sx={{
-                  fontSize: 20,
-                  transform: orderHistoryExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s",
-                  color: "text.secondary",
-                }}
-              />
-            </Box>
-            <Collapse in={orderHistoryExpanded}>
-              <Box sx={{ p: 2 }}>
-                <OrderHistoryPanel
-                  baseToken={baseToken}
-                  quoteToken={quoteToken}
-                  onCountChange={setOrderHistoryCount}
-                  userAddresses={userAddresses}
-                />
-              </Box>
-            </Collapse>
-          </Paper>
-        </Grid>
-      </Grid>
+      )}
     </Box>
   );
 };
