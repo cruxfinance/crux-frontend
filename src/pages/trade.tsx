@@ -301,7 +301,7 @@ const TradePage: FC = () => {
     }
   }, []);
 
-  // Load default USE token on mount
+  // Load default ERG/USE token on mount (special case: flipped from normal USE/ERG)
   useEffect(() => {
     const loadDefaultToken = async () => {
       setLoading(true);
@@ -309,23 +309,55 @@ const TradePage: FC = () => {
         const response = await fetch(
           `${process.env.CRUX_API}/crux/search_tokens?query=USE&limit=10`,
         );
+
+        let useToken: TokenSearchResult | null = null;
         if (response.ok) {
           const results: TokenSearchResult[] = await response.json();
-          const useToken = results.find((t) => t.token_id === USE_TOKEN_ID);
-          if (useToken) {
-            await handleTokenSelect(useToken);
-            return;
-          }
+          useToken = results.find((t) => t.token_id === USE_TOKEN_ID) || null;
         }
-        // Fallback if API fails
-        await handleTokenSelect({
-          token_id: USE_TOKEN_ID,
-          token_name: "USE",
-          token_decimals: 2,
-          quote_token_id: ERG_TOKEN_ID,
-          quote_token_name: "ERG",
-          quote_token_decimals: 9,
-          liquidity: 0,
+
+        const useIcon = getCachedIcon(USE_TOKEN_ID) || "";
+        const ergIcon = getCachedIcon(ERG_TOKEN_ID) || "";
+
+        // Fetch USE price in ERG
+        let usePrice = 0;
+        try {
+          const priceResponse = await fetch(
+            `${process.env.CRUX_API}/crux/token_info/${USE_TOKEN_ID}`,
+          );
+          if (priceResponse.ok) {
+            const data = await priceResponse.json();
+            usePrice = data.value_in_erg || 0;
+          }
+        } catch { /* price stays 0 */ }
+
+        // Default to ERG/USE (flipped from normal USE/ERG)
+        setBaseToken({
+          tokenId: ERG_TOKEN_ID,
+          name: "Ergo",
+          ticker: "ERG",
+          icon: ergIcon,
+          decimals: 9,
+          price: 1,
+        });
+
+        setQuoteToken({
+          tokenId: USE_TOKEN_ID,
+          name: "USE",
+          ticker: "USE",
+          icon: useIcon,
+          decimals: useToken?.token_decimals || 2,
+          price: usePrice,
+        });
+
+        // Chart symbol for ERG/USE pair
+        setDefaultWidgetProps({
+          symbol: "ERG_USE",
+          interval: "1D" as ResolutionString,
+          library_path: "/static/charting_library/",
+          locale: "en",
+          fullscreen: false,
+          autosize: true,
         });
       } catch (error) {
         console.error("Error loading default token:", error);
@@ -335,7 +367,7 @@ const TradePage: FC = () => {
       }
     };
     loadDefaultToken();
-  }, [handleTokenSelect]);
+  }, []);
 
   // Swap base and quote tokens
   const handleSwapTokens = useCallback(() => {
