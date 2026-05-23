@@ -212,10 +212,28 @@ const TradePage: FC = () => {
           );
           if (response.ok) {
             const data: TokenSearchResult[] = await response.json();
-            setSearchResults(data);
+
+            // Inject Ergo as first result when searching for ERG directly
+            const normalizedQuery = query.trim().toLowerCase();
+            const isErgQuery = normalizedQuery === "erg" || normalizedQuery === "ergo";
+            const results: TokenSearchResult[] = isErgQuery
+              ? [
+                  {
+                    token_id: ERG_TOKEN_ID,
+                    token_name: "Ergo",
+                    token_decimals: 9,
+                    quote_token_id: USE_TOKEN_ID,
+                    quote_token_name: "USE",
+                    quote_token_decimals: 2,
+                    liquidity: Infinity,
+                  },
+                  ...data,
+                ]
+              : data;
+            setSearchResults(results);
 
             // Resolve icons for results in single batch
-            const uncachedIds = data
+            const uncachedIds = results
               .map((t) => t.token_id)
               .filter((id) => !searchIcons[id]);
             if (uncachedIds.length > 0) {
@@ -282,9 +300,13 @@ const TradePage: FC = () => {
 
       // Set up chart widget props
       // Symbol format: {TOKEN}_{BASE} e.g. "USE" (defaults to ERG), "CRUX_USE"
-      const chartSymbol = newQuoteToken.tokenId === ERG_TOKEN_ID
-        ? newBaseToken.name
-        : `${newBaseToken.name}_${newQuoteToken.name}`;
+      // Special case: ERG/USE pair uses hardcoded "ERG_USE" for chart compatibility
+      const chartSymbol =
+        newBaseToken.tokenId === ERG_TOKEN_ID && newQuoteToken.tokenId === USE_TOKEN_ID
+          ? "ERG_USE"
+          : newQuoteToken.tokenId === ERG_TOKEN_ID
+            ? newBaseToken.name
+            : `${newBaseToken.name}_${newQuoteToken.name}`;
       setDefaultWidgetProps({
         symbol: chartSymbol,
         interval: "1D" as ResolutionString,
@@ -732,7 +754,11 @@ const TradePage: FC = () => {
                               </ListItemAvatar>
                               <ListItemText
                                 primary={`${token.token_name} / ${token.quote_token_name}`}
-                                secondary={`Liquidity: ${formatFullNumber(token.liquidity, 2)} ERG`}
+                                secondary={
+                                  token.liquidity === Infinity
+                                    ? undefined
+                                    : `Liquidity: ${formatFullNumber(token.liquidity, 2)} ERG`
+                                }
                               />
                             </ListItem>
                           ))}
