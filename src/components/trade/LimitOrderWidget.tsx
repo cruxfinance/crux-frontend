@@ -500,18 +500,24 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           InputProps={{
             endAdornment: (
               <InputAdornment position="end" sx={{ padding: 0, margin: 0 }}>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    fontWeight: 600,
-                    lineHeight: "24px",
-                    height: "24px",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  {quoteToken.ticker}
-                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, height: "100%" }}>
+                  <Avatar
+                    src={quoteToken.icon}
+                    sx={{ width: 24, height: 24 }}
+                  />
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 600,
+                      lineHeight: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {quoteToken.ticker}
+                  </Typography>
+                </Box>
               </InputAdornment>
             ),
           }}
