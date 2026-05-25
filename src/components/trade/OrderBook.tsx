@@ -422,13 +422,9 @@ const TableView: FC<TableViewProps> = ({
     }
   }, [orderBook]);
 
-  // Best bid/ask for spread — use real orders only (virtual always at mid ± 0.5%)
-  const bestAsk = mergedAsks.length > 0
-    ? (mergedAsks.find(r => r.isReal) ?? mergedAsks[0]).price
-    : null;
-  const bestBid = mergedBids.length > 0
-    ? (mergedBids.find(r => r.isReal) ?? mergedBids[0]).price
-    : null;
+  // Best bid/ask for spread — use best price across all orders (real + virtual)
+  const bestAsk = mergedAsks.length > 0 ? mergedAsks[0].price : null;
+  const bestBid = mergedBids.length > 0 ? mergedBids[0].price : null;
   const spread = bestAsk && bestBid ? ((bestAsk - bestBid) / bestAsk) * 100 : null;
 
   // Compute cumulative base amounts for click-to-fill

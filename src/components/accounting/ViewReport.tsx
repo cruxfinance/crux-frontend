@@ -265,7 +265,7 @@ const ViewReport: FC<IViewReportProps> = ({ report }) => {
               size="small"
             >
               <ToggleButton value="USE">USE</ToggleButton>
-              <ToggleButton value="ERG">Erg</ToggleButton>
+              <ToggleButton value="ERG">ERG</ToggleButton>
             </ToggleButtonGroup>
           </Box>
         </Box>
