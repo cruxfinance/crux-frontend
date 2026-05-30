@@ -72,10 +72,16 @@ export function createTradeMarkerManager(
   tokenId: string,
   addresses: string[],
   chartContainer: HTMLElement,
+  chartSymbol: string,
 ): TradeMarkerManager {
   const markers: TradeMarkerData[] = [];
   let isDestroyed = false;
   let isEnabled = true;
+
+  // The chart datafeed always returns prices in canonical quote/base direction.
+  // When the symbol is {BASE}_{QUOTE} (e.g. "ERG_USE") the chart inverts the
+  // OHLC data. We must invert marker prices to match the chart axis.
+  const isInverted = chartSymbol.includes("_");
 
   // Create tooltip element
   const tooltip = createTooltipElement();
@@ -152,7 +158,8 @@ export function createTradeMarkerManager(
         params.offsetX !== undefined &&
         params.offsetY !== undefined
       ) {
-        const isBuy = nearbyMarker.trade.order_type.includes("Buy");
+        const rawIsBuy = nearbyMarker.trade.order_type.includes("Buy");
+        const isBuy = isInverted ? !rawIsBuy : rawIsBuy;
         const color = isBuy ? "#4caf50" : "#f44336";
         tooltip.innerHTML = `
         <div style="color: ${color}; font-weight: bold; margin-bottom: 4px;">
@@ -221,10 +228,16 @@ export function createTradeMarkerManager(
     for (const trade of trades) {
       if (isDestroyed) break;
 
-      const isBuy = trade.order_type.includes("Buy");
-      const price = trade.price;
+      const rawIsBuy = trade.order_type.includes("Buy");
+      // The chart datafeed returns prices in canonical quote/base direction.
+      // When the symbol is {BASE}_{QUOTE} (e.g. "ERG_USE") the chart inverts
+      // the OHLC data. Invert marker prices and flip buy/sell to match the chart axis.
+      const isBuy = isInverted ? !rawIsBuy : rawIsBuy;
+      const rawPrice = trade.price;
 
-      if (price === 0) continue;
+      if (rawPrice === 0) continue;
+
+      const price = isInverted ? 1 / rawPrice : rawPrice;
 
       try {
         // Offset arrows outside candles. Buys execute near candle high (at ask), so use

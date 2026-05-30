@@ -485,10 +485,9 @@ const TradePage: FC = () => {
       });
 
       for (const order of pairOrders) {
-        // Determine side and price (same logic as OpenOrdersPanel)
+        // Determine side: if you're giving away the quote token, you're buying base
         const givenIsQuote =
           order.given_token_id === null ||
-          order.given_token_id === ERG_TOKEN_ID ||
           order.given_token_id === quoteToken.tokenId;
         const side = givenIsQuote ? "buy" : "sell";
 
@@ -496,17 +495,26 @@ const TradePage: FC = () => {
         const rawRatio = order.price_numerator / order.price_denominator;
         const givenDec = order.given_token_decimals || 9;
         const takenDec = order.taken_token_decimals || 9;
-        const price = side === "buy"
+        const rawPrice = side === "buy"
           ? Math.pow(10, takenDec) / (rawRatio * Math.pow(10, givenDec))
           : (rawRatio * Math.pow(10, givenDec)) / Math.pow(10, takenDec);
 
-        if (price <= 0 || !isFinite(price)) continue;
+        // The chart datafeed returns prices in canonical quote/base direction.
+        // When the symbol is {BASE}_{QUOTE} (e.g. "ERG_USE") the chart inverts
+        // the OHLC data. Invert order-line prices to match the chart axis.
+        // The chart datafeed returns prices in canonical quote/base direction.
+        // When the symbol is {BASE}_{QUOTE} (e.g. "ERG_USE") the chart inverts
+        // the OHLC data. Invert order-line prices to match the chart axis.
+        const isInverted = defaultWidgetProps?.symbol?.includes("_") ?? false;
+        const displayPrice = isInverted ? 1 / rawPrice : rawPrice;
 
-        // Calculate display amount
+        if (displayPrice <= 0 || !isFinite(displayPrice)) continue;
+
+        // Calculate display amount using the canonical (non-inverted) price
         let amount: number;
         if (side === "buy") {
           const originalQuote = order.original_given_amount / Math.pow(10, givenDec);
-          amount = price > 0 ? originalQuote / price : 0;
+          amount = rawPrice > 0 ? originalQuote / rawPrice : 0;
         } else {
           amount = order.original_given_amount / Math.pow(10, givenDec);
         }
@@ -516,7 +524,7 @@ const TradePage: FC = () => {
 
         try {
           const line = chart.createOrderLine()
-            .setPrice(price)
+            .setPrice(displayPrice)
             .setText(isBuy ? "BUY" : "SELL")
             .setQuantity(formatNumber(amount, 2))
             .setLineColor(color)
@@ -535,7 +543,7 @@ const TradePage: FC = () => {
       console.error("Error loading order lines:", error);
       Sentry.captureException(error);
     }
-  }, [userAddresses, baseToken, quoteToken]);
+  }, [userAddresses, baseToken, quoteToken, defaultWidgetProps?.symbol]);
 
   // Chart ready handler — sets up trade markers and order lines
   const handleChartReady = useCallback((chart: IChartWidgetApi, container: HTMLElement) => {
@@ -589,7 +597,7 @@ const TradePage: FC = () => {
         ? quoteToken.tokenId
         : baseToken.tokenId;
 
-    const manager = createTradeMarkerManager(chart, tokenIdForMarkers, userAddresses, container);
+    const manager = createTradeMarkerManager(chart, tokenIdForMarkers, userAddresses, container, defaultWidgetProps?.symbol || "");
     markerManagerRef.current = manager;
     manager.setEnabled(showMarkers);
 

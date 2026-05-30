@@ -200,7 +200,6 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
   const getOrderSide = (order: LimitOrder): "buy" | "sell" => {
     const givenIsQuote =
       order.given_token_id === null ||
-      order.given_token_id === ERG_TOKEN_ID ||
       order.given_token_id === quoteToken.tokenId;
     return givenIsQuote ? "buy" : "sell";
   };
