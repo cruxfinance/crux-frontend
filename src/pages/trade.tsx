@@ -39,7 +39,7 @@ import { createTradeMarkerManager, TradeMarkerManager } from "@lib/charts/tradeM
 import { getCachedIcon, resolveIcons as batchResolveIcons } from "@lib/utils/icons";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
-import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, normalizeTicker, calculatePairPrice } from "@lib/utils/general";
 import { USE_TOKEN_ID, ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import MarketOrderWidget from "@components/trade/MarketOrderWidget";
 import TradeTabsPanel from "@components/trade/TradeTabsPanel";
@@ -667,6 +667,9 @@ const TradePage: FC = () => {
     fetchStats();
   }, [baseToken?.tokenId]);
 
+  // Compute the pair price for display (e.g. ERG/USE = 3.0)
+  const pairPrice = calculatePairPrice(baseToken?.price, quoteToken.price);
+
   return (
     <Box sx={{ mx: 2, minHeight: "calc(100vh - 120px)" }}>
       {/* Header with Token Pair Selector */}
@@ -812,7 +815,7 @@ const TradePage: FC = () => {
                   </Typography>
                   <SwapVertIcon sx={{ fontSize: 16, opacity: 0.4 }} />
                   <Typography component="span" sx={{ fontWeight: 600, fontSize: '1.15rem', ml: 0.5 }}>
-                    {formatFullNumber(baseToken.price, 6)}
+                    {formatFullNumber(pairPrice, 6)}
                   </Typography>
                   <Typography component="span" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
                     ≈${formatFullNumber(

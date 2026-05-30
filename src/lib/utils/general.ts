@@ -177,3 +177,35 @@ export const adjustDecimals = (amount: number, decimals: number): number => {
 export const adjustDecimalsBigInt = (amount: bigint, decimals: bigint): bigint => {
   return amount / (BigInt(10) ** decimals);
 };
+
+/**
+ * Calculate the exchange rate between two tokens when each token's price is expressed in a common unit (e.g. ERG).
+ *
+ * Given:
+ *   basePrice = price of 1 base token in common unit
+ *   quotePrice = price of 1 quote token in common unit
+ *
+ * Returns: how many quote tokens are needed to buy 1 base token.
+ *
+ * Examples:
+ *   - ERG (1) / USE (0.333) → 3.0  (1 ERG = 3 USE)
+ *   - CRUX (0.0001) / ERG (1) → 0.0001  (1 CRUX = 0.0001 ERG)
+ *   - CRUX (0.0001) / USE (0.333) → 0.0003003  (1 CRUX = 0.0003 USE)
+ *
+ * Edge cases:
+ *   - If either price is 0, null, undefined, or NaN → returns 0
+ *   - If quotePrice is Infinity → returns 0
+ */
+export const calculatePairPrice = (
+  basePrice: number | null | undefined,
+  quotePrice: number | null | undefined
+): number => {
+  const base = typeof basePrice === "number" && !isNaN(basePrice) ? basePrice : 0;
+  const quote = typeof quotePrice === "number" && !isNaN(quotePrice) ? quotePrice : 0;
+
+  if (base === 0 || quote === 0 || !isFinite(quote)) {
+    return 0;
+  }
+
+  return base / quote;
+};

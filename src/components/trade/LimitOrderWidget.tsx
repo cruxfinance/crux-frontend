@@ -16,7 +16,7 @@ import { useTheme } from "@mui/material/styles";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, calculatePairPrice } from "@lib/utils/general";
 import { WidgetSettings } from "@components/common/WidgetSettings";
 import LimitOrderConfirmationModal from "@components/trade/LimitOrderConfirmationModal";
 
@@ -192,12 +192,14 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
     setTotal("");
   }, [baseToken?.tokenId]);
 
-  // Set price to current market price
+  // Set price to current market price (pair rate, not base token price)
+  const pairPrice = calculatePairPrice(baseToken?.price, quoteToken.price);
+
   useEffect(() => {
-    if (baseToken && baseToken.price > 0 && !price) {
-      setPrice(baseToken.price.toString());
+    if (baseToken && pairPrice > 0 && !price) {
+      setPrice(pairPrice.toString());
     }
-  }, [baseToken, price]);
+  }, [baseToken, pairPrice, price]);
 
   // Handle external price/amount from order book click
   useEffect(() => {
@@ -525,10 +527,10 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         {baseToken && (
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography variant="caption" color="text.secondary">
-              Market: {formatFullNumber(baseToken.price, 6)} {quoteToken.ticker}
+              Market: {formatFullNumber(pairPrice, 6)} {quoteToken.ticker}
             </Typography>
-            {price && baseToken.price > 0 && (() => {
-              const diff = ((parseFloat(price) - baseToken.price) / baseToken.price) * 100;
+            {price && pairPrice > 0 && (() => {
+              const diff = ((parseFloat(price) - pairPrice) / pairPrice) * 100;
               if (isNaN(diff) || Math.abs(diff) < 0.01) return null;
               const isFavorable = orderType === "sell" ? diff > 0 : diff < 0;
               return (
@@ -715,7 +717,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           {/* Price vs Market */}
           {(() => {
             const priceFloat = parseFloat(price);
-            const marketPrice = baseToken.price;
+            const marketPrice = pairPrice;
             if (!priceFloat || !marketPrice) return null;
             const diff = ((priceFloat - marketPrice) / marketPrice) * 100;
             const isAbove = diff > 0;
@@ -839,7 +841,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           price={price}
           amount={amount}
           total={total}
-          marketPrice={baseToken.price}
+          marketPrice={pairPrice}
           ergPrice={ergPrice}
           feeEstimate={feeEstimate}
           minerFee={minerFee}
