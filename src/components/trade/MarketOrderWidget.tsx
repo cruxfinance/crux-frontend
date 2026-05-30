@@ -4,12 +4,12 @@ import {
   Typography,
   TextField,
   Button,
-  ToggleButtonGroup,
-  ToggleButton,
   CircularProgress,
   InputAdornment,
   Avatar,
+  IconButton,
 } from "@mui/material";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { useTheme } from "@mui/material/styles";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
@@ -78,8 +78,8 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
   const { dAppWallet, setAddWalletModalOpen } = useWallet();
   const { minerFee, setMinerFee } = useMinerFee();
 
-  // Order type: buy or sell
-  const [orderType, setOrderType] = useState<"buy" | "sell">("buy");
+  // Swap direction: forward = base→quote (sell base for quote), reverse = quote→base (buy base with quote)
+  const [direction, setDirection] = useState<"forward" | "reverse">("forward");
 
   // Amount input
   const [amount, setAmount] = useState("");
@@ -167,13 +167,13 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
       try {
         // Determine given and requested tokens based on order type
         const givenTokenId =
-          orderType === "buy" ? quoteToken.tokenId : baseToken.tokenId;
+          direction === "reverse" ? quoteToken.tokenId : baseToken.tokenId;
         const requestedTokenId =
-          orderType === "buy" ? baseToken.tokenId : quoteToken.tokenId;
+          direction === "reverse" ? baseToken.tokenId : quoteToken.tokenId;
         const givenDecimals =
-          orderType === "buy" ? quoteToken.decimals : baseToken.decimals;
+          direction === "reverse" ? quoteToken.decimals : baseToken.decimals;
         const requestedDecimals =
-          orderType === "buy" ? baseToken.decimals : quoteToken.decimals;
+          direction === "reverse" ? baseToken.decimals : quoteToken.decimals;
 
         const rawAmount = Math.floor(
           parseFloat(amount) * Math.pow(10, givenDecimals),
@@ -222,18 +222,13 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
       clearTimeout(timer);
       abortController.abort();
     };
-  }, [amount, orderType, baseToken, quoteToken, feeToken]);
+  }, [amount, direction, baseToken, quoteToken, feeToken]);
 
-  const handleOrderTypeChange = (
-    _: React.MouseEvent<HTMLElement>,
-    newType: "buy" | "sell" | null,
-  ) => {
-    if (newType) {
-      setOrderType(newType);
-      setAmount("");
-      setEstimatedOutput("");
-      setQuote(null);
-    }
+  const handleFlipDirection = () => {
+    setDirection((prev) => (prev === "forward" ? "reverse" : "forward"));
+    setAmount("");
+    setEstimatedOutput("");
+    setQuote(null);
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -244,9 +239,9 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
   };
 
   const handlePercentClick = (pct: number) => {
-    const balance = orderType === "buy" ? quoteBalance : baseBalance;
+    const balance = direction === "reverse" ? quoteBalance : baseBalance;
     const decimals =
-      orderType === "buy" ? quoteToken.decimals : baseToken?.decimals || 0;
+      direction === "reverse" ? quoteToken.decimals : baseToken?.decimals || 0;
 
     if (!balance) return;
 
@@ -278,9 +273,9 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
       const userAddresses = [...new Set(allAddresses)].join(",");
 
       const givenTokenId =
-        orderType === "buy" ? quoteToken.tokenId : baseToken.tokenId;
+        direction === "reverse" ? quoteToken.tokenId : baseToken.tokenId;
       const givenDecimals =
-        orderType === "buy" ? quoteToken.decimals : baseToken.decimals;
+        direction === "reverse" ? quoteToken.decimals : baseToken.decimals;
       const rawAmount = Math.floor(
         parseFloat(amount) * Math.pow(10, givenDecimals),
       );
@@ -337,12 +332,12 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
     return num.toFixed(2);
   };
 
-  const inputToken = orderType === "buy" ? quoteToken : baseToken;
-  const outputToken = orderType === "buy" ? baseToken : quoteToken;
+  const inputToken = direction === "reverse" ? quoteToken : baseToken;
+  const outputToken = direction === "reverse" ? baseToken : quoteToken;
   const inputDecimals =
-    orderType === "buy" ? quoteToken.decimals : baseToken?.decimals || 0;
+    direction === "reverse" ? quoteToken.decimals : baseToken?.decimals || 0;
   const outputDecimals =
-    orderType === "buy" ? baseToken?.decimals || 0 : quoteToken.decimals;
+    direction === "reverse" ? baseToken?.decimals || 0 : quoteToken.decimals;
 
   return (
     <Box>
@@ -364,53 +359,14 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
         />
       </Box>
 
-      {/* Buy/Sell Toggle */}
-      <ToggleButtonGroup
-        value={orderType}
-        exclusive
-        onChange={handleOrderTypeChange}
-        fullWidth
-        sx={{ mb: 2 }}
-        disabled={disabled || executing}
-      >
-        <ToggleButton
-          value="buy"
-          sx={{
-            "&.Mui-selected": {
-              bgcolor: theme.palette.success.main,
-              color: theme.palette.success.contrastText,
-              "&:hover": {
-                bgcolor: theme.palette.success.dark,
-              },
-            },
-          }}
-        >
-          Buy
-        </ToggleButton>
-        <ToggleButton
-          value="sell"
-          sx={{
-            "&.Mui-selected": {
-              bgcolor: theme.palette.error.main,
-              color: theme.palette.error.contrastText,
-              "&:hover": {
-                bgcolor: theme.palette.error.dark,
-              },
-            },
-          }}
-        >
-          Sell
-        </ToggleButton>
-      </ToggleButtonGroup>
-
       {/* Amount Input */}
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 1 }}>
         <Typography
           variant="caption"
           color="text.secondary"
           sx={{ mb: 0.5, display: "block" }}
         >
-          {orderType === "buy" ? "You Pay" : "You Sell"}
+          {direction === "reverse" ? "You Pay" : "You Sell"}
         </Typography>
         <TextField
           fullWidth
@@ -461,7 +417,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
             {amount && ergPrice
               ? `~$${formatFullNumber(
                   parseFloat(amount) *
-                    (orderType === "buy"
+                    (direction === "reverse"
                       ? ergPrice
                       : (baseToken?.price || 0) * ergPrice),
                   2,
@@ -472,7 +428,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
             <Typography variant="caption" color="text.secondary">
               Balance:{" "}
               {formatBalance(
-                orderType === "buy" ? quoteBalance : baseBalance,
+                direction === "reverse" ? quoteBalance : baseBalance,
                 inputDecimals,
               )}{" "}
               {inputToken?.ticker}
@@ -509,6 +465,25 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
             ))}
           </Box>
         )}
+      </Box>
+
+      {/* Flip Direction Button */}
+      <Box sx={{ display: "flex", justifyContent: "center", mb: 1, mt: -0.5 }}>
+        <IconButton
+          onClick={handleFlipDirection}
+          disabled={disabled || executing}
+          size="small"
+          sx={{
+            bgcolor: theme.palette.background.default,
+            border: `1px solid ${theme.palette.divider}`,
+            "&:hover": {
+              bgcolor: theme.palette.action.hover,
+              borderColor: theme.palette.primary.main,
+            },
+          }}
+        >
+          <SwapVertIcon sx={{ fontSize: 20 }} />
+        </IconButton>
       </Box>
 
       {/* Estimated Output */}
@@ -556,7 +531,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
             {estimatedOutput && ergPrice
               ? `~$${formatFullNumber(
                   parseFloat(estimatedOutput) *
-                    (orderType === "buy"
+                    (direction === "reverse"
                       ? (baseToken?.price || 0) * ergPrice
                       : ergPrice),
                   2,
@@ -567,7 +542,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
             <Typography variant="caption" color="text.secondary">
               Balance:{" "}
               {formatBalance(
-                orderType === "buy" ? baseBalance : quoteBalance,
+                direction === "reverse" ? baseBalance : quoteBalance,
                 outputDecimals,
               )}{" "}
               {outputToken?.ticker}
@@ -722,7 +697,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
           variant="contained"
           onClick={() => setConfirmModalOpen(true)}
           disabled={disabled || !quote || loading || executing || noPoolFound}
-          color={orderType === "buy" ? "success" : "error"}
+          color={direction === "reverse" ? "success" : "error"}
           sx={{ height: 48 }}
         >
           {executing ? (
@@ -736,7 +711,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
           ) : !quote ? (
             "Getting Quote..."
           ) : (
-            `${orderType === "buy" ? "Buy" : "Sell"} ${baseToken?.ticker || ""}`
+            `${direction === "reverse" ? "Buy" : "Sell"} ${baseToken?.ticker || ""}`
           )}
         </Button>
       )}
@@ -750,7 +725,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
             setConfirmModalOpen(false);
             handleExecuteOrder();
           }}
-          orderType={orderType}
+          direction={direction}
           inputAmount={amount}
           inputToken={inputToken}
           outputAmount={estimatedOutput}

@@ -29,7 +29,7 @@ interface TradeConfirmationModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  orderType: "buy" | "sell";
+  direction: "forward" | "reverse";
   inputAmount: string;
   inputToken: TokenInfo;
   outputAmount: string;
@@ -48,7 +48,7 @@ const TradeConfirmationModal: FC<TradeConfirmationModalProps> = ({
   open,
   onClose,
   onConfirm,
-  orderType,
+  direction,
   inputAmount,
   inputToken,
   outputAmount,
@@ -102,7 +102,7 @@ const TradeConfirmationModal: FC<TradeConfirmationModalProps> = ({
         }}
       >
         <Typography variant="h6" fontWeight={700}>
-          Confirm {orderType === "buy" ? "Buy" : "Sell"}
+          Confirm {direction === "reverse" ? "Buy" : "Sell"}
         </Typography>
         <IconButton
           onClick={onClose}
@@ -276,7 +276,7 @@ const TradeConfirmationModal: FC<TradeConfirmationModalProps> = ({
           size="large"
           onClick={onConfirm}
           disabled={executing}
-          color={orderType === "buy" ? "success" : "error"}
+          color={direction === "reverse" ? "success" : "error"}
           sx={{
             py: 1.5,
             borderRadius: "12px",
@@ -288,7 +288,7 @@ const TradeConfirmationModal: FC<TradeConfirmationModalProps> = ({
         >
           {executing
             ? "Confirming..."
-            : `Confirm ${orderType === "buy" ? "Buy" : "Sell"}`}
+            : `Confirm ${direction === "reverse" ? "Buy" : "Sell"}`}
         </Button>
       </Box>
     </Dialog>
