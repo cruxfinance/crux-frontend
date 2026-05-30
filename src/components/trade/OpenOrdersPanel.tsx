@@ -28,7 +28,7 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { copyToClipboard } from "@lib/utils/clipboard";
 import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 
@@ -284,9 +284,9 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
   const getPairDisplay = (order: LimitOrder): string => {
     const side = getOrderSide(order);
     if (side === "buy") {
-      return `${order.taken_token_name || "token"}/${order.given_token_name || "ERG"}`;
+      return `${normalizeTicker(order.taken_token_name || "token")}/${normalizeTicker(order.given_token_name || "ERG")}`;
     } else {
-      return `${order.given_token_name || "token"}/${order.taken_token_name || "ERG"}`;
+      return `${normalizeTicker(order.given_token_name || "token")}/${normalizeTicker(order.taken_token_name || "ERG")}`;
     }
   };
 
