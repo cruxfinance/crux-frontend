@@ -416,10 +416,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
           <Typography variant="caption" color="text.secondary">
             {amount && ergPrice
               ? `~$${formatFullNumber(
-                  parseFloat(amount) *
-                    (direction === "reverse"
-                      ? ergPrice
-                      : (baseToken?.price || 0) * ergPrice),
+                  parseFloat(amount) * (inputToken?.price || 0) * ergPrice,
                   2,
                 )}`
               : " "}
@@ -530,10 +527,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
           <Typography variant="caption" color="text.secondary">
             {estimatedOutput && ergPrice
               ? `~$${formatFullNumber(
-                  parseFloat(estimatedOutput) *
-                    (direction === "reverse"
-                      ? (baseToken?.price || 0) * ergPrice
-                      : ergPrice),
+                  parseFloat(estimatedOutput) * (outputToken?.price || 0) * ergPrice,
                   2,
                 )}`
               : " "}
