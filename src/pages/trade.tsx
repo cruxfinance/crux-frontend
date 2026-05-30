@@ -67,6 +67,18 @@ interface TokenSearchResult {
   liquidity: number;
 }
 
+// Build a chart symbol from base/quote tokens. Must match the logic used
+// in the default mount effect so swapping produces a valid symbol.
+const buildChartSymbol = (base: TokenInfo, quote: TokenInfo) => {
+  if (base.tokenId === ERG_TOKEN_ID && quote.tokenId === USE_TOKEN_ID) {
+    return "ERG_USE";
+  }
+  if (quote.tokenId === ERG_TOKEN_ID) {
+    return base.name;
+  }
+  return `${base.name}_${quote.name}`;
+};
+
 const TradePage: FC = () => {
   const theme = useTheme();
   const router = useRouter();
@@ -120,6 +132,7 @@ const TradePage: FC = () => {
   const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
   const [chartFullscreen, setChartFullscreen] = useState(false);
   const [showMarkers, setShowMarkers] = useState(true);
+  const [chartReadyKey, setChartReadyKey] = useState(0);
   const [, setOpenOrderCount] = useState<number | null>(null);
   const [, setOrderHistoryCount] = useState<number | null>(null);
 
@@ -315,7 +328,7 @@ const TradePage: FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [buildChartSymbol]);
+  }, []);
 
   // Load default ERG/USE token on mount (special case: flipped from normal USE/ERG)
   useEffect(() => {
@@ -385,18 +398,6 @@ const TradePage: FC = () => {
     loadDefaultToken();
   }, []);
 
-  // Build a chart symbol from base/quote tokens. Must match the logic in
-  // handleTokenSelect so swapping produces a valid symbol.
-  const buildChartSymbol = useCallback((base: TokenInfo, quote: TokenInfo) => {
-    if (base.tokenId === ERG_TOKEN_ID && quote.tokenId === USE_TOKEN_ID) {
-      return "ERG_USE";
-    }
-    if (quote.tokenId === ERG_TOKEN_ID) {
-      return base.name;
-    }
-    return `${base.name}_${quote.name}`;
-  }, []);
-
   // Swap base and quote tokens
   const handleSwapTokens = useCallback(() => {
     if (!baseToken) return;
@@ -408,7 +409,7 @@ const TradePage: FC = () => {
       ticker: quoteToken.ticker,
       icon: quoteToken.icon,
       decimals: quoteToken.decimals,
-      price: 1 / (temp.price || 1),
+      price: quoteToken.price, // preserve actual token price (ERG value)
     };
     const newQuote: TokenInfo = {
       tokenId: temp.tokenId,
@@ -428,7 +429,7 @@ const TradePage: FC = () => {
         ? { ...prev, symbol: chartSymbol }
         : undefined,
     );
-  }, [baseToken, quoteToken, buildChartSymbol]);
+  }, [baseToken, quoteToken]);
 
   const handleSearchClickAway = () => {
     setSearchAnchorEl(null);
@@ -549,6 +550,9 @@ const TradePage: FC = () => {
 
     // Order price lines
     loadOrderLines(chart);
+
+    // Signal that a new chart instance is ready so the marker effect re-runs
+    setChartReadyKey((k) => k + 1);
   }, [loadOrderLines]);
 
   // Refresh order lines when orders change
@@ -577,7 +581,15 @@ const TradePage: FC = () => {
       markerManagerRef.current.destroy();
     }
 
-    const manager = createTradeMarkerManager(chart, baseToken.tokenId, userAddresses, container);
+    // The /dex/order_history endpoint indexes trades by the non-ERG token.
+    // When ERG is the chart base (ERG/USE) we must query with USE_TOKEN_ID
+    // to find trades involving this pair.
+    const tokenIdForMarkers =
+      baseToken.tokenId === ERG_TOKEN_ID
+        ? quoteToken.tokenId
+        : baseToken.tokenId;
+
+    const manager = createTradeMarkerManager(chart, tokenIdForMarkers, userAddresses, container);
     markerManagerRef.current = manager;
     manager.setEnabled(showMarkers);
 
@@ -607,7 +619,7 @@ const TradePage: FC = () => {
         markerManagerRef.current = null;
       }
     };
-  }, [baseToken?.tokenId, userAddresses, showMarkers]);
+  }, [baseToken?.tokenId, userAddresses, chartReadyKey]);
 
   // Cleanup trade markers on unmount
   useEffect(() => {
