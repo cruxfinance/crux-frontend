@@ -492,6 +492,8 @@ const TradePage: FC = () => {
         const side = givenIsQuote ? "buy" : "sell";
 
         if (order.price_denominator === 0) continue;
+        // TEMP: log raw order fields for debugging
+        console.log("[orderLine debug] givenId=", order.given_token_id, "takenId=", order.taken_token_id, "num=", order.price_numerator, "den=", order.price_denominator, "givenDec=", order.given_token_decimals, "takenDec=", order.taken_token_decimals, "side=", side);
         const rawRatio = order.price_numerator / order.price_denominator;
         const givenDec = order.given_token_decimals || 9;
         const takenDec = order.taken_token_decimals || 9;
@@ -499,16 +501,9 @@ const TradePage: FC = () => {
           ? Math.pow(10, takenDec) / (rawRatio * Math.pow(10, givenDec))
           : (rawRatio * Math.pow(10, givenDec)) / Math.pow(10, takenDec);
 
-        // The chart datafeed returns prices in canonical quote/base direction.
-        // When the symbol is {BASE}_{QUOTE} (e.g. "ERG_USE") the chart inverts
-        // the OHLC data. Invert order-line prices to match the chart axis.
-        // The chart datafeed returns prices in canonical quote/base direction.
-        // When the symbol is {BASE}_{QUOTE} (e.g. "ERG_USE") the chart inverts
-        // the OHLC data. Invert order-line prices to match the chart axis.
-        const isInverted = defaultWidgetProps?.symbol?.includes("_") ?? false;
-        const displayPrice = isInverted ? 1 / rawPrice : rawPrice;
+        console.log("[orderLine debug] rawPrice=", rawPrice, "side=", side);
 
-        if (displayPrice <= 0 || !isFinite(displayPrice)) continue;
+        if (rawPrice <= 0 || !isFinite(rawPrice)) continue;
 
         // Calculate display amount using the canonical (non-inverted) price
         let amount: number;
@@ -524,7 +519,7 @@ const TradePage: FC = () => {
 
         try {
           const line = chart.createOrderLine()
-            .setPrice(displayPrice)
+            .setPrice(rawPrice)
             .setText(isBuy ? "BUY" : "SELL")
             .setQuantity(formatNumber(amount, 2))
             .setLineColor(color)
@@ -543,7 +538,7 @@ const TradePage: FC = () => {
       console.error("Error loading order lines:", error);
       Sentry.captureException(error);
     }
-  }, [userAddresses, baseToken, quoteToken, defaultWidgetProps?.symbol]);
+  }, [userAddresses, baseToken, quoteToken]);
 
   // Chart ready handler — sets up trade markers and order lines
   const handleChartReady = useCallback((chart: IChartWidgetApi, container: HTMLElement) => {
