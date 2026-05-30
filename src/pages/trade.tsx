@@ -886,7 +886,12 @@ const TradePage: FC = () => {
       {/* Main Content: 3-column layout on large screens */}
       <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
         {/* Left Column: Chart */}
-        <Grid xs={12} lg={chartFullscreen ? 12 : 7} order={{ xs: 2, md: 2, lg: 1 }}>
+        <Grid
+          xs={12}
+          lg={chartFullscreen ? 12 : 7}
+          order={{ xs: 2, md: 2, lg: 1 }}
+          sx={{ height: chartFullscreen ? "calc(100vh - 200px)" : "auto" }}
+        >
           <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
             {/* Chart Area */}
             <Paper
