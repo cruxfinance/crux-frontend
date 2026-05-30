@@ -21,6 +21,7 @@ import {
   Fade,
   Tabs,
   Tab,
+  Tooltip,
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import SearchIcon from "@mui/icons-material/Search";
@@ -906,34 +907,40 @@ const TradePage: FC = () => {
             >
               {baseToken && defaultWidgetProps && !loading && (
                 <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 10, display: "flex", gap: 0.5 }}>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      const newState = !showMarkers;
-                      setShowMarkers(newState);
-                      markerManagerRef.current?.setEnabled(newState);
-                    }}
-                    sx={{
-                      bgcolor: "background.paper",
-                      "&:hover": { bgcolor: "background.hover" },
-                    }}
-                  >
-                    {showMarkers ? (
-                      <VisibilityIcon fontSize="small" />
-                    ) : (
-                      <VisibilityOffIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => setChartFullscreen((f) => !f)}
-                    sx={{
-                      bgcolor: "background.paper",
-                      "&:hover": { bgcolor: "background.hover" },
-                    }}
-                  >
-                    {chartFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
-                  </IconButton>
+                  <Tooltip title={showMarkers ? "Hide trade markers" : "Show trade markers"}>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        const newState = !showMarkers;
+                        setShowMarkers(newState);
+                        markerManagerRef.current?.setEnabled(newState);
+                      }}
+                      aria-label={showMarkers ? "Hide trade markers" : "Show trade markers"}
+                      sx={{
+                        bgcolor: "background.paper",
+                        "&:hover": { bgcolor: "background.hover" },
+                      }}
+                    >
+                      {showMarkers ? (
+                        <VisibilityIcon fontSize="small" />
+                      ) : (
+                        <VisibilityOffIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={chartFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+                    <IconButton
+                      size="small"
+                      onClick={() => setChartFullscreen((f) => !f)}
+                      aria-label={chartFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                      sx={{
+                        bgcolor: "background.paper",
+                        "&:hover": { bgcolor: "background.hover" },
+                      }}
+                    >
+                      {chartFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+                    </IconButton>
+                  </Tooltip>
                 </Box>
               )}
               {!baseToken ? (
