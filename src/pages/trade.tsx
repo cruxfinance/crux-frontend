@@ -125,6 +125,7 @@ const TradePage: FC = () => {
 
   // Chart refs for trade markers and order lines
   const chartRef = useRef<IChartWidgetApi | null>(null);
+  const chartContainerRef = useRef<HTMLElement | null>(null);
   const markerManagerRef = useRef<TradeMarkerManager | null>(null);
   const orderLinesRef = useRef<any[]>([]);
 
@@ -299,15 +300,7 @@ const TradePage: FC = () => {
       setBaseToken(newBaseToken);
       setQuoteToken(newQuoteToken);
 
-      // Set up chart widget props
-      // Symbol format: {TOKEN}_{BASE} e.g. "USE" (defaults to ERG), "CRUX_USE"
-      // Special case: ERG/USE pair uses hardcoded "ERG_USE" for chart compatibility
-      const chartSymbol =
-        newBaseToken.tokenId === ERG_TOKEN_ID && newQuoteToken.tokenId === USE_TOKEN_ID
-          ? "ERG_USE"
-          : newQuoteToken.tokenId === ERG_TOKEN_ID
-            ? newBaseToken.name
-            : `${newBaseToken.name}_${newQuoteToken.name}`;
+      const chartSymbol = buildChartSymbol(newBaseToken, newQuoteToken);
       setDefaultWidgetProps({
         symbol: chartSymbol,
         interval: "1D" as ResolutionString,
@@ -322,7 +315,7 @@ const TradePage: FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [buildChartSymbol]);
 
   // Load default ERG/USE token on mount (special case: flipped from normal USE/ERG)
   useEffect(() => {
@@ -392,43 +385,50 @@ const TradePage: FC = () => {
     loadDefaultToken();
   }, []);
 
+  // Build a chart symbol from base/quote tokens. Must match the logic in
+  // handleTokenSelect so swapping produces a valid symbol.
+  const buildChartSymbol = useCallback((base: TokenInfo, quote: TokenInfo) => {
+    if (base.tokenId === ERG_TOKEN_ID && quote.tokenId === USE_TOKEN_ID) {
+      return "ERG_USE";
+    }
+    if (quote.tokenId === ERG_TOKEN_ID) {
+      return base.name;
+    }
+    return `${base.name}_${quote.name}`;
+  }, []);
+
   // Swap base and quote tokens
   const handleSwapTokens = useCallback(() => {
     if (!baseToken) return;
 
     const temp = baseToken;
-    setBaseToken({
+    const newBase: TokenInfo = {
       tokenId: quoteToken.tokenId,
       name: quoteToken.name,
       ticker: quoteToken.ticker,
       icon: quoteToken.icon,
       decimals: quoteToken.decimals,
       price: 1 / (temp.price || 1),
-    });
-    setQuoteToken({
+    };
+    const newQuote: TokenInfo = {
       tokenId: temp.tokenId,
       name: temp.name,
       ticker: temp.ticker,
       icon: temp.icon,
       decimals: temp.decimals,
       price: temp.price,
-    });
+    };
 
-    // Update chart - new base is old quote, new quote is old base
-    const newBase = quoteToken.name;
-    const newQuoteId = temp.tokenId;
-    const chartSymbol = newQuoteId === ERG_TOKEN_ID
-      ? newBase
-      : `${newBase}_${temp.name}`;
+    setBaseToken(newBase);
+    setQuoteToken(newQuote);
+
+    const chartSymbol = buildChartSymbol(newBase, newQuote);
     setDefaultWidgetProps((prev) =>
       prev
-        ? {
-          ...prev,
-          symbol: chartSymbol,
-        }
+        ? { ...prev, symbol: chartSymbol }
         : undefined,
     );
-  }, [baseToken, quoteToken]);
+  }, [baseToken, quoteToken, buildChartSymbol]);
 
   const handleSearchClickAway = () => {
     setSearchAnchorEl(null);
@@ -545,32 +545,11 @@ const TradePage: FC = () => {
     }
 
     chartRef.current = chart;
-
-    // Trade markers: show buy/sell arrows for connected wallet
-    if (baseToken && userAddresses.length > 0) {
-      const manager = createTradeMarkerManager(chart, baseToken.tokenId, userAddresses, container);
-      markerManagerRef.current = manager;
-
-      // Load markers for initial visible range
-      const range = chart.getVisibleRange();
-      manager.loadMarkers(range.from, range.to);
-
-      // Reload markers on scroll/zoom with debounce
-      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-      chart.onVisibleRangeChanged().subscribe(null, () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          if (markerManagerRef.current) {
-            const range = chart.getVisibleRange();
-            markerManagerRef.current.loadMarkers(range.from, range.to);
-          }
-        }, 500);
-      });
-    }
+    chartContainerRef.current = container;
 
     // Order price lines
     loadOrderLines(chart);
-  }, [baseToken, userAddresses, loadOrderLines]);
+  }, [loadOrderLines]);
 
   // Refresh order lines when orders change
   useEffect(() => {
@@ -578,6 +557,57 @@ const TradePage: FC = () => {
       loadOrderLines(chartRef.current);
     }
   }, [orderRefreshTrigger, loadOrderLines]);
+
+  // Initialize or re-initialize trade markers when wallet connects
+  // or when the token pair changes while the chart is already mounted.
+  useEffect(() => {
+    const chart = chartRef.current;
+    const container = chartContainerRef.current;
+    if (!chart || !container || !baseToken || userAddresses.length === 0) {
+      // If wallet disconnects or no token, destroy existing markers
+      if (markerManagerRef.current) {
+        markerManagerRef.current.destroy();
+        markerManagerRef.current = null;
+      }
+      return;
+    }
+
+    // Destroy any previous manager before creating a new one
+    if (markerManagerRef.current) {
+      markerManagerRef.current.destroy();
+    }
+
+    const manager = createTradeMarkerManager(chart, baseToken.tokenId, userAddresses, container);
+    markerManagerRef.current = manager;
+    manager.setEnabled(showMarkers);
+
+    // Load markers for initial visible range
+    const range = chart.getVisibleRange();
+    manager.loadMarkers(range.from, range.to);
+
+    // Reload markers on scroll/zoom with debounce
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const rangeHandler = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (markerManagerRef.current) {
+          const range = chart.getVisibleRange();
+          markerManagerRef.current.loadMarkers(range.from, range.to);
+        }
+      }, 500);
+    };
+    chart.onVisibleRangeChanged().subscribe(null, rangeHandler);
+
+    return () => {
+      chart.onVisibleRangeChanged().unsubscribe(null, rangeHandler);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      manager.destroy();
+      // Only clear the ref if it still points to this manager (not overwritten by a newer effect run)
+      if (markerManagerRef.current === manager) {
+        markerManagerRef.current = null;
+      }
+    };
+  }, [baseToken?.tokenId, userAddresses, showMarkers]);
 
   // Cleanup trade markers on unmount
   useEffect(() => {
