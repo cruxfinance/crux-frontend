@@ -492,16 +492,12 @@ const TradePage: FC = () => {
         const side = givenIsQuote ? "buy" : "sell";
 
         if (order.price_denominator === 0) continue;
-        // TEMP: log raw order fields for debugging
-        console.log("[orderLine debug] givenId=", order.given_token_id, "takenId=", order.taken_token_id, "num=", order.price_numerator, "den=", order.price_denominator, "givenDec=", order.given_token_decimals, "takenDec=", order.taken_token_decimals, "side=", side);
         const rawRatio = order.price_numerator / order.price_denominator;
         const givenDec = order.given_token_decimals || 9;
         const takenDec = order.taken_token_decimals || 9;
         const rawPrice = side === "buy"
           ? Math.pow(10, takenDec) / (rawRatio * Math.pow(10, givenDec))
           : (rawRatio * Math.pow(10, givenDec)) / Math.pow(10, takenDec);
-
-        console.log("[orderLine debug] rawPrice=", rawPrice, "side=", side);
 
         if (rawPrice <= 0 || !isFinite(rawPrice)) continue;
 

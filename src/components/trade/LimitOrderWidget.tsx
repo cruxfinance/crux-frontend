@@ -11,6 +11,13 @@ import {
   Avatar,
   Chip,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useAlert } from "@contexts/AlertContext";
@@ -112,6 +119,21 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
   // Confirmation modal
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+
+  // Beta disclaimer
+  const [hasAgreedToDisclaimer, setHasAgreedToDisclaimer] =
+    useState<boolean>(false);
+  const [showDisclaimerDialog, setShowDisclaimerDialog] =
+    useState<boolean>(false);
+  const [disclaimerCheckbox, setDisclaimerCheckbox] = useState<boolean>(false);
+
+  // Check if user has already agreed to the limit order beta disclaimer
+  useEffect(() => {
+    const agreed = localStorage.getItem("limitOrderDisclaimerAgreed");
+    if (agreed === "true") {
+      setHasAgreedToDisclaimer(true);
+    }
+  }, []);
 
   // Fee estimate
   const [feeEstimate, setFeeEstimate] = useState<{
@@ -285,6 +307,29 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       const calculatedAmount = quoteAmount / parseFloat(price);
       setAmount(calculatedAmount.toFixed(baseToken?.decimals || 0));
     }
+  };
+
+  const handleOpenConfirm = () => {
+    if (!hasAgreedToDisclaimer) {
+      setShowDisclaimerDialog(true);
+      return;
+    }
+    setConfirmModalOpen(true);
+  };
+
+  const handleDisclaimerAgree = async () => {
+    if (disclaimerCheckbox) {
+      localStorage.setItem("limitOrderDisclaimerAgreed", "true");
+      setHasAgreedToDisclaimer(true);
+      setShowDisclaimerDialog(false);
+      setDisclaimerCheckbox(false);
+      setConfirmModalOpen(true);
+    }
+  };
+
+  const handleDisclaimerClose = () => {
+    setShowDisclaimerDialog(false);
+    setDisclaimerCheckbox(false);
   };
 
   const handleSubmitOrder = async () => {
@@ -811,7 +856,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         <Button
           fullWidth
           variant="contained"
-          onClick={() => setConfirmModalOpen(true)}
+          onClick={handleOpenConfirm}
           disabled={disabled || !price || !amount || submitting}
           color={orderType === "buy" ? "success" : "error"}
           sx={{ height: 48 }}
@@ -849,6 +894,71 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           submitting={submitting}
         />
       )}
+
+      {/* Beta Disclaimer Dialog */}
+      <Dialog
+        open={showDisclaimerDialog}
+        onClose={handleDisclaimerClose}
+        maxWidth="sm"
+        fullWidth
+        sx={{
+          "& .MuiBackdrop-root": {
+            backdropFilter: "blur(3px)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 600,
+            color: theme.palette.warning.main,
+          }}
+        >
+          ⚠️ Important Notice
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Limit order functionality is new and can contain bugs. Whenever
+            placing a limit order verify the transaction details before signing!
+          </Typography>
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={disclaimerCheckbox}
+                  onChange={(e) =>
+                    setDisclaimerCheckbox(e.target.checked)
+                  }
+                  sx={{
+                    color: theme.palette.warning.main,
+                    "&.Mui-checked": {
+                      color: theme.palette.warning.main,
+                    },
+                  }}
+                />
+              }
+              label="I understand and agree to proceed with caution"
+            />
+          </FormGroup>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 2, gap: 1 }}>
+          <Button
+            onClick={handleDisclaimerAgree}
+            variant="contained"
+            disabled={!disclaimerCheckbox}
+            sx={{ minWidth: 120 }}
+          >
+            Agree & Continue
+          </Button>
+          <Button
+            onClick={handleDisclaimerClose}
+            variant="outlined"
+            sx={{ minWidth: 120 }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
