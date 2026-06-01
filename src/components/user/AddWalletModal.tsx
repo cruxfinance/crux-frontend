@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogTitle,
   DialogActions,
+  Typography,
 } from "@mui/material";
 import AddNautilus from "./AddNautilus";
 import AddMobile from "./AddMobile";
@@ -39,6 +40,9 @@ const AddWalletModal: FC<AddWalletProps> = ({
         {customTitle ? customTitle : "Add a wallet to your account"}
       </DialogTitle>
       <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          Nautilus is the recommended wallet for Ergo
+        </Typography>
         <Box>
           <AddNautilus
             setModalOpen={setModalOpen}

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import React, {
   FC,
   useState,
@@ -151,14 +152,18 @@ interface RawMintStatus {
   fee_amount: number;
   fee_token: string;
   fee_usd: number;
+  /** Oracle rate at contract scale (nanoERG per raw stablecoin unit) */
+  raw_oracle_rate: number;
+  /** Number of decimal places for the stablecoin token */
+  stablecoin_decimals: number;
 }
 
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
-const ERG_DECIMALS = 9;
-const CRUX_TOKEN_ID =
-  "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
-const CRUX_DECIMALS = 4;
+import {
+  ERG_TOKEN_ID,
+  ERG_DECIMALS,
+  CRUX_TOKEN_ID,
+  CRUX_DECIMALS,
+} from "@lib/configs/paymentTokens";
 
 const getDecimalPlaces = (value: string): number => {
   const parts = value.split(".");
@@ -293,6 +298,7 @@ const MintWidget: FC = () => {
           }
         } catch (error) {
           console.error("Error fetching token decimals:", error);
+          Sentry.captureException(error);
           setStablecoinDecimals(2); // Default fallback
         }
       };
@@ -310,6 +316,7 @@ const MintWidget: FC = () => {
           }
         } catch (error) {
           console.error("Error fetching stablecoin price:", error);
+          Sentry.captureException(error);
           setStablecoinPrice(null);
         }
       };
@@ -380,6 +387,7 @@ const MintWidget: FC = () => {
         }
       } catch (error) {
         console.error("Error fetching ERG price:", error);
+        Sentry.captureException(error);
       }
     };
     fetchErgPrice();
@@ -400,6 +408,7 @@ const MintWidget: FC = () => {
       }
     } catch (error) {
       console.error("Error fetching balances:", error);
+      Sentry.captureException(error);
     }
   }, [dAppWallet.connected, stablecoinToken]);
 
@@ -428,6 +437,9 @@ const MintWidget: FC = () => {
 
   // Calculate mint output after applying dexy protocol fees (bank_fee + buyback_fee)
   // Uses the same formula as the backend: mint = (erg * fee_denom) / (rate * total_multiplier)
+  // oracle_rate is now at display scale (nanoERG per whole stablecoin unit) from the API,
+  // so mint_amount (in raw stablecoin units) is simply:
+  //   mint_amount = (erg_amount * fee_denom * 10^decimals) / (oracle_rate * total_multiplier)
   const calculateMintOutputWithFees = useCallback(
     (
       rawErgAmount: number,
@@ -451,11 +463,10 @@ const MintWidget: FC = () => {
 
       if (totalMultiplier === 0) return 0;
 
-      // Match backend formula:
-      // mint_amount = (erg_amount * fee_denom) / (oracle_rate * total_multiplier)
-      //
-      // Since frontend oracle_rate is "per whole unit", we scale by decimals:
-      // mint_amount = (erg_amount * fee_denom * 10^decimals) / (oracle_rate * total_multiplier)
+      // Backend formula (contract scale):
+      //   mint_raw = (erg_nano * fee_denom) / (oracle_rate_contract * total_multiplier)
+      // Frontend has display-scale oracle_rate (oracle_rate_contract * 10^decimals):
+      //   mint_raw = (erg_nano * fee_denom * 10^decimals) / (oracle_rate_display * total_multiplier)
       const divisor = oracleRate * totalMultiplier;
       if (divisor === 0) return 0;
 
@@ -470,7 +481,10 @@ const MintWidget: FC = () => {
   );
 
   // Calculate required ERG input for a desired mint output (inverse of calculateMintOutputWithFees)
-  // Formula: erg_amount = (desired_mint_amount * oracle_rate * total_multiplier) / (fee_denom * 10^decimals)
+  // Backend formula (contract scale):
+  //   erg_nano = (mint_raw * oracle_rate_contract * total_multiplier) / fee_denom
+  // Frontend has display-scale oracle_rate (oracle_rate_contract * 10^decimals):
+  //   erg_nano = (mint_raw * oracle_rate_display * total_multiplier) / (fee_denom * 10^decimals)
   const calculateErgInputForMint = useCallback(
     (
       desiredMintAmount: number,
@@ -493,8 +507,6 @@ const MintWidget: FC = () => {
 
       if (feeDenom === 0 || totalMultiplier === 0) return 0;
 
-      // Inverse formula:
-      // erg_amount = (desired_mint_amount * oracle_rate * total_multiplier) / (fee_denom * 10^decimals)
       // Use ceiling to ensure user provides enough ERG
       const divisor = feeDenom * Math.pow(10, stablecoinDecimals);
       if (divisor === 0) return 0;
@@ -863,6 +875,7 @@ const MintWidget: FC = () => {
       } catch (error: any) {
         if (error.name === "AbortError") return;
         console.error("Error fetching quotes:", error);
+        Sentry.captureException(error);
         addAlert("error", "Failed to fetch quotes");
       } finally {
         setLoading(false);
@@ -1154,6 +1167,7 @@ const MintWidget: FC = () => {
       setSelectedMethod(null);
     } catch (error: any) {
       console.error("Error during mint/swap:", error);
+      Sentry.captureException(error);
       addAlert("error", error.info || error.message || "Transaction failed");
     } finally {
       setMinting(false);

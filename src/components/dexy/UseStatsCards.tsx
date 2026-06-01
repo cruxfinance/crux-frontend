@@ -1,6 +1,7 @@
 import React, { FC } from "react";
 import { Paper, Typography, useTheme, Skeleton } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
+import { formatFullNumber } from "@lib/utils/general";
 
 interface UseStatsCardsProps {
   analytics: DexyAnalytics | null | undefined;
@@ -75,13 +76,6 @@ const UseStatsCards: FC<UseStatsCardsProps> = ({ analytics, isLoading }) => {
       </Paper>
     );
   }
-
-  const formatFullNumber = (num: number) => {
-    return num.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
 
   const formatRatio = (ratio: number) => {
     return (ratio * 100).toFixed(3) + "%";

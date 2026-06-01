@@ -58,7 +58,7 @@ const AddNautilus: FC<IAddNautilus> = ({
       typeof sessionData?.user.address !== "string" &&
       sessionStatus === "authenticated"
     ) {
-      window.ergoConnector.nautilus.disconnect();
+      try { window.ergoConnector?.nautilus?.disconnect(); } catch {}
     }
   }, []);
 
@@ -107,16 +107,14 @@ const AddNautilus: FC<IAddNautilus> = ({
 
   const getAddress = async () => {
     try {
-      // @ts-ignore
-      const changeAddress = await ergo.get_change_address();
+      const context = await window.ergoConnector.nautilus.getContext();
+      const changeAddress = await context.get_change_address();
+      const fetchUsedAddresses = await context.get_used_addresses();
+      const fetchUnusedAddresses = await context.get_unused_addresses();
       if (changeAddress) {
         setMessage("Verifying that address is not in use");
         setChangeAddress(changeAddress);
       }
-      // @ts-ignore
-      const fetchUsedAddresses = await ergo.get_used_addresses();
-      // @ts-ignore
-      const fetchUnusedAddresses = await ergo.get_unused_addresses();
       setUsedAddresses(fetchUsedAddresses);
       setUnusedAddresses(fetchUnusedAddresses);
       setDAppWallet({
@@ -134,7 +132,7 @@ const AddNautilus: FC<IAddNautilus> = ({
       setExpanded(undefined);
       setChangeAddress(undefined);
       console.error("AddNautilus: ", error);
-      window.ergoConnector.nautilus.disconnect();
+      try { await window.ergoConnector?.nautilus?.disconnect(); } catch {}
     }
   };
 
@@ -155,7 +153,7 @@ const AddNautilus: FC<IAddNautilus> = ({
             setDappConnected(false);
             setLocalLoading(false);
             setChangeAddress(undefined);
-            window.ergoConnector.nautilus.disconnect();
+            try { window.ergoConnector?.nautilus?.disconnect(); } catch {}
           }
           if (response.data?.status === "available") {
             setDefaultAddress(changeAddress);
@@ -171,8 +169,8 @@ const AddNautilus: FC<IAddNautilus> = ({
   const verifyOwnership = async (nonce: string, address: string) => {
     try {
       setMessage("Address not in use, authenticate to verify wallet ownership");
-      // @ts-ignore
-      const signature = await ergo.auth(address, nonce);
+      const authContext = await window.ergoConnector.nautilus.getContext();
+      const signature = await authContext.auth(address, nonce);
       if (signature) {
         const response = await mutateAddAddress.mutateAsync({
           nonce,
@@ -199,7 +197,7 @@ const AddNautilus: FC<IAddNautilus> = ({
       setDappConnected(false);
       setRetry(true);
       setMessage("Unable to verify ownership");
-      window.ergoConnector.nautilus.disconnect();
+      try { window.ergoConnector?.nautilus?.disconnect(); } catch {}
       console.error(error);
     } finally {
       setLocalLoading(false);
@@ -214,7 +212,7 @@ const AddNautilus: FC<IAddNautilus> = ({
   };
 
   const resetCleanup = () => {
-    window.ergoConnector.nautilus.disconnect();
+    try { window.ergoConnector?.nautilus?.disconnect(); } catch {}
     setMessage("Please follow the prompts on Nautilus");
     setDappConnected(false);
     setRetry(false);

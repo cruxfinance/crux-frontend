@@ -45,3 +45,5 @@ ssl.crt
 ssl.key
 
 /db
+.claude/
+.opencode/

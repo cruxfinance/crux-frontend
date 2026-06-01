@@ -1,3 +1,4 @@
+import ErrorBoundary from "@components/ErrorBoundary";
 import { useEffect, useState } from "react";
 import {
   Typography,
@@ -393,4 +394,10 @@ const Accounting: NextPage = () => {
   );
 };
 
-export default Accounting;
+export default function AccountingWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <Accounting />
+    </ErrorBoundary>
+  );
+}

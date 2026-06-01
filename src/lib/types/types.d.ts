@@ -246,3 +246,23 @@ type IActiveToken = {
   value: number;
   color: string;
 } | null;
+
+interface DexOrder {
+  id: number;
+  transaction_id: string;
+  quote_name: string;
+  base_name: string;
+  order_quote_amount: string;
+  order_base_amount: string;
+  filled_quote_amount: string;
+  filled_base_amount: string;
+  total_filled_quote_amount: string;
+  total_filled_base_amount: string;
+  exchange: number;
+  order_type: string;
+  status: string;
+  maker_address: string;
+  taker_address: string;
+  chain_time: number;
+  price: number;
+}

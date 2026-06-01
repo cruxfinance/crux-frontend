@@ -83,11 +83,12 @@ interface TokenPrice {
   asset_price_erg: number;
 }
 
-const ERG_TOKEN_ID =
-  "0000000000000000000000000000000000000000000000000000000000000000";
-const ERG_DECIMALS = 9;
-const CRUX_TOKEN_ID =
-  "00b42b41cb438c41d0139aa8432eb5eeb70d5a02d3df891f880d5fe08670c365";
+import {
+  ERG_TOKEN_ID,
+  ERG_DECIMALS,
+  CRUX_TOKEN_ID,
+  CRUX_DECIMALS,
+} from "@lib/configs/paymentTokens";
 
 /**
  * Counts the number of decimal places in a numeric string.
@@ -110,8 +111,6 @@ const getMinimumSwapAmount = (decimals: number): number => {
   // This translates to 10 / 10^decimals in human-readable terms
   return 1 / Math.pow(10, decimals);
 };
-const CRUX_DECIMALS = 4;
-
 const SwapWidget: FC<SwapWidgetProps> = ({
   tokenId,
   tokenName,

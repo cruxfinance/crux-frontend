@@ -180,12 +180,10 @@ const AddWallet: FC = () => {
 
   const fetchAndSetAddresses = async () => {
     try {
-      // @ts-ignore
-      const changeAddress = await ergo.get_change_address();
-      // @ts-ignore
-      const fetchUsedAddresses = await ergo.get_used_addresses();
-      // @ts-ignore
-      const fetchUnusedAddresses = await ergo.get_unused_addresses();
+      const context = await window.ergoConnector.nautilus.getContext();
+      const changeAddress = await context.get_change_address();
+      const fetchUsedAddresses = await context.get_used_addresses();
+      const fetchUnusedAddresses = await context.get_unused_addresses();
       return { defaultAddress: changeAddress, usedAddresses: fetchUsedAddresses, unusedAddresses: fetchUnusedAddresses };
     } catch (error) {
       console.error('Error fetching wallet address:', error);

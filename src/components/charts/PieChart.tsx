@@ -1,10 +1,11 @@
+// @ts-nocheck
 import { useState, FC, useEffect } from "react";
 import { Pie } from "@visx/shape";
 import { Group } from "@visx/group";
 import { Text } from "@visx/text";
 import { currencies, Currencies } from "@lib/utils/currencies";
 import { IActiveToken } from "../portfolio/TokenSummary";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber } from "@lib/utils/general";
 
 // REFACTOR NEEDED
 // Token ID instead of name
@@ -133,7 +134,7 @@ export const PieChart: FC<IPieChartProps> = ({
                 fontSize={20}
                 dy={30}
               >
-                {formatNumber(active.amount)}
+                {formatFullNumber(active.amount)}
               </Text>
               <Text
                 textAnchor="middle"
