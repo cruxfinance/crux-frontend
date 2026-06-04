@@ -642,7 +642,15 @@ const LiquidityPage: FC = () => {
                         <Tooltip title="Trade this pair">
                           <IconButton
                             size="small"
-                            onClick={() => router.push(`/trade?base=${pool.base_token_id}&quote=${pool.quote_token_id}`)}
+                            onClick={() => {
+                              // Always put non-ERG token as the left side (token=)
+                              // and ERG as the right side (pair=), regardless of
+                              // how the pool data orders them.
+                              const isErgBase = pool.base_token_id === ERG_TOKEN_ID;
+                              const tokenId = isErgBase ? pool.quote_token_id : pool.base_token_id;
+                              const pairId = isErgBase ? pool.base_token_id : pool.quote_token_id;
+                              router.push(`/trade?token=${tokenId}&pair=${pairId}`);
+                            }}
                           >
                             <OpenInNewIcon fontSize="small" />
                           </IconButton>

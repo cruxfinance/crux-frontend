@@ -79,6 +79,21 @@ const buildChartSymbol = (base: TokenInfo, quote: TokenInfo) => {
   return `${base.name}_${quote.name}`;
 };
 
+// Validate whether a string is a valid Ergo token ID (64 hex characters)
+const isValidTokenId = (value: string): boolean => {
+  return /^[0-9a-fA-F]{64}$/.test(value);
+};
+
+// Default ERG TokenInfo for reuse
+const DEFAULT_ERG_TOKEN: TokenInfo = {
+  tokenId: ERG_TOKEN_ID,
+  name: "Ergo",
+  ticker: "ERG",
+  icon: "",
+  decimals: 9,
+  price: 1,
+};
+
 const TradePage: FC = () => {
   const theme = useTheme();
   const router = useRouter();
@@ -142,6 +157,109 @@ const TradePage: FC = () => {
   const markerManagerRef = useRef<TradeMarkerManager | null>(null);
   const orderLinesRef = useRef<any[]>([]);
 
+  // Track whether URL params were successfully resolved so we can skip
+  // the default ERG/USE load. Values: 'pending' | 'resolved' | 'skipped'
+  const urlParamsStatusRef = useRef<string>("pending");
+
+  // Resolve a token ID into a full TokenInfo object by fetching from the API.
+  // Returns null if the token cannot be found.
+  const resolveTokenInfo = useCallback(async (tokenId: string): Promise<TokenInfo | null> => {
+    // Special case: ERG is known locally, no API call needed
+    if (tokenId === ERG_TOKEN_ID) {
+      const icon = getCachedIcon(ERG_TOKEN_ID) || "";
+      return { ...DEFAULT_ERG_TOKEN, icon };
+    }
+
+    try {
+      // Fetch token info
+      const response = await fetch(
+        `${process.env.CRUX_API}/crux/token_info/${tokenId}`,
+      );
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!data.token_name) return null;
+
+      const icon = getCachedIcon(tokenId) || "";
+      return {
+        tokenId,
+        name: data.token_name,
+        ticker: normalizeTicker(data.token_name),
+        icon,
+        decimals: data.decimals ?? 0,
+        price: data.value_in_erg || 0,
+      };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Resolve a quote token for a given base token by searching the API.
+  // Returns the quote TokenInfo or null.
+  const resolveQuoteForBase = useCallback(async (baseTokenId: string, quoteTokenId?: string): Promise<TokenInfo | null> => {
+    // If quote ID is explicitly provided, resolve it directly
+    if (quoteTokenId) {
+      const resolved = await resolveTokenInfo(quoteTokenId);
+      return resolved;
+    }
+
+    // Otherwise, search for the token to discover its default quote pair
+    try {
+      const response = await fetch(
+        `${process.env.CRUX_API}/crux/search_tokens?query=${baseTokenId}&limit=1`,
+      );
+      if (!response.ok) return null;
+      const results: TokenSearchResult[] = await response.json();
+      if (results.length === 0) return null;
+
+      const result = results[0];
+      const quoteIcon = getCachedIcon(result.quote_token_id) || "";
+      let quotePrice = 1;
+      if (result.quote_token_id === ERG_TOKEN_ID) {
+        quotePrice = 1;
+      } else {
+        try {
+          const priceResponse = await fetch(
+            `${process.env.CRUX_API}/crux/token_info/${result.quote_token_id}`,
+          );
+          if (priceResponse.ok) {
+            const data = await priceResponse.json();
+            quotePrice = data.value_in_erg || 1;
+          }
+        } catch { /* price stays 1 */ }
+      }
+
+      return {
+        tokenId: result.quote_token_id,
+        name: result.quote_token_name,
+        ticker: normalizeTicker(result.quote_token_name),
+        icon: quoteIcon,
+        decimals: result.quote_token_decimals,
+        price: quotePrice,
+      };
+    } catch {
+      return null;
+    }
+  }, [resolveTokenInfo]);
+
+  // Sync URL query parameters with the current pair (shallow routing)
+  const syncUrlPair = useCallback(
+    (base: TokenInfo | null, quote: TokenInfo) => {
+      router.push(
+        {
+          pathname: router.pathname,
+          query: {
+            ...router.query,
+            ...(base ? { token: base.tokenId } : {}),
+            pair: quote.tokenId,
+          },
+        },
+        undefined,
+        { shallow: true },
+      );
+    },
+    [router],
+  );
+
   // User authentication for trade markers
   const { sessionStatus, dAppWallet } = useWallet();
   const isAuthenticated = sessionStatus === "authenticated";
@@ -202,6 +320,147 @@ const TradePage: FC = () => {
     };
     fetchErgIcon();
   }, []);
+
+  // Load default ERG/USE pair.
+  // Called either on mount (when no URL params) or when URL param resolution fails.
+  const loadDefaultPair = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.CRUX_API}/crux/search_tokens?query=USE&limit=10`,
+      );
+
+      let useToken: TokenSearchResult | null = null;
+      if (response.ok) {
+        const results: TokenSearchResult[] = await response.json();
+        useToken = results.find((t) => t.token_id === USE_TOKEN_ID) || null;
+      }
+
+      const useIcon = getCachedIcon(USE_TOKEN_ID) || "";
+      const ergIcon = getCachedIcon(ERG_TOKEN_ID) || "";
+
+      // Fetch USE price in ERG
+      let usePrice = 0;
+      try {
+        const priceResponse = await fetch(
+          `${process.env.CRUX_API}/crux/token_info/${USE_TOKEN_ID}`,
+        );
+        if (priceResponse.ok) {
+          const data = await priceResponse.json();
+          usePrice = data.value_in_erg || 0;
+        }
+      } catch { /* price stays 0 */ }
+
+      // Default to ERG/USE (flipped from normal USE/ERG)
+      setBaseToken({
+        tokenId: ERG_TOKEN_ID,
+        name: "Ergo",
+        ticker: "ERG",
+        icon: ergIcon,
+        decimals: 9,
+        price: 1,
+      });
+
+      setQuoteToken({
+        tokenId: USE_TOKEN_ID,
+        name: "USE",
+        ticker: "USE",
+        icon: useIcon,
+        decimals: useToken?.token_decimals || 2,
+        price: usePrice,
+      });
+
+      // Chart symbol for ERG/USE pair
+      setDefaultWidgetProps({
+        symbol: "ERG_USE",
+        interval: "1D" as ResolutionString,
+        library_path: "/static/charting_library/",
+        locale: "en",
+        fullscreen: false,
+        autosize: true,
+      });
+    } catch (error) {
+      console.error("Error loading default token:", error);
+      Sentry.captureException(error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Resolve pair from URL query params after router is ready
+  // URL format: /trade?token=<tokenId>&pair=<tokenId>
+  //   - token: the main token to trade (left side of pair)
+  //   - pair: the pair token (right side, defaults to ERG)
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const tokenParam = router.query.token as string | undefined;
+    const pairParam = router.query.pair as string | undefined;
+    const hasParams = !!tokenParam;
+
+    if (!hasParams) {
+      // No URL params — load default pair
+      urlParamsStatusRef.current = "skipped";
+      loadDefaultPair();
+      return;
+    }
+
+    // Mark that URL params are being resolved so the default load is blocked
+    urlParamsStatusRef.current = "resolved";
+
+    const loadPairFromUrl = async () => {
+      setLoading(true);
+
+      // Validate token IDs
+      const validToken = tokenParam && isValidTokenId(tokenParam) ? tokenParam : null;
+      const validPair = pairParam && isValidTokenId(pairParam) ? pairParam : null;
+
+      try {
+        let resolvedBase: TokenInfo | null = null;
+        let resolvedQuote: TokenInfo | null = null;
+
+        if (validToken) {
+          resolvedBase = await resolveTokenInfo(validToken);
+
+          if (validPair) {
+            // Both token and pair provided
+            resolvedQuote = await resolveTokenInfo(validPair);
+          } else if (resolvedBase) {
+            // Only token provided — discover default quote pair from search
+            resolvedQuote = await resolveQuoteForBase(validToken);
+          }
+        }
+
+        if (resolvedBase && resolvedQuote) {
+          setBaseToken(resolvedBase);
+          setQuoteToken(resolvedQuote);
+
+          const chartSymbol = buildChartSymbol(resolvedBase, resolvedQuote);
+          setDefaultWidgetProps({
+            symbol: chartSymbol,
+            interval: "1D" as ResolutionString,
+            library_path: "/static/charting_library/",
+            locale: "en",
+            fullscreen: false,
+            autosize: true,
+          });
+        } else {
+          // Could not resolve — fall back to default pair
+          urlParamsStatusRef.current = "skipped";
+          await loadDefaultPair();
+        }
+      } catch (error) {
+        console.error("Error resolving URL pair params:", error);
+        Sentry.captureException(error);
+        urlParamsStatusRef.current = "skipped";
+        await loadDefaultPair();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPairFromUrl();
+  }, [router.isReady, router.query.token, router.query.pair, resolveTokenInfo, resolveQuoteForBase, loadDefaultPair]);
 
   // Search for tokens (with 300ms debounce)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -322,81 +581,16 @@ const TradePage: FC = () => {
         fullscreen: false,
         autosize: true,
       });
+
+      // Sync URL with the new pair
+      syncUrlPair(newBaseToken, newQuoteToken);
     } catch (error) {
       console.error("Error fetching token info:", error);
       Sentry.captureException(error);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  // Load default ERG/USE token on mount (special case: flipped from normal USE/ERG)
-  useEffect(() => {
-    const loadDefaultToken = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `${process.env.CRUX_API}/crux/search_tokens?query=USE&limit=10`,
-        );
-
-        let useToken: TokenSearchResult | null = null;
-        if (response.ok) {
-          const results: TokenSearchResult[] = await response.json();
-          useToken = results.find((t) => t.token_id === USE_TOKEN_ID) || null;
-        }
-
-        const useIcon = getCachedIcon(USE_TOKEN_ID) || "";
-        const ergIcon = getCachedIcon(ERG_TOKEN_ID) || "";
-
-        // Fetch USE price in ERG
-        let usePrice = 0;
-        try {
-          const priceResponse = await fetch(
-            `${process.env.CRUX_API}/crux/token_info/${USE_TOKEN_ID}`,
-          );
-          if (priceResponse.ok) {
-            const data = await priceResponse.json();
-            usePrice = data.value_in_erg || 0;
-          }
-        } catch { /* price stays 0 */ }
-
-        // Default to ERG/USE (flipped from normal USE/ERG)
-        setBaseToken({
-          tokenId: ERG_TOKEN_ID,
-          name: "Ergo",
-          ticker: "ERG",
-          icon: ergIcon,
-          decimals: 9,
-          price: 1,
-        });
-
-        setQuoteToken({
-          tokenId: USE_TOKEN_ID,
-          name: "USE",
-          ticker: "USE",
-          icon: useIcon,
-          decimals: useToken?.token_decimals || 2,
-          price: usePrice,
-        });
-
-        // Chart symbol for ERG/USE pair
-        setDefaultWidgetProps({
-          symbol: "ERG_USE",
-          interval: "1D" as ResolutionString,
-          library_path: "/static/charting_library/",
-          locale: "en",
-          fullscreen: false,
-          autosize: true,
-        });
-      } catch (error) {
-        console.error("Error loading default token:", error);
-        Sentry.captureException(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadDefaultToken();
-  }, []);
+  }, [syncUrlPair]);
 
   // Swap base and quote tokens
   const handleSwapTokens = useCallback(() => {
@@ -429,7 +623,10 @@ const TradePage: FC = () => {
         ? { ...prev, symbol: chartSymbol }
         : undefined,
     );
-  }, [baseToken, quoteToken]);
+
+    // Sync URL with swapped pair
+    syncUrlPair(newBase, newQuote);
+  }, [baseToken, quoteToken, syncUrlPair]);
 
   const handleSearchClickAway = () => {
     setSearchAnchorEl(null);

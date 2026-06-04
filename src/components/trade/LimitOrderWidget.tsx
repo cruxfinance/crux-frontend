@@ -129,6 +129,8 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
   // Check if user has already agreed to the limit order beta disclaimer
   useEffect(() => {
+    // Reset previous agreement so users see the updated disclaimer text
+    localStorage.removeItem("limitOrderDisclaimerAgreed");
     const agreed = localStorage.getItem("limitOrderDisclaimerAgreed");
     if (agreed === "true") {
       setHasAgreedToDisclaimer(true);
@@ -918,8 +920,10 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Limit order functionality is new and can contain bugs. Whenever
-            placing a limit order verify the transaction details before signing!
+            Limit order functionality is in beta and may contain bugs. During
+            beta, limit order fees are only $0.02 — please test with small
+            amounts first, and always verify the transaction details before
+            signing.
           </Typography>
           <FormGroup>
             <FormControlLabel
@@ -937,7 +941,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
                   }}
                 />
               }
-              label="I understand and agree to proceed with caution"
+              label="I understand this is beta software and agree to test with small amounts first"
             />
           </FormGroup>
         </DialogContent>
