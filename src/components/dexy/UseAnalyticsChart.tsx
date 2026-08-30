@@ -112,6 +112,9 @@ interface ChartDataPoint {
 
 const margin = { top: 20, right: 20, bottom: 40, left: 70 };
 
+/** Seconds to align the query window to; keeps the react-query key stable. */
+const QUERY_TIME_ALIGNMENT = 5 * 60;
+
 const bisectDate = bisector<ChartDataPoint, Date>((d) => d.date).left;
 
 interface ChartContentProps {
@@ -358,7 +361,13 @@ const UseAnalyticsChart: FC = () => {
 
   const currentMetric = metricOptions.find((m) => m.value === selectedMetric)!;
 
-  const now = Math.floor(Date.now() / 1000);
+  // Align `now` to a 5-minute boundary so the query key is stable across
+  // re-renders. A per-second `now` changed the key on every render, so any
+  // fetch that crossed a second boundary triggered another fetch — a loop that
+  // only the fastest timeframe (3M) reliably escaped. 5 minutes also matches
+  // staleTime and lets the ci-api response cache actually hit.
+  const now =
+    Math.floor(Date.now() / 1000 / QUERY_TIME_ALIGNMENT) * QUERY_TIME_ALIGNMENT;
   const config = timeRangeConfig[timeRange];
 
   const { data: historyData, isLoading } = trpc.dexy.getHistory.useQuery(
@@ -372,6 +381,7 @@ const UseAnalyticsChart: FC = () => {
     {
       staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
+      keepPreviousData: true,
     },
   );
 
