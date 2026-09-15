@@ -2,7 +2,6 @@ import { getYearTimestamps } from "@lib/utils/daytime";
 import { prisma } from "@server/prisma";
 import { accountingApi } from "@server/services/accountingApi";
 import { checkTransactionStatus } from "@server/utils/checkTransactionStatus";
-import { generateDownloadLink } from "@server/utils/s3";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -530,16 +529,21 @@ export const accountingRouter = createTRPCRouter({
         filename: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      try {
-        const url = await generateDownloadLink(input.filename);
-        return { url };
-      } catch (error: any) {
-        console.error("Error generating download URL:", error.message);
+    .mutation(async ({ input, ctx }) => {
+      const report = await prisma.report.findFirst({
+        where: {
+          reportFilename: input.filename,
+          userId: ctx.session.user.id,
+        },
+      });
+
+      if (!report) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to generate download URL",
+          code: "NOT_FOUND",
+          message: "Report not found",
         });
       }
+
+      return { url: `/api/files/reports/${input.filename}` };
     }),
 });

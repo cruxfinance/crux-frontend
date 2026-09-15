@@ -3,7 +3,7 @@ import { prisma } from "@server/prisma";
 import { getCurrentUpdatedSubcription } from "@server/services/subscription/subscription";
 import { checkAddressAvailability } from "@server/utils/checkAddress";
 import { deleteEmptyUser } from "@server/utils/deleteEmptyUser";
-import { uploadFile } from "@server/utils/s3";
+import { uploadFile } from "@server/storage/upload";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
