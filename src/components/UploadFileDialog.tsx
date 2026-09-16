@@ -1,3 +1,4 @@
+import { useAlert } from "@contexts/AlertContext";
 import { trpc } from "@lib/trpc";
 import { LoadingButton } from "@mui/lab";
 import {
@@ -30,6 +31,8 @@ interface UploadFileDialogProps {
   handleFileUrl: Function;
 }
 
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+
 const UploadFileDialog: FC<UploadFileDialogProps> = ({
   open,
   onClose,
@@ -37,6 +40,7 @@ const UploadFileDialog: FC<UploadFileDialogProps> = ({
 }) => {
   const [currentFile, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const { addAlert } = useAlert();
 
   const mutation = trpc.user.uploadFile.useMutation();
 
@@ -58,6 +62,10 @@ const UploadFileDialog: FC<UploadFileDialogProps> = ({
 
   const handleFileUpload = async () => {
     if (!currentFile) {
+      return;
+    }
+    if (currentFile.size > MAX_FILE_SIZE_BYTES) {
+      addAlert("error", "File too large. Maximum size is 2 MB.");
       return;
     }
     setLoading(true);

@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -60,6 +61,22 @@ export const putPublicObject = async (
       ContentType: contentType,
     })
   );
+};
+
+export const deletePublicObject = async (key: string): Promise<void> => {
+  try {
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: PUBLIC_BUCKET,
+        Key: key,
+      })
+    );
+  } catch (err: any) {
+    if (isNotFoundError(err)) {
+      return;
+    }
+    throw err;
+  }
 };
 
 export const getObject = async (

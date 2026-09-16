@@ -1,5 +1,8 @@
 import { putPublicObject } from "./client";
 
+export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_BASE64_PAYLOAD_CHARS = 3 * 1024 * 1024; // 3 MB
+
 export const uploadFile = async (fileName: string, data: string) => {
   try {
     const _type = fileName.split(".").pop() ?? "";
@@ -7,10 +10,19 @@ export const uploadFile = async (fileName: string, data: string) => {
       throw new Error("Unsupported file type. Only supports jpeg/png.");
     }
     const type = _type === "jpg" ? "jpeg" : _type;
+
+    if (data.length > MAX_BASE64_PAYLOAD_CHARS) {
+      throw new Error("File too large. Maximum size is 2 MB.");
+    }
+
     const body = Buffer.from(
       data.replace(/^data:image\/\w+;base64,/, ""),
       "base64"
     );
+
+    if (body.length > MAX_UPLOAD_BYTES) {
+      throw new Error("File too large. Maximum size is 2 MB.");
+    }
 
     await putPublicObject(fileName, body, `image/${type}`);
 

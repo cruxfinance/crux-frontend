@@ -134,6 +134,14 @@ export const accountingRouter = createTRPCRouter({
         });
       }
 
+      if (report.koinlyGenerating) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message:
+            "A Koinly export is already being generated for this report.",
+        });
+      }
+
       let dateFrom = report.dateFrom
         ? report.dateFrom.getTime()
         : getYearTimestamps(report.taxYear)[0];

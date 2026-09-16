@@ -69,6 +69,7 @@ model User {
   notifications      Notification[]
   mobileVerification MobileVerification[]
   filterPreset       FilterPreset[]
+  uploads            UserUpload[]
 
   @@map("users")
 }
@@ -298,6 +299,16 @@ model MobileVerification {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("mobile_verification")
+}
+
+model UserUpload {
+  key       String   @id
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("user_uploads")
 }
 
 model FilterPreset {
