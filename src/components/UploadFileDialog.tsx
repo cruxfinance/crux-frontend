@@ -31,7 +31,7 @@ interface UploadFileDialogProps {
   handleFileUrl: Function;
 }
 
-const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_FILE_SIZE_BYTES = 700 * 1024; // 700 KB
 
 const UploadFileDialog: FC<UploadFileDialogProps> = ({
   open,
@@ -65,7 +65,7 @@ const UploadFileDialog: FC<UploadFileDialogProps> = ({
       return;
     }
     if (currentFile.size > MAX_FILE_SIZE_BYTES) {
-      addAlert("error", "File too large. Maximum size is 2 MB.");
+      addAlert("error", "File too large. Maximum size is 700 KB.");
       return;
     }
     setLoading(true);
@@ -78,8 +78,15 @@ const UploadFileDialog: FC<UploadFileDialogProps> = ({
       });
       handleFileUrl(response.fileUrl);
       onClose()
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      const message =
+        typeof e?.message === "string" &&
+        e.message.length <= 200 &&
+        !e.message.includes("<")
+          ? e.message
+          : "Upload failed, please try again.";
+      addAlert("error", message);
     }
     setLoading(false);
   };
@@ -121,6 +128,7 @@ const UploadFileDialog: FC<UploadFileDialogProps> = ({
               : `Selected file: ${currentFile.name}`}
             <VisuallyHiddenInput
               type="file"
+              accept="image/png,image/jpeg"
               onChange={(e) => handleFileSelect(e)}
             />
           </Button>

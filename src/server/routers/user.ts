@@ -3,7 +3,7 @@ import { prisma } from "@server/prisma";
 import { getCurrentUpdatedSubcription } from "@server/services/subscription/subscription";
 import { checkAddressAvailability } from "@server/utils/checkAddress";
 import { deleteEmptyUser } from "@server/utils/deleteEmptyUser";
-import { uploadFile } from "@server/storage/upload";
+import { uploadFile, UploadValidationError } from "@server/storage/upload";
 import { deletePublicObject } from "@server/storage/client";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
@@ -640,7 +640,11 @@ export const userRouter = createTRPCRouter({
         const ownedUpload = await prisma.userUpload.findUnique({
           where: { key: newImageKey },
         });
-        if (!ownedUpload || ownedUpload.userId !== userId) {
+        if (
+          !ownedUpload ||
+          ownedUpload.userId !== userId ||
+          ownedUpload.deletedAt !== null
+        ) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Invalid image",
@@ -675,7 +679,10 @@ export const userRouter = createTRPCRouter({
             });
             if (previousUpload && previousUpload.userId === userId) {
               await deletePublicObject(previousKey);
-              await prisma.userUpload.delete({ where: { key: previousKey } });
+              await prisma.userUpload.update({
+                where: { key: previousKey },
+                data: { deletedAt: new Date() },
+              });
             }
           } catch (e: any) {
             console.error(
@@ -754,7 +761,7 @@ export const userRouter = createTRPCRouter({
       }
 
       const type = input.fileName.split(".").pop() ?? "";
-      const updatedFileName = nanoid() + "." + type;
+      const updatedFileName = nanoid() + "." + type.toLowerCase();
 
       if (!UPLOAD_KEY_PATTERN.test(updatedFileName)) {
         throw new TRPCError({
@@ -763,27 +770,68 @@ export const userRouter = createTRPCRouter({
         });
       }
 
+      // Sweep any orphaned uploads before creating a new one, so a user
+      // holds at most the live avatar plus one pending upload.
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { image: true },
+      });
+      const liveImageMatch = currentUser?.image?.match(IMAGE_PROXY_PATTERN);
+      const liveImageKey = liveImageMatch?.[1];
+
+      const staleUploads = await prisma.userUpload.findMany({
+        where: { userId, deletedAt: null },
+      });
+
+      for (const upload of staleUploads) {
+        if (liveImageKey && upload.key === liveImageKey) {
+          continue;
+        }
+        try {
+          await deletePublicObject(upload.key);
+          await prisma.userUpload.update({
+            where: { key: upload.key },
+            data: { deletedAt: new Date() },
+          });
+        } catch (e: any) {
+          console.error("Error sweeping orphaned upload:", e?.message ?? e);
+        }
+      }
+
+      // Reserve the row before the PUT so it's tracked even if the process
+      // dies mid-upload.
+      await prisma.userUpload.create({
+        data: { key: updatedFileName, userId },
+      });
+
       let result;
       try {
         result = await uploadFile(updatedFileName, input.encodedFile);
       } catch (e: any) {
+        try {
+          await prisma.userUpload.delete({ where: { key: updatedFileName } });
+        } catch (cleanupError: any) {
+          console.error(
+            "Error cleaning up reserved upload row:",
+            cleanupError?.message ?? cleanupError,
+          );
+        }
+
+        if (e instanceof UploadValidationError) {
+          throw new TRPCError({
+            code: e.message.includes("too large")
+              ? "PAYLOAD_TOO_LARGE"
+              : "BAD_REQUEST",
+            message: e.message,
+          });
+        }
+
+        console.error("Error uploading file:", e?.message ?? e);
         throw new TRPCError({
-          code:
-            typeof e?.message === "string" &&
-            (e.message.includes("too large") ||
-              e.message.includes("Unsupported file type"))
-              ? "BAD_REQUEST"
-              : "INTERNAL_SERVER_ERROR",
-          message:
-            typeof e?.message === "string"
-              ? e.message
-              : "Failed to upload file",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to upload file",
         });
       }
-
-      await prisma.userUpload.create({
-        data: { key: updatedFileName, userId },
-      });
 
       return result;
     }),

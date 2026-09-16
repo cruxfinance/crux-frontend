@@ -134,7 +134,19 @@ export const accountingRouter = createTRPCRouter({
         });
       }
 
-      if (report.koinlyGenerating) {
+      const claimed = await prisma.report.updateMany({
+        where: {
+          id: reportId,
+          userId: ctx.session.user.id,
+          OR: [
+            { koinlyGenerating: false },
+            { updatedAt: { lt: new Date(Date.now() - 30 * 60 * 1000) } },
+          ],
+        },
+        data: { koinlyGenerating: true },
+      });
+
+      if (claimed.count === 0) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
           message:
@@ -153,22 +165,27 @@ export const accountingRouter = createTRPCRouter({
         dateFrom,
         dateTo,
       };
-      const download = await accountingApi.downloadKoinly(
-        wallets,
-        reportId,
-        modifiedQueries,
-        baseUrl
-      );
 
-      if (download) {
-        await prisma.report.update({
-          where: {
-            userId: ctx.session.user.id,
-            id: reportId,
-          },
-          data: {
-            koinlyGenerating: true,
-          },
+      let download;
+      try {
+        download = await accountingApi.downloadKoinly(
+          wallets,
+          reportId,
+          modifiedQueries,
+          baseUrl
+        );
+      } catch (error) {
+        await prisma.report.updateMany({
+          where: { id: reportId, userId: ctx.session.user.id },
+          data: { koinlyGenerating: false },
+        });
+        throw error;
+      }
+
+      if (!download) {
+        await prisma.report.updateMany({
+          where: { id: reportId, userId: ctx.session.user.id },
+          data: { koinlyGenerating: false },
         });
       }
 

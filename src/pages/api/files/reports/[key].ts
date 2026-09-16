@@ -3,6 +3,7 @@ import { slugify } from "@lib/utils/general";
 import { prisma } from "@server/prisma";
 import { getObject } from "@server/storage/client";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { pipeline } from "stream";
 
 export const config = {
   api: {
@@ -11,6 +12,11 @@ export const config = {
 };
 
 const KEY_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
+
+const setSecurityHeaders = (res: NextApiResponse) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
+};
 
 export default async function handler(
   req: NextApiRequest,
@@ -73,7 +79,12 @@ export default async function handler(
   const slugName = report.customName ? slugify(report.customName) : "";
   const safeName = slugName ? `${slugName}${extension}` : key;
 
-  res.setHeader("Content-Type", object.contentType || "application/zip");
+  const contentType = key.toLowerCase().endsWith(".zip")
+    ? "application/zip"
+    : "application/octet-stream";
+
+  setSecurityHeaders(res);
+  res.setHeader("Content-Type", contentType);
   if (typeof object.contentLength === "number") {
     res.setHeader("Content-Length", object.contentLength);
   }
@@ -83,15 +94,17 @@ export default async function handler(
   );
   res.setHeader("Cache-Control", "private, no-store");
 
-  object.body.on("error", (err) => {
-    console.error("Error streaming report file:", err.message);
-    if (res.headersSent) {
-      res.destroy();
-    } else {
+  res.status(200);
+  pipeline(object.body, res, (err) => {
+    if (err && (err as NodeJS.ErrnoException).code !== "ERR_STREAM_PREMATURE_CLOSE") {
+      console.error("Error streaming report file:", err.message);
+    }
+    if (err && !res.headersSent) {
+      res.removeHeader("Content-Length");
+      res.removeHeader("ETag");
+      res.removeHeader("Content-Disposition");
+      res.setHeader("Cache-Control", "no-store");
       res.status(502).end();
     }
   });
-
-  res.status(200);
-  object.body.pipe(res);
 }

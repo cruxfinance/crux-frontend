@@ -1,5 +1,6 @@
 import { getObject } from "@server/storage/client";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { pipeline } from "stream";
 
 export const config = {
   api: {
@@ -14,6 +15,11 @@ const extensionContentType = (key: string): string => {
   if (ext === "png") return "image/png";
   if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
   return "application/octet-stream";
+};
+
+const setSecurityHeaders = (res: NextApiResponse) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox");
 };
 
 export default async function handler(
@@ -48,33 +54,35 @@ export default async function handler(
   }
 
   const etag = object.etag;
+
+  setSecurityHeaders(res);
+  if (etag) {
+    res.setHeader("ETag", etag);
+  }
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+
   if (etag && req.headers["if-none-match"] === etag) {
     object.body.destroy();
     res.status(304).end();
     return;
   }
 
-  res.setHeader(
-    "Content-Type",
-    object.contentType || extensionContentType(key)
-  );
+  res.setHeader("Content-Type", extensionContentType(key));
   if (typeof object.contentLength === "number") {
     res.setHeader("Content-Length", object.contentLength);
   }
-  if (etag) {
-    res.setHeader("ETag", etag);
-  }
-  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
 
-  object.body.on("error", (err) => {
-    console.error("Error streaming public file:", err.message);
-    if (res.headersSent) {
-      res.destroy();
-    } else {
+  res.status(200);
+  pipeline(object.body, res, (err) => {
+    if (err && (err as NodeJS.ErrnoException).code !== "ERR_STREAM_PREMATURE_CLOSE") {
+      console.error("Error streaming public file:", err.message);
+    }
+    if (err && !res.headersSent) {
+      res.removeHeader("Content-Length");
+      res.removeHeader("ETag");
+      res.removeHeader("Content-Disposition");
+      res.setHeader("Cache-Control", "no-store");
       res.status(502).end();
     }
   });
-
-  res.status(200);
-  object.body.pipe(res);
 }

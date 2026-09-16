@@ -3,16 +3,20 @@ import { putPublicObject } from "./client";
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024; // 2 MB
 const MAX_BASE64_PAYLOAD_CHARS = 3 * 1024 * 1024; // 3 MB
 
+export class UploadValidationError extends Error {}
+
 export const uploadFile = async (fileName: string, data: string) => {
   try {
     const _type = fileName.split(".").pop() ?? "";
     if (!["jpeg", "jpg", "png"].includes(_type)) {
-      throw new Error("Unsupported file type. Only supports jpeg/png.");
+      throw new UploadValidationError(
+        "Unsupported file type. Only supports jpeg/png."
+      );
     }
     const type = _type === "jpg" ? "jpeg" : _type;
 
     if (data.length > MAX_BASE64_PAYLOAD_CHARS) {
-      throw new Error("File too large. Maximum size is 2 MB.");
+      throw new UploadValidationError("File too large. Maximum size is 2 MB.");
     }
 
     const body = Buffer.from(
@@ -21,7 +25,7 @@ export const uploadFile = async (fileName: string, data: string) => {
     );
 
     if (body.length > MAX_UPLOAD_BYTES) {
-      throw new Error("File too large. Maximum size is 2 MB.");
+      throw new UploadValidationError("File too large. Maximum size is 2 MB.");
     }
 
     await putPublicObject(fileName, body, `image/${type}`);

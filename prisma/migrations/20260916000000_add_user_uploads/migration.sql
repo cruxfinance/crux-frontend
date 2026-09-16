@@ -3,6 +3,7 @@ CREATE TABLE "user_uploads" (
     "key" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deleted_at" TIMESTAMP(3),
 
     CONSTRAINT "user_uploads_pkey" PRIMARY KEY ("key")
 );

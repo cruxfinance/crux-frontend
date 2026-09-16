@@ -91,6 +91,10 @@ export const getObject = async (
       })
     );
 
+    if (!result.Body) {
+      throw new Error("Storage returned no body");
+    }
+
     return {
       // The Node.js runtime returns a Readable stream for Body.
       body: result.Body as unknown as Readable,
