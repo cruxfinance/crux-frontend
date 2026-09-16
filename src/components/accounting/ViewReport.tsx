@@ -17,7 +17,6 @@ import { useAlert } from "@lib/contexts/AlertContext";
 import { addressListFlatMap } from "@lib/utils/addresses";
 import { slugify } from "@lib/utils/general";
 import { LoadingButton } from "@mui/lab";
-import { generateDownloadLink } from "@server/utils/s3";
 
 const getBaseUrl = (): string => {
   if (typeof window === "undefined") {

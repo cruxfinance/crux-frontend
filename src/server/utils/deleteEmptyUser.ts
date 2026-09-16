@@ -1,4 +1,5 @@
 import { prisma } from "@server/prisma";
+import { deleteUserUploads } from "@server/storage/cleanup";
 
 type DeleteEmptyUserResponse = {
   success?: boolean;
@@ -29,6 +30,12 @@ export const deleteEmptyUser = async (
     user.sessions.length === 0 &&
     user.status === "pending"
   ) {
+    try {
+      await deleteUserUploads(userId);
+    } catch (e: any) {
+      console.error("Error cleaning up user uploads:", e?.message ?? e);
+    }
+
     await prisma.user.delete({
       where: {
         id: userId,
