@@ -1,9 +1,13 @@
 import {
+  ApiRequestError,
   ERG_TOKEN_ID,
   classifyRangeSide,
   feeBpsToPercent,
+  formatProtocolFeeBps,
+  formatProtocolFeeFormula,
   humanPriceToRaw,
   humanToRaw,
+  isClNotDeployedError,
   isErgTokenInput,
   isValidFeeBps,
   normalizeClTokenIdInput,
@@ -148,5 +152,63 @@ describe("classifyRangeSide", () => {
   it("treats the boundary itself as single-sided (matches contract: below Pa / above Pb)", () => {
     expect(classifyRangeSide(2, 2, 5).singleSided).toBe(true);
     expect(classifyRangeSide(5, 2, 5).singleSided).toBe(true);
+  });
+});
+
+describe("formatProtocolFeeFormula", () => {
+  it("matches the launch example (phi=1667, floor=1 bps)", () => {
+    expect(formatProtocolFeeFormula(1667, 1)).toBe(
+      "max(φ × LP fee, floor) = max(16.67% × LP fee, 1 bps)",
+    );
+  });
+
+  it("drops trailing zeros from a whole-percent phi", () => {
+    expect(formatProtocolFeeFormula(2500, 10)).toBe(
+      "max(φ × LP fee, floor) = max(25% × LP fee, 10 bps)",
+    );
+  });
+
+  it("keeps a single significant decimal when the second is zero", () => {
+    expect(formatProtocolFeeFormula(1650, 1)).toBe(
+      "max(φ × LP fee, floor) = max(16.5% × LP fee, 1 bps)",
+    );
+  });
+});
+
+describe("formatProtocolFeeBps", () => {
+  it("formats a whole-number rate without decimals", () => {
+    expect(formatProtocolFeeBps(100)).toBe("100 bps");
+  });
+
+  it("formats a fractional rate rounded to 2 decimals", () => {
+    expect(formatProtocolFeeBps(8.335)).toBe("8.34 bps");
+  });
+
+  it("formats zero", () => {
+    expect(formatProtocolFeeBps(0)).toBe("0 bps");
+  });
+});
+
+describe("isClNotDeployedError", () => {
+  it("is true for an error with status 503", () => {
+    const err: ApiRequestError = new Error("CL is not deployed on this network");
+    err.status = 503;
+    expect(isClNotDeployedError(err)).toBe(true);
+  });
+
+  it("is false for an error with a different status", () => {
+    const err: ApiRequestError = new Error("bad request");
+    err.status = 400;
+    expect(isClNotDeployedError(err)).toBe(false);
+  });
+
+  it("is false for a plain Error with no status", () => {
+    expect(isClNotDeployedError(new Error("boom"))).toBe(false);
+  });
+
+  it("is false for non-error values", () => {
+    expect(isClNotDeployedError(null)).toBe(false);
+    expect(isClNotDeployedError(undefined)).toBe(false);
+    expect(isClNotDeployedError("string error")).toBe(false);
   });
 });

@@ -72,6 +72,51 @@ export function shortId(id: string, chars = 6): string {
   return `${id.slice(0, chars)}…${id.slice(-chars)}`;
 }
 
+/** Rounds to 2 decimals and drops a trailing ".00"/"0" (e.g. 5 -> "5",
+ * 5.5 -> "5.5", 16.67 -> "16.67"). Internal formatting helper. */
+function trimTrailingZeros(n: number): string {
+  return n.toFixed(2).replace(/\.?0+$/, "");
+}
+
+/**
+ * Formats the protocol-fee rate formula for the page-level header line,
+ * e.g. `formatProtocolFeeFormula(1667, 1)` ->
+ * `"max(φ × LP fee, floor) = max(16.67% × LP fee, 1 bps)"`.
+ * `phi` is parts of 10000 (see `/dex/cl/config`'s `phi`/`phi_raw`), `floorBps`
+ * is already in basis points.
+ */
+export function formatProtocolFeeFormula(phi: number, floorBps: number): string {
+  const phiPercent = trimTrailingZeros(phi / 100);
+  return `max(φ × LP fee, floor) = max(${phiPercent}% × LP fee, ${floorBps} bps)`;
+}
+
+/** Formats an effective protocol-fee rate (bps of the net input, as
+ * returned by `/dex/cl/positions` and `/dex/cl/preview`) for display. */
+export function formatProtocolFeeBps(bps: number): string {
+  return `${trimTrailingZeros(bps)} bps`;
+}
+
+/**
+ * An error thrown by a component's `apiJson`/`apiGetJson` fetch helper,
+ * carrying the HTTP status so callers can distinguish ci-api's CL-not-deployed
+ * 503 from any other failure without depending on the exact message text.
+ */
+export interface ApiRequestError extends Error {
+  status?: number;
+}
+
+/** Whether `error` is ci-api's "CL is not deployed on this network" 503
+ * (`utilities::cl::cl_deployment_unavailable`) — checked by status code, set
+ * by each component's fetch helper on every non-2xx response. */
+export function isClNotDeployedError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    (error as ApiRequestError).status === 503
+  );
+}
+
 export interface RangeSide {
   singleSided: boolean;
   /** which token the deposit is entirely denominated in, when single-sided */

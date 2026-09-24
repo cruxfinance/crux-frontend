@@ -21,12 +21,15 @@ import { useAlert } from "@contexts/AlertContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 import { formatFullNumber } from "@lib/utils/general";
 import {
+  ApiRequestError,
   ERG_TOKEN_ID,
   ERG_DECIMALS,
   classifyRangeSide,
   feeBpsToPercent,
+  formatProtocolFeeBps,
   humanPriceToRaw,
   humanToRaw,
+  isClNotDeployedError,
   isErgTokenInput,
   isValidFeeBps,
   normalizeClTokenIdInput,
@@ -67,6 +70,9 @@ interface PreviewResponse {
     spectrum?: number;
     cl_positions?: number;
   };
+  /** Effective protocol-fee rate for the request's fee_bps, in bps of the
+   * net input. Absent when the config box couldn't be found. */
+  protocol_fee_bps?: number;
   error?: string;
 }
 
@@ -98,10 +104,14 @@ async function apiJson<T>(path: string, body: object): Promise<T> {
     // non-JSON body, fall through to status-based error below
   }
   if (!response.ok) {
-    throw new Error(data?.error || `Request failed (${response.status})`);
+    const err: ApiRequestError = new Error(data?.error || `Request failed (${response.status})`);
+    err.status = response.status;
+    throw err;
   }
   if (data?.error) {
-    throw new Error(data.error);
+    const err: ApiRequestError = new Error(data.error);
+    err.status = response.status;
+    throw err;
   }
   return data as T;
 }
@@ -157,6 +167,7 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [notDeployedMessage, setNotDeployedMessage] = useState<string | null>(null);
 
   const [creating, setCreating] = useState(false);
 
@@ -251,6 +262,9 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
     } else {
       body.amount_y = humanToRaw(depositAmountNum, decY);
     }
+    if (isValidFeeBps(effectiveFeeBps)) {
+      body.fee_bps = effectiveFeeBps;
+    }
     return body;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -265,6 +279,7 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
     currentPriceNum,
     depositSide,
     depositAmountNum,
+    effectiveFeeBps,
   ]);
 
   // Debounced live preview.
@@ -283,11 +298,18 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
         if (!cancelled) {
           setPreview(result);
           setPreviewError(null);
+          setNotDeployedMessage(null);
         }
       } catch (error: any) {
         if (!cancelled) {
           setPreview(null);
-          setPreviewError(error.message || "Preview failed");
+          if (isClNotDeployedError(error)) {
+            setNotDeployedMessage(error.message);
+            setPreviewError(null);
+          } else {
+            setNotDeployedMessage(null);
+            setPreviewError(error.message || "Preview failed");
+          }
         }
       } finally {
         if (!cancelled) setPreviewLoading(false);
@@ -511,6 +533,12 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
         </Box>
       )}
 
+      {notDeployedMessage && (
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          {notDeployedMessage}
+        </Alert>
+      )}
+
       {previewError && (
         <Alert severity={isNoMarketError ? "info" : "error"} sx={{ mt: 2 }}>
           {isNoMarketError
@@ -553,6 +581,13 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
                     />
                   )}
                 </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                  Takers pay {effectiveFeeBps} bps LP fee
+                  {preview.protocol_fee_bps !== undefined
+                    ? ` + ${formatProtocolFeeBps(preview.protocol_fee_bps)} protocol fee`
+                    : ""}{" "}
+                  on the input.
+                </Typography>
                 <Grid container spacing={1} sx={{ mb: 1 }}>
                   <Grid item xs={6}>
                     <Typography variant="body2">

@@ -1,11 +1,37 @@
 import ErrorBoundary from "@components/ErrorBoundary";
-import React, { FC, useMemo, useState } from "react";
+import React, { FC, useEffect, useMemo, useState } from "react";
 import { Box, Typography, useTheme, useMediaQuery } from "@mui/material";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
 import CreatePositionCard from "@components/cl/CreatePositionCard";
 import PositionsTable, { ClPair } from "@components/cl/PositionsTable";
 import DevMintPanel from "@components/cl/DevMintPanel";
+import { formatProtocolFeeFormula, shortId } from "@components/cl/clMath";
+
+/** Response shape of `GET /dex/cl/config` — see ci-api's `entities::cl::ClProtocolConfigDto`. */
+interface ClProtocolConfigDto {
+  config_nft_id: string;
+  config_box_id: string;
+  receiver_address: string;
+  phi_raw: number;
+  floor_bps_raw: number;
+  phi: number;
+  floor_bps: number;
+  phi_cap: number;
+  floor_cap: number;
+}
+
+async function fetchClProtocolConfig(): Promise<ClProtocolConfigDto | null> {
+  try {
+    const response = await fetch(`${process.env.CRUX_API}/dex/cl/config`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data?.error) return null;
+    return data as ClProtocolConfigDto;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Hidden POC page for the CL (concentrated-liquidity) "range position"
@@ -50,15 +76,32 @@ const ClPositionsPage: FC = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const bumpRefresh = () => setRefreshTrigger((n) => n + 1);
 
+  const [protocolConfig, setProtocolConfig] = useState<ClProtocolConfigDto | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchClProtocolConfig().then((config) => {
+      if (!cancelled) setProtocolConfig(config);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <Box sx={{ p: upMd ? 3 : 1.5, maxWidth: 1200, mx: "auto" }}>
       <Typography variant="h5" sx={{ mb: 0.5 }}>
         CL Positions (POC)
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: protocolConfig ? 0.5 : 3 }}>
         Internal tool for testing concentrated-liquidity range positions on
         mainnet with self-minted test tokens. Not linked from navigation.
       </Typography>
+      {protocolConfig && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Protocol fee: {formatProtocolFeeFormula(protocolConfig.phi, protocolConfig.floor_bps)},
+          receiver {shortId(protocolConfig.receiver_address)}
+        </Typography>
+      )}
 
       <Box sx={{ mb: 3 }}>
         <CreatePositionCard

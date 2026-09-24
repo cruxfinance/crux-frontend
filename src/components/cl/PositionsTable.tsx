@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -27,7 +28,16 @@ import { useAlert } from "@contexts/AlertContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 import { formatFullNumber } from "@lib/utils/general";
 import { copyToClipboard } from "@lib/utils/clipboard";
-import { ERG_TOKEN_ID, ERG_DECIMALS, feeBpsToPercent, rawToHuman, shortId } from "./clMath";
+import {
+  ApiRequestError,
+  ERG_TOKEN_ID,
+  ERG_DECIMALS,
+  feeBpsToPercent,
+  formatProtocolFeeBps,
+  isClNotDeployedError,
+  rawToHuman,
+  shortId,
+} from "./clMath";
 
 declare global {
   interface Window {
@@ -62,6 +72,9 @@ interface ClPositionDto {
   liquidity: number;
   in_range: boolean;
   owned: boolean;
+  /** Effective protocol-fee rate for this position's fee_bps, in bps of the
+   * net input (`max(phi * fee_bps, floor_bps * 10000) / 10000`). */
+  protocol_fee_bps: number;
 }
 
 interface ClTokenMeta {
@@ -95,10 +108,14 @@ async function apiJson<T>(path: string, body: object): Promise<T> {
     // non-JSON body, fall through to status-based error below
   }
   if (!response.ok) {
-    throw new Error(data?.error || `Request failed (${response.status})`);
+    const err: ApiRequestError = new Error(data?.error || `Request failed (${response.status})`);
+    err.status = response.status;
+    throw err;
   }
   if (data?.error) {
-    throw new Error(data.error);
+    const err: ApiRequestError = new Error(data.error);
+    err.status = response.status;
+    throw err;
   }
   return data as T;
 }
@@ -124,6 +141,7 @@ const PositionsTable: FC<PositionsTableProps> = ({
   const [confirmWithdraw, setConfirmWithdraw] = useState<ClPositionDto | null>(
     null,
   );
+  const [notDeployedMessage, setNotDeployedMessage] = useState<string | null>(null);
 
   const getTokenMeta = useCallback(
     (tokenId: string): ClTokenMeta => {
@@ -144,8 +162,10 @@ const PositionsTable: FC<PositionsTableProps> = ({
       const data = await apiJson<PositionsResponse>("/dex/cl/positions", body);
       setPositions(data.positions || []);
       setTokensMeta(data.tokens || {});
+      setNotDeployedMessage(null);
     } catch (error: any) {
       console.error("Error fetching CL positions:", error);
+      setNotDeployedMessage(isClNotDeployedError(error) ? error.message : null);
     } finally {
       setInitialLoading(false);
       setLoading(false);
@@ -296,11 +316,17 @@ const PositionsTable: FC<PositionsTableProps> = ({
         </Box>
       </Box>
 
+      {notDeployedMessage && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {notDeployedMessage}
+        </Alert>
+      )}
+
       {initialLoading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
           <CircularProgress size={32} />
         </Box>
-      ) : displayedPositions.length === 0 ? (
+      ) : notDeployedMessage ? null : displayedPositions.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
           {mineOnly
             ? "You don't own any positions for this filter."
@@ -318,6 +344,7 @@ const PositionsTable: FC<PositionsTableProps> = ({
                 <TableCell align="right">Reserve X</TableCell>
                 <TableCell align="right">Reserve Y</TableCell>
                 <TableCell align="right">Fees X/Y</TableCell>
+                <TableCell align="right">Protocol fee</TableCell>
                 <TableCell>Position id</TableCell>
                 <TableCell align="center">Owned</TableCell>
                 <TableCell align="center">Actions</TableCell>
@@ -366,6 +393,9 @@ const PositionsTable: FC<PositionsTableProps> = ({
                       <Typography variant="caption" color="text.secondary">
                         raw {p.fee_x.toLocaleString()} / {p.fee_y.toLocaleString()}
                       </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                      <Typography variant="body2">{formatProtocolFeeBps(p.protocol_fee_bps)}</Typography>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
