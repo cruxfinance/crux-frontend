@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Paper,
   Typography,
@@ -16,6 +16,7 @@ import {
   CircularProgress,
   Divider,
   Chip,
+  Autocomplete,
 } from "@mui/material";
 import { useAlert } from "@contexts/AlertContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
@@ -24,9 +25,12 @@ import {
   ApiRequestError,
   ERG_TOKEN_ID,
   ERG_DECIMALS,
+  ERG_DEPOSIT_RESERVE_HUMAN,
   classifyRangeSide,
+  computeMaxDepositHuman,
   feeBpsToPercent,
   formatProtocolFeeBps,
+  formatWalletBalanceHuman,
   humanPriceToRaw,
   humanToRaw,
   isClNotDeployedError,
@@ -51,12 +55,21 @@ interface CreatePositionCardProps {
   walletConnected: boolean;
   onPairChange: (pair: ClPair | null) => void;
   onCreated: () => void;
+  /** Bumped by the page after a successful create or dev-mint, so wallet
+   * balances (and the token pickers built from them) can be refreshed. */
+  refreshTrigger?: number;
 }
 
 interface ResolvedToken {
   tokenId: string;
   name: string;
   decimals: number;
+}
+
+/** One entry from Nautilus's `get_balance("all")`. */
+interface NautilusBalanceEntry {
+  tokenId: string;
+  balance: string | number;
 }
 
 interface PreviewResponse {
@@ -116,6 +129,12 @@ async function apiJson<T>(path: string, body: object): Promise<T> {
   return data as T;
 }
 
+/** Module-level cache for `/crux/token_info/:id` lookups. Token name and
+ * decimals don't change, so this is shared across resolutions -- both the
+ * typed-input resolvers below and the wallet-asset dropdown, which may look
+ * up the same ids repeatedly as balances refresh. */
+const tokenInfoCache = new Map<string, ResolvedToken>();
+
 /** Resolves a user-typed token id field into name + decimals. Returns null
  * for blank/unresolvable input, and the ERG constant directly for ERG. */
 async function resolveToken(
@@ -127,13 +146,49 @@ async function resolveToken(
   }
   const id = input.trim();
   if (!id) return null;
+  return resolveTokenById(id);
+}
+
+/** Resolves a known token id (not a user-typed field -- no ERG/blank
+ * handling) into name + decimals, via the shared cache. */
+async function resolveTokenById(id: string): Promise<ResolvedToken | null> {
+  if (id === ERG_TOKEN_ID) {
+    return { tokenId: ERG_TOKEN_ID, name: "ERG", decimals: ERG_DECIMALS };
+  }
+  const cached = tokenInfoCache.get(id);
+  if (cached) return cached;
   try {
     const response = await fetch(`${process.env.CRUX_API}/crux/token_info/${id}`);
     if (!response.ok) return null;
     const data = await response.json();
     if (!data.token_name) return null;
-    return { tokenId: id, name: data.token_name, decimals: data.decimals ?? 0 };
+    const resolved: ResolvedToken = { tokenId: id, name: data.token_name, decimals: data.decimals ?? 0 };
+    tokenInfoCache.set(id, resolved);
+    return resolved;
   } catch {
+    return null;
+  }
+}
+
+/** Fetches every asset balance from the connected Nautilus wallet. Returns
+ * `null` if Nautilus isn't available or the call fails. ERG is reported by
+ * Nautilus under the literal tokenId `"ERG"`; this normalizes it to the
+ * app's `ERG_TOKEN_ID` so it keys the same map as every other lookup here. */
+async function fetchWalletBalances(): Promise<Map<string, number> | null> {
+  if (!window.ergoConnector?.nautilus) return null;
+  try {
+    const context = await window.ergoConnector.nautilus.getContext();
+    const entries: NautilusBalanceEntry[] = await context.get_balance("all");
+    const balances = new Map<string, number>();
+    for (const entry of entries || []) {
+      const tokenId = entry.tokenId === "ERG" ? ERG_TOKEN_ID : entry.tokenId;
+      const amount =
+        typeof entry.balance === "string" ? parseInt(entry.balance, 10) : entry.balance;
+      if (Number.isFinite(amount)) balances.set(tokenId, amount);
+    }
+    return balances;
+  } catch (error) {
+    console.error("Error fetching wallet balances:", error);
     return null;
   }
 }
@@ -143,6 +198,7 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
   walletConnected,
   onPairChange,
   onCreated,
+  refreshTrigger,
 }) => {
   const { addAlert } = useAlert();
   const { minerFee } = useMinerFee();
@@ -153,6 +209,98 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
   const [tokenY, setTokenY] = useState<ResolvedToken | null>(null);
   const [tokenXResolving, setTokenXResolving] = useState(false);
   const [tokenYResolving, setTokenYResolving] = useState(false);
+
+  // Wallet assets, for the Token X / Y dropdowns and the deposit balance +
+  // Max button. Keyed by ERG_TOKEN_ID/tokenId -> raw (smallest-unit) balance.
+  const [walletBalances, setWalletBalances] = useState<Map<string, number>>(new Map());
+  const [walletTokenMeta, setWalletTokenMeta] = useState<Record<string, ResolvedToken>>({});
+
+  // Load wallet balances when the wallet connects, and refresh after a
+  // successful create or dev-mint (the page bumps `refreshTrigger`).
+  useEffect(() => {
+    if (!walletConnected) {
+      setWalletBalances(new Map());
+      return;
+    }
+    let cancelled = false;
+    fetchWalletBalances().then((balances) => {
+      if (!cancelled && balances) setWalletBalances(balances);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [walletConnected, refreshTrigger]);
+
+  // Resolve name + decimals for every wallet-held token, so the dropdowns
+  // can show names/balances instead of bare ids. Cached in resolveTokenById.
+  useEffect(() => {
+    let cancelled = false;
+    const ids = Array.from(walletBalances.keys());
+    (async () => {
+      const resolved = await Promise.all(ids.map((id) => resolveTokenById(id)));
+      if (cancelled) return;
+      setWalletTokenMeta((prev) => {
+        const next = { ...prev };
+        ids.forEach((id, i) => {
+          const meta = resolved[i];
+          if (meta) next[id] = meta;
+        });
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [walletBalances]);
+
+  // Wallet token ids available for each dropdown, restricted to ids whose
+  // name/decimals resolved. ERG is always offered for Token X; Token Y never
+  // offers ERG, matching the existing typed-input convention below.
+  const walletTokenIdsX = useMemo(() => {
+    const ids = new Set<string>([ERG_TOKEN_ID]);
+    walletBalances.forEach((amount, id) => {
+      if (amount > 0) ids.add(id);
+    });
+    return Array.from(ids).filter((id) => id === ERG_TOKEN_ID || walletTokenMeta[id]);
+  }, [walletBalances, walletTokenMeta]);
+
+  const walletTokenIdsY = useMemo(() => {
+    const ids: string[] = [];
+    walletBalances.forEach((amount, id) => {
+      if (amount > 0 && id !== ERG_TOKEN_ID && walletTokenMeta[id]) ids.push(id);
+    });
+    return ids;
+  }, [walletBalances, walletTokenMeta]);
+
+  /** Friendly "name — balance — shortId" label for a wallet dropdown row. */
+  const optionLabelFor = useCallback(
+    (tokenId: string): string => {
+      const meta =
+        tokenId === ERG_TOKEN_ID
+          ? { name: "ERG", decimals: ERG_DECIMALS }
+          : walletTokenMeta[tokenId];
+      const decimals = meta?.decimals ?? 0;
+      const name = meta?.name ?? shortId(tokenId, 4);
+      const balanceRaw = walletBalances.get(tokenId) ?? 0;
+      return `${name} — ${formatWalletBalanceHuman(rawToHuman(balanceRaw, decimals))} — ${shortId(tokenId)}`;
+    },
+    [walletBalances, walletTokenMeta],
+  );
+
+  /** Filters dropdown options by id or token name as the user types --
+   * `getOptionLabel` below returns the raw id/"ERG", not the friendly
+   * label, so the default label-based filtering wouldn't match on name. */
+  const filterWalletOptions = useCallback(
+    (options: string[], state: { inputValue: string }) => {
+      const q = state.inputValue.trim().toLowerCase();
+      if (!q) return options;
+      return options.filter((id) => {
+        const name = id === ERG_TOKEN_ID ? "ERG" : walletTokenMeta[id]?.name || "";
+        return id.toLowerCase().includes(q) || name.toLowerCase().includes(q);
+      });
+    },
+    [walletTokenMeta],
+  );
 
   const [feeBpsPreset, setFeeBpsPreset] = useState<number>(30);
   const [feeBpsCustom, setFeeBpsCustom] = useState("30");
@@ -226,6 +374,27 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
 
   const decX = tokenX?.decimals;
   const decY = tokenY?.decimals;
+
+  // Wallet balance for whichever token the deposit amount field is
+  // currently denominated in, for the "Balance: ..." helper text + Max button.
+  const depositToken = depositSide === "x" ? tokenX : tokenY;
+  const depositTokenBalanceRaw = depositToken
+    ? walletBalances.get(depositToken.tokenId)
+    : undefined;
+  const depositTokenBalanceHuman =
+    depositToken && depositTokenBalanceRaw !== undefined
+      ? rawToHuman(depositTokenBalanceRaw, depositToken.decimals)
+      : undefined;
+  const depositTokenIsErg = depositToken?.tokenId === ERG_TOKEN_ID;
+  const maxDepositHuman =
+    depositTokenBalanceHuman !== undefined
+      ? computeMaxDepositHuman(depositTokenBalanceHuman, depositTokenIsErg)
+      : undefined;
+
+  const handleMaxDeposit = () => {
+    if (maxDepositHuman === undefined) return;
+    setDepositAmountHuman(String(maxDepositHuman));
+  };
 
   const minPriceNum = parseFloat(minPriceHuman);
   const maxPriceNum = parseFloat(maxPriceHuman);
@@ -385,43 +554,67 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
 
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6}>
-          <TextField
-            label="Token X"
+          <Autocomplete
+            freeSolo
             fullWidth
             size="small"
+            options={walletTokenIdsX}
             value={tokenXInput}
-            onChange={(e) => setTokenXInput(e.target.value)}
-            placeholder="ERG (or a token id)"
-            helperText={
-              tokenXResolving
-                ? "Resolving..."
-                : tokenX
-                  ? `${tokenX.name} (${tokenX.decimals} decimals)${
-                      tokenX.tokenId === ERG_TOKEN_ID ? "" : ` — ${shortId(tokenX.tokenId)}`
-                    }`
-                  : tokenXInput.trim()
-                    ? "Unknown token id"
-                    : "Leave empty or type ERG for the ERG side"
-            }
+            onChange={(_, newValue) => setTokenXInput(newValue ?? "")}
+            inputValue={tokenXInput}
+            onInputChange={(_, newValue) => setTokenXInput(newValue)}
+            getOptionLabel={(option) => (option === ERG_TOKEN_ID ? "ERG" : option)}
+            filterOptions={filterWalletOptions}
+            renderOption={(props, option) => <li {...props}>{optionLabelFor(option)}</li>}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Token X"
+                placeholder="ERG (or a token id)"
+                helperText={
+                  tokenXResolving
+                    ? "Resolving..."
+                    : tokenX
+                      ? `${tokenX.name} (${tokenX.decimals} decimals)${
+                          tokenX.tokenId === ERG_TOKEN_ID ? "" : ` — ${shortId(tokenX.tokenId)}`
+                        }`
+                      : tokenXInput.trim()
+                        ? "Unknown token id"
+                        : "Leave empty or type ERG for the ERG side"
+                }
+              />
+            )}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField
-            label="Token Y"
+          <Autocomplete
+            freeSolo
             fullWidth
             size="small"
+            options={walletTokenIdsY}
             value={tokenYInput}
-            onChange={(e) => setTokenYInput(e.target.value)}
-            placeholder="Token id"
-            helperText={
-              tokenYResolving
-                ? "Resolving..."
-                : tokenY
-                  ? `${tokenY.name} (${tokenY.decimals} decimals) — ${shortId(tokenY.tokenId)}`
-                  : tokenYInput.trim()
-                    ? "Unknown token id"
-                    : "Required"
-            }
+            onChange={(_, newValue) => setTokenYInput(newValue ?? "")}
+            inputValue={tokenYInput}
+            onInputChange={(_, newValue) => setTokenYInput(newValue)}
+            getOptionLabel={(option) => option}
+            filterOptions={filterWalletOptions}
+            renderOption={(props, option) => <li {...props}>{optionLabelFor(option)}</li>}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Token Y"
+                placeholder="Token id"
+                helperText={
+                  tokenYResolving
+                    ? "Resolving..."
+                    : tokenY
+                      ? `${tokenY.name} (${tokenY.decimals} decimals) — ${shortId(tokenY.tokenId)}`
+                      : tokenYInput.trim()
+                        ? "Unknown token id"
+                        : "Required"
+                }
+              />
+            )}
           />
         </Grid>
 
@@ -521,6 +714,26 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
             value={depositAmountHuman}
             onChange={(e) => setDepositAmountHuman(e.target.value)}
           />
+          {walletConnected && depositToken && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                {depositTokenBalanceHuman !== undefined
+                  ? `Balance: ${formatWalletBalanceHuman(depositTokenBalanceHuman)} ${depositToken.name}${
+                      depositTokenIsErg
+                        ? ` (Max leaves ~${ERG_DEPOSIT_RESERVE_HUMAN} ERG for the miner fee and box minimums)`
+                        : ""
+                    }`
+                  : "Balance: unknown"}
+              </Typography>
+              <Button
+                size="small"
+                onClick={handleMaxDeposit}
+                disabled={maxDepositHuman === undefined}
+              >
+                Max
+              </Button>
+            </Box>
+          )}
         </Grid>
       </Grid>
 

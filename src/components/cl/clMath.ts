@@ -117,6 +117,54 @@ export function isClNotDeployedError(error: unknown): boolean {
   );
 }
 
+/**
+ * Amount of ERG reserved when the "Max" button fills an ERG deposit amount,
+ * left over for the miner fee and the position box's minimum-ERG
+ * requirements. See `CreatePositionCard`'s Max button.
+ */
+export const ERG_DEPOSIT_RESERVE_HUMAN = 0.01;
+
+/**
+ * The largest human-unit amount the "Max" button should fill for a wallet
+ * balance, given whether the deposit token is ERG. ERG holds back
+ * `ERG_DEPOSIT_RESERVE_HUMAN` for the miner fee and box minimums; any other
+ * token can use its full balance. Never negative.
+ */
+export function computeMaxDepositHuman(balanceHuman: number, isErg: boolean): number {
+  if (!Number.isFinite(balanceHuman)) return 0;
+  const max = isErg ? balanceHuman - ERG_DEPOSIT_RESERVE_HUMAN : balanceHuman;
+  return Math.max(max, 0);
+}
+
+/**
+ * Formats a human-unit wallet balance for display in the token picker's
+ * option labels and the deposit field's "Balance: ..." helper text.
+ * Trims trailing zeros beyond 6 decimal places (e.g. 1.5, 1.500001, 0).
+ */
+export function formatWalletBalanceHuman(balanceHuman: number): string {
+  if (!Number.isFinite(balanceHuman)) return "0";
+  const fixed = Math.max(balanceHuman, 0).toFixed(6);
+  const trimmed = fixed.replace(/\.?0+$/, "");
+  return trimmed === "" ? "0" : trimmed;
+}
+
+export interface WalletTokenOption {
+  tokenId: string;
+  name: string;
+  decimals: number;
+  /** Wallet balance for this token, in human units (already divided by
+   * `10^decimals`). */
+  balanceHuman: number;
+}
+
+/**
+ * Formats a wallet-held token as a picker option label:
+ * `"name — balance — shortId"`, e.g. `"SigUSD — 12.5 — 03faf...9a1c"`.
+ */
+export function formatTokenOptionLabel(option: WalletTokenOption): string {
+  return `${option.name} — ${formatWalletBalanceHuman(option.balanceHuman)} — ${shortId(option.tokenId)}`;
+}
+
 export interface RangeSide {
   singleSided: boolean;
   /** which token the deposit is entirely denominated in, when single-sided */

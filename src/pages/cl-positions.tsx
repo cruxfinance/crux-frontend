@@ -110,6 +110,7 @@ const ClPositionsPage: FC = () => {
           walletConnected={dAppWallet.connected}
           onPairChange={setPair}
           onCreated={bumpRefresh}
+          refreshTrigger={refreshTrigger}
         />
       </Box>
 

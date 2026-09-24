@@ -1,10 +1,14 @@
 import {
   ApiRequestError,
+  ERG_DEPOSIT_RESERVE_HUMAN,
   ERG_TOKEN_ID,
   classifyRangeSide,
+  computeMaxDepositHuman,
   feeBpsToPercent,
   formatProtocolFeeBps,
   formatProtocolFeeFormula,
+  formatTokenOptionLabel,
+  formatWalletBalanceHuman,
   humanPriceToRaw,
   humanToRaw,
   isClNotDeployedError,
@@ -186,6 +190,60 @@ describe("formatProtocolFeeBps", () => {
 
   it("formats zero", () => {
     expect(formatProtocolFeeBps(0)).toBe("0 bps");
+  });
+});
+
+describe("computeMaxDepositHuman", () => {
+  it("holds back the ERG reserve for ERG", () => {
+    expect(computeMaxDepositHuman(5, true)).toBeCloseTo(5 - ERG_DEPOSIT_RESERVE_HUMAN, 9);
+  });
+
+  it("uses the full balance for a non-ERG token", () => {
+    expect(computeMaxDepositHuman(5, false)).toBe(5);
+  });
+
+  it("never goes negative when the ERG balance is below the reserve", () => {
+    expect(computeMaxDepositHuman(0.001, true)).toBe(0);
+    expect(computeMaxDepositHuman(0, true)).toBe(0);
+  });
+
+  it("treats a non-finite balance as zero", () => {
+    expect(computeMaxDepositHuman(NaN, false)).toBe(0);
+    expect(computeMaxDepositHuman(Infinity, true)).toBe(0);
+  });
+});
+
+describe("formatWalletBalanceHuman", () => {
+  it("trims trailing zeros", () => {
+    expect(formatWalletBalanceHuman(1)).toBe("1");
+    expect(formatWalletBalanceHuman(1.5)).toBe("1.5");
+  });
+
+  it("formats zero as \"0\"", () => {
+    expect(formatWalletBalanceHuman(0)).toBe("0");
+  });
+
+  it("caps precision at 6 decimals", () => {
+    expect(formatWalletBalanceHuman(1.2345678)).toBe("1.234568");
+  });
+
+  it("treats a non-finite value as zero", () => {
+    expect(formatWalletBalanceHuman(NaN)).toBe("0");
+  });
+});
+
+describe("formatTokenOptionLabel", () => {
+  it("formats name, balance, and short id", () => {
+    const id = "a".repeat(64);
+    expect(
+      formatTokenOptionLabel({ tokenId: id, name: "SigUSD", decimals: 2, balanceHuman: 12.5 }),
+    ).toBe(`SigUSD — 12.5 — ${shortId(id)}`);
+  });
+
+  it("formats ERG using ERG_TOKEN_ID", () => {
+    expect(
+      formatTokenOptionLabel({ tokenId: ERG_TOKEN_ID, name: "ERG", decimals: 9, balanceHuman: 3 }),
+    ).toBe(`ERG — 3 — ${shortId(ERG_TOKEN_ID)}`);
   });
 });
 
