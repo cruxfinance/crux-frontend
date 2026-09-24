@@ -165,6 +165,41 @@ export function formatTokenOptionLabel(option: WalletTokenOption): string {
   return `${option.name} — ${formatWalletBalanceHuman(option.balanceHuman)} — ${shortId(option.tokenId)}`;
 }
 
+/**
+ * Converts a human limit-order price (Y per X, this page's convention) into
+ * the raw `{numerator, denominator}` ratio ci-api's `/dex/limit_order`
+ * expects, where `numerator/denominator` is the minimum raw taken units per
+ * raw given unit: the on-chain condition is
+ * `takenReceived * denominator >= givenSpent * numerator`.
+ *
+ * Mirrors `LimitOrderWidget`'s buy/sell price-ratio math (~lines 385-400),
+ * generalized from ERG/base-token to an arbitrary X/Y pair. `numerator` is
+ * always rounded up (ceil) so the counterparty pays at least the stated
+ * price, never less.
+ *
+ * - sellX: give X, take Y. Rate is already Y per X, so numerator scales P
+ *   into raw Y units and denominator is raw X's unit (10^decX).
+ * - buyX: give Y, take X. Rate must be inverted to X per Y (1/P), scaled
+ *   into raw X units, over raw Y's unit (10^decY).
+ */
+export function limitOrderPriceRatio(
+  side: "sellX" | "buyX",
+  priceYPerX: number,
+  decX: number,
+  decY: number,
+): { numerator: number; denominator: number } {
+  if (side === "sellX") {
+    return {
+      numerator: Math.ceil(priceYPerX * Math.pow(10, decY)),
+      denominator: Math.pow(10, decX),
+    };
+  }
+  return {
+    numerator: Math.ceil((1 / priceYPerX) * Math.pow(10, decX)),
+    denominator: Math.pow(10, decY),
+  };
+}
+
 export interface RangeSide {
   singleSided: boolean;
   /** which token the deposit is entirely denominated in, when single-sided */

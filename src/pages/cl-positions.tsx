@@ -4,6 +4,7 @@ import { Box, Typography, useTheme, useMediaQuery } from "@mui/material";
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
 import CreatePositionCard from "@components/cl/CreatePositionCard";
+import LimitOrderCard from "@components/cl/LimitOrderCard";
 import PositionsTable, { ClPair } from "@components/cl/PositionsTable";
 import DevMintPanel from "@components/cl/DevMintPanel";
 import DevConfigPanel from "@components/cl/DevConfigPanel";
@@ -120,6 +121,15 @@ const ClPositionsPage: FC = () => {
           pair={pair}
           refreshTrigger={refreshTrigger}
           onChanged={bumpRefresh}
+        />
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <LimitOrderCard
+          pair={pair}
+          walletConnected={dAppWallet.connected}
+          refreshTrigger={refreshTrigger}
+          onCreated={bumpRefresh}
         />
       </Box>
 

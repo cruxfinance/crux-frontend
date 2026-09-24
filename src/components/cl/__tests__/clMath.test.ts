@@ -14,6 +14,7 @@ import {
   isClNotDeployedError,
   isErgTokenInput,
   isValidFeeBps,
+  limitOrderPriceRatio,
   normalizeClTokenIdInput,
   rawPriceToHuman,
   rawToHuman,
@@ -244,6 +245,76 @@ describe("formatTokenOptionLabel", () => {
     expect(
       formatTokenOptionLabel({ tokenId: ERG_TOKEN_ID, name: "ERG", decimals: 9, balanceHuman: 3 }),
     ).toBe(`ERG — 3 — ${shortId(ERG_TOKEN_ID)}`);
+  });
+});
+
+describe("limitOrderPriceRatio", () => {
+  describe("sellX (give X, take Y)", () => {
+    it("ERG (X, 9 decimals) against a 0-decimal token (Y)", () => {
+      expect(limitOrderPriceRatio("sellX", 3, 9, 0)).toEqual({
+        numerator: 3,
+        denominator: 1e9,
+      });
+    });
+
+    it("ERG (X, 9 decimals) against a 2-decimal token (Y)", () => {
+      expect(limitOrderPriceRatio("sellX", 1.25, 9, 2)).toEqual({
+        numerator: 125,
+        denominator: 1e9,
+      });
+    });
+
+    it("ERG (X, 9 decimals) against a 9-decimal token (Y)", () => {
+      expect(limitOrderPriceRatio("sellX", 2.5, 9, 9)).toEqual({
+        numerator: 2_500_000_000,
+        denominator: 1e9,
+      });
+    });
+
+    it("a 2-decimal token (X) against ERG (Y, 9 decimals)", () => {
+      expect(limitOrderPriceRatio("sellX", 0.001, 2, 9)).toEqual({
+        numerator: 1_000_000,
+        denominator: 100,
+      });
+    });
+  });
+
+  describe("buyX (give Y, take X)", () => {
+    it("ERG (X, 9 decimals) against a 0-decimal token (Y)", () => {
+      expect(limitOrderPriceRatio("buyX", 4, 9, 0)).toEqual({
+        numerator: 250_000_000,
+        denominator: 1,
+      });
+    });
+
+    it("ERG (X, 9 decimals) against a 2-decimal token (Y)", () => {
+      expect(limitOrderPriceRatio("buyX", 2, 9, 2)).toEqual({
+        numerator: 500_000_000,
+        denominator: 100,
+      });
+    });
+
+    it("a 2-decimal token (X) against ERG (Y, 9 decimals)", () => {
+      expect(limitOrderPriceRatio("buyX", 0.5, 2, 9)).toEqual({
+        numerator: 200,
+        denominator: 1e9,
+      });
+    });
+  });
+
+  it("rounds the numerator up (ceil), never down", () => {
+    // sellX: P = 1/3 -> 1000/3 = 333.33... raw Y units, ceils to 334.
+    expect(limitOrderPriceRatio("sellX", 1 / 3, 9, 3)).toEqual({
+      numerator: 334,
+      denominator: 1e9,
+    });
+
+    // buyX: P = 3 (Y per X), decX = 0 -> 1/3 raw X unit, ceils to 1
+    // (never 0 -- the taker must receive at least one raw unit of X).
+    expect(limitOrderPriceRatio("buyX", 3, 0, 9)).toEqual({
+      numerator: 1,
+      denominator: 1e9,
+    });
   });
 });
 
