@@ -6,6 +6,7 @@ import { trpc } from "@lib/trpc";
 import CreatePositionCard from "@components/cl/CreatePositionCard";
 import PositionsTable, { ClPair } from "@components/cl/PositionsTable";
 import DevMintPanel from "@components/cl/DevMintPanel";
+import DevConfigPanel from "@components/cl/DevConfigPanel";
 import { formatProtocolFeeFormula, shortId } from "@components/cl/clMath";
 
 /** Response shape of `GET /dex/cl/config` — see ci-api's `entities::cl::ClProtocolConfigDto`. */
@@ -122,6 +123,9 @@ const ClPositionsPage: FC = () => {
       </Box>
 
       <DevMintPanel userAddresses={userAddresses} onMinted={bumpRefresh} />
+      <Box sx={{ mt: 2 }}>
+        <DevConfigPanel userAddresses={userAddresses} />
+      </Box>
     </Box>
   );
 };
