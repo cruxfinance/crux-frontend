@@ -15,7 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useAlert } from "@contexts/AlertContext";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, toRawAmount } from "@lib/utils/general";
 
 declare global {
   interface Window {
@@ -126,21 +126,29 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
       return;
     }
 
+    const baseAmountRaw = toRawAmount(baseInput, pool.base_token_decimals);
+    const quoteAmountRaw = toRawAmount(quoteInput, pool.quote_token_decimals);
+    // toRawAmount rejects forms parseFloat accepts, such as "1e3".
+    if (baseAmountRaw <= BigInt(0) || quoteAmountRaw <= BigInt(0)) {
+      addAlert("error", "Please enter valid amounts");
+      return;
+    }
+    if (
+      baseAmountRaw > BigInt(Number.MAX_SAFE_INTEGER) ||
+      quoteAmountRaw > BigInt(Number.MAX_SAFE_INTEGER)
+    ) {
+      addAlert("error", "Amount is too large");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         pool_id: pool.pool_id,
         user_addresses: userAddresses,
-        base_amount: Math.round(baseAmount * Math.pow(10, pool.base_token_decimals)),
-        quote_amount: Math.round(quoteAmount * Math.pow(10, pool.quote_token_decimals)),
+        base_amount: Number(baseAmountRaw),
+        quote_amount: Number(quoteAmountRaw),
       };
-      console.log("Add liquidity payload:", {
-        baseInput, quoteInput,
-        baseAmount, quoteAmount,
-        base_token: pool.base_token_name, base_decimals: pool.base_token_decimals,
-        quote_token: pool.quote_token_name, quote_decimals: pool.quote_token_decimals,
-        ...payload,
-      });
       const response = await fetch(
         `${process.env.CRUX_API}/dex/add_liquidity`,
         {

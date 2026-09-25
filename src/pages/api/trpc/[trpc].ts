@@ -9,6 +9,9 @@ export default trpcNext.createNextApiHandler({
   router: appRouter,
   createContext: createTRPCContext,
   onError: ({ error }) => {
+    // Log unconditionally so errors still reach stdout when Sentry is
+    // disabled (empty DSN), not just when it's configured.
+    console.error("tRPC error:", error);
     Sentry.captureException(error);
   },
 });

@@ -153,9 +153,11 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
 
     let reconnectAttempts = 0;
     let reconnectTimeout: NodeJS.Timeout | null = null;
+    let disposed = false;
     const MAX_RECONNECT_DELAY = 30000;
 
     const connectWebSocket = () => {
+      if (disposed) return;
       try {
         const ws = new WebSocket(
           `${wsUrl}/dex/order_history/ws?token_id=${baseToken.tokenId}&base_token_id=${quoteToken.tokenId}&offset=0&limit=50`,
@@ -204,6 +206,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
         };
 
         ws.onclose = () => {
+          if (disposed) return;
           setWsConnected(false);
           // Exponential backoff reconnect
           reconnectAttempts += 1;
@@ -228,10 +231,14 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
     connectWebSocket();
 
     return () => {
+      disposed = true;
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
       }
       if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.onerror = null;
+        wsRef.current.onmessage = null;
         wsRef.current.close();
         wsRef.current = null;
       }
