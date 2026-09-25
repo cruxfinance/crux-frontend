@@ -13,6 +13,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useAlert } from "@contexts/AlertContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
+import { submitSignedTx } from "./walletTokens";
 
 declare global {
   interface Window {
@@ -108,7 +109,7 @@ const DevMintPanel: FC<DevMintPanelProps> = ({ userAddresses, onMinted }) => {
       const ergoCnct = window.ergoConnector.nautilus;
       const context = await ergoCnct.getContext();
       const signedTx = await context.sign_tx(result.unsigned_tx);
-      const txId = await context.submit_tx(signedTx);
+      const txId = await submitSignedTx(context, signedTx);
 
       addAlert(
         "success",

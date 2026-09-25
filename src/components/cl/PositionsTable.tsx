@@ -38,6 +38,7 @@ import {
   rawToHuman,
   shortId,
 } from "./clMath";
+import { submitSignedTx } from "./walletTokens";
 
 declare global {
   interface Window {
@@ -203,7 +204,7 @@ const PositionsTable: FC<PositionsTableProps> = ({
       const ergoCnct = window.ergoConnector.nautilus;
       const context = await ergoCnct.getContext();
       const signedTx = await context.sign_tx(result.unsigned_tx);
-      const txId = await context.submit_tx(signedTx);
+      const txId = await submitSignedTx(context, signedTx);
       addAlert("success", `${successVerb}! TX: ${txId.slice(0, 8)}...`);
       onChanged();
       fetchPositions();

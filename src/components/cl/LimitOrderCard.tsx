@@ -31,6 +31,7 @@ import {
   apiJson,
   resolveToken,
   resolveTokenById,
+  submitSignedTx,
   useWalletTokens,
   walletTokenIdsForSide,
 } from "./walletTokens";
@@ -299,7 +300,7 @@ const LimitOrderCard: FC<LimitOrderCardProps> = ({
       const result = await apiJson<LimitOrderResponse>("/dex/limit_order", body);
 
       const signedTx = await context.sign_tx(result.unsigned_tx);
-      const txId = await context.submit_tx(signedTx);
+      const txId = await submitSignedTx(context, signedTx);
 
       addAlert("success", `Limit order created! TX: ${txId.slice(0, 8)}...`);
       setLastOrderId(result.order_id);

@@ -63,6 +63,39 @@ export async function apiJson<T>(path: string, body: object): Promise<T> {
   return data as T;
 }
 
+/** Submits a signed tx to Nautilus and our backend concurrently -- our node
+ * can learn about a Nautilus-submitted tx minutes late, so the next tx
+ * ci-api builds can reuse boxes the wallet already spent. Resolves with the
+ * tx id as soon as either submission succeeds (same id either way); only
+ * rejects -- with Nautilus's error, so existing error handling is unchanged
+ * -- if both fail. The backend leg is best-effort: a failure there is just
+ * warned. */
+export async function submitSignedTx(
+  context: { submit_tx: (signedTx: object) => Promise<string> },
+  signedTx: object,
+): Promise<string> {
+  const nautilus = context.submit_tx(signedTx);
+  const backend = apiJson<{ tx_id: string }>("/dex/submit_tx", signedTx).then((r) => r.tx_id);
+
+  return new Promise<string>((resolve, reject) => {
+    let nautilusFailed = false;
+    let backendFailed = false;
+    let nautilusError: unknown;
+
+    nautilus.then(resolve, (error) => {
+      nautilusError = error;
+      nautilusFailed = true;
+      if (backendFailed) reject(nautilusError);
+    });
+
+    backend.then(resolve, (error) => {
+      console.warn("Backend tx submission failed:", error);
+      backendFailed = true;
+      if (nautilusFailed) reject(nautilusError);
+    });
+  });
+}
+
 /** Resolves a user-typed token id field into name + decimals. Returns null
  * for blank/unresolvable input, and the ERG constant directly for ERG. */
 export async function resolveToken(

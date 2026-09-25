@@ -17,6 +17,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useAlert } from "@contexts/AlertContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 import { copyToClipboard } from "@lib/utils/clipboard";
+import { submitSignedTx } from "./walletTokens";
 
 declare global {
   interface Window {
@@ -167,7 +168,7 @@ const DevConfigPanel: FC<DevConfigPanelProps> = ({ userAddresses }) => {
       const ergoCnct = window.ergoConnector.nautilus;
       const context = await ergoCnct.getContext();
       const signedTx = await context.sign_tx(result.unsigned_tx);
-      const txId = await context.submit_tx(signedTx);
+      const txId = await submitSignedTx(context, signedTx);
 
       setConfigNftId(result.config_nft_id);
       addAlert(

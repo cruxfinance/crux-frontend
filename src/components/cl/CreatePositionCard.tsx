@@ -38,7 +38,13 @@ import {
   rawToHuman,
   shortId,
 } from "./clMath";
-import { apiJson, resolveToken, useWalletTokens, walletTokenIdsForSide } from "./walletTokens";
+import {
+  apiJson,
+  resolveToken,
+  submitSignedTx,
+  useWalletTokens,
+  walletTokenIdsForSide,
+} from "./walletTokens";
 import type { ResolvedToken } from "./walletTokens";
 import type { ClPair } from "./PositionsTable";
 
@@ -354,7 +360,7 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
       const ergoCnct = window.ergoConnector.nautilus;
       const context = await ergoCnct.getContext();
       const signedTx = await context.sign_tx(result.unsigned_tx);
-      const txId = await context.submit_tx(signedTx);
+      const txId = await submitSignedTx(context, signedTx);
 
       addAlert(
         "success",
