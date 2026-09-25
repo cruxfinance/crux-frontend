@@ -41,7 +41,7 @@ import { getCachedIcon, resolveIcons as batchResolveIcons } from "@lib/utils/ico
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
 import { formatNumber, formatFullNumber, normalizeTicker, calculatePairPrice } from "@lib/utils/general";
-import { USE_TOKEN_ID, ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
+import { USE_TOKEN_ID, ERG_TOKEN_ID, CRUX_TOKEN_ID } from "@lib/configs/paymentTokens";
 import { getOrderSide, getOrderPrice } from "@lib/utils/pairPrice";
 import MarketOrderWidget from "@components/trade/MarketOrderWidget";
 import TradeTabsPanel from "@components/trade/TradeTabsPanel";
@@ -400,9 +400,17 @@ const TradePage: FC = () => {
     const hasParams = !!tokenParam;
 
     if (!hasParams) {
-      // No URL params — load default pair
-      urlParamsStatusRef.current = "skipped";
-      loadDefaultPair();
+      // The USE LP pool is drained, so its ERG/USE price is meaningless. Land
+      // on CRUX/ERG until the pool is refilled, then go back to
+      // loadDefaultPair() here.
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, token: CRUX_TOKEN_ID, pair: ERG_TOKEN_ID },
+        },
+        undefined,
+        { shallow: true },
+      );
       return;
     }
 
