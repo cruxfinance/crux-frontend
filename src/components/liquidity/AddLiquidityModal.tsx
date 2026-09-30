@@ -3,6 +3,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
   Button,
   TextField,
   Typography,
@@ -15,7 +18,11 @@ import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useAlert } from "@contexts/AlertContext";
-import { formatNumber, formatFullNumber, toRawAmount } from "@lib/utils/general";
+import { formatFullNumber, toRawAmount } from "@lib/utils/general";
+import type { MergedPair } from "@components/cl/clLiquidity";
+import type { ClProtocolConfig } from "@components/cl/useClData";
+import type { PoolWithApr } from "./liquidityTypes";
+import CustomRangeForm from "./CustomRangeForm";
 
 declare global {
   interface Window {
@@ -23,41 +30,20 @@ declare global {
   }
 }
 
-interface PoolWithApr {
-  pool_id: string;
-  pool_type: string;
-  base_token_id: string;
-  base_token_name: string;
-  base_token_decimals: number;
-  quote_token_id: string;
-  quote_token_name: string;
-  quote_token_decimals: number;
-  base_amount: number;
-  quote_amount: number;
-  tvl_erg: number;
-  fee_pct: number;
-  volume_24h: number;
-  apr_7d: number | null;
-  apr_30d: number | null;
-}
-
-interface AddLiquidityModalProps {
-  open: boolean;
+interface FullRangeFormProps {
   pool: PoolWithApr;
   userAddresses: string[];
   ergPrice: number;
   icons: Record<string, string>;
-  onClose: () => void;
   onSuccess: () => void;
 }
 
-const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
-  open,
+/** Full-range add to a Spectrum-style pool (the original Add Liquidity flow). */
+const FullRangeForm: FC<FullRangeFormProps> = ({
   pool,
   userAddresses,
   ergPrice,
   icons,
-  onClose,
   onSuccess,
 }) => {
   const { addAlert } = useAlert();
@@ -106,11 +92,6 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
       return;
     }
     handleSubmit();
-  };
-
-  const handleClose = () => {
-    setShowConfirmation(false);
-    onClose();
   };
 
   const handleSubmit = async () => {
@@ -201,82 +182,8 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
       : 0;
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "16px",
-          border: "1px solid rgba(200, 225, 255, 0.08)",
-          backgroundImage: "none",
-        },
-      }}
-    >
-      {/* Header */}
-      <DialogTitle
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          pb: 1,
-        }}
-      >
-        <Typography variant="h6" fontWeight={700} sx={{ mb: 0 }}>
-          Add Liquidity
-        </Typography>
-        <IconButton
-          onClick={handleClose}
-          size="small"
-          sx={{
-            color: "text.secondary",
-            "&:hover": { color: "text.primary", bgcolor: "rgba(255,255,255,0.05)" },
-          }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-
+    <>
       <DialogContent sx={{ px: 3, pb: 0 }}>
-        {/* Pool pair header */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            mb: 3,
-            p: 2,
-            borderRadius: "12px",
-            bgcolor: "rgba(255,255,255,0.03)",
-            border: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <Box sx={{ position: "relative", width: 52, height: 32, flexShrink: 0 }}>
-            <Avatar
-              src={icons[pool.quote_token_id]}
-              sx={{ width: 32, height: 32, position: "absolute", left: 0, zIndex: 2, border: "2px solid", borderColor: "background.paper" }}
-            >
-              {pool.quote_token_name?.[0]}
-            </Avatar>
-            <Avatar
-              src={icons[pool.base_token_id]}
-              sx={{ width: 32, height: 32, position: "absolute", left: 20, zIndex: 1, border: "2px solid", borderColor: "background.paper" }}
-            >
-              {pool.base_token_name?.[0]}
-            </Avatar>
-          </Box>
-          <Box sx={{ ml: 1 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0, lineHeight: 1.3 }}>
-              {pool.quote_token_name} / {pool.base_token_name}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0 }}>
-              Fee: {pool.fee_pct.toFixed(1)}%
-            </Typography>
-          </Box>
-        </Box>
-
         {/* Base token input card */}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
           You deposit
@@ -528,6 +435,183 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
               : "Add Liquidity"}
         </Button>
       </Box>
+    </>
+  );
+};
+
+interface AddLiquidityModalProps {
+  open: boolean;
+  /** The merged Spectrum + CL row being added to. */
+  pair: MergedPair;
+  userAddresses: string[];
+  walletConnected: boolean;
+  ergPrice: number;
+  icons: Record<string, string>;
+  protocolConfig: ClProtocolConfig | null;
+  initialMode?: "full" | "custom";
+  onClose: () => void;
+  /** After a successful full-range add (the page closes the modal). */
+  onSuccess: () => void;
+  /** After a CL position was created; the modal stays open on its success panel. */
+  onClCreated: () => void;
+}
+
+const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
+  open,
+  pair,
+  userAddresses,
+  walletConnected,
+  ergPrice,
+  icons,
+  protocolConfig,
+  initialMode,
+  onClose,
+  onSuccess,
+  onClCreated,
+}) => {
+  const pool = pair.pool;
+  const [mode, setMode] = useState<"full" | "custom">(
+    initialMode ?? (pool ? "full" : "custom"),
+  );
+  const effectiveMode = pool ? mode : "custom";
+
+  const leftName = pair.leftId === pair.tokenX ? pair.nameX : pair.nameY;
+  const rightName = pair.rightId === pair.tokenX ? pair.nameX : pair.nameY;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      scroll="body"
+      PaperProps={{
+        sx: {
+          borderRadius: "16px",
+          border: "1px solid rgba(200, 225, 255, 0.08)",
+          backgroundImage: "none",
+          m: { xs: 1, sm: 4 },
+          width: { xs: "calc(100% - 16px)", sm: undefined },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          pb: 1,
+        }}
+      >
+        <Typography variant="h6" fontWeight={700} sx={{ mb: 0 }}>
+          Add Liquidity
+        </Typography>
+        <IconButton
+          onClick={onClose}
+          size="small"
+          sx={{
+            color: "text.secondary",
+            "&:hover": { color: "text.primary", bgcolor: "rgba(255,255,255,0.05)" },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+
+      <Box sx={{ px: 3, pb: 0 }}>
+        {/* Pair header */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            mb: 2,
+            p: 2,
+            borderRadius: "12px",
+            bgcolor: "rgba(255,255,255,0.03)",
+            border: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Box sx={{ position: "relative", width: 52, height: 32, flexShrink: 0 }}>
+            <Avatar
+              src={icons[pair.leftId]}
+              sx={{ width: 32, height: 32, position: "absolute", left: 0, zIndex: 2, border: "2px solid", borderColor: "background.paper" }}
+            >
+              {leftName?.[0]}
+            </Avatar>
+            <Avatar
+              src={icons[pair.rightId]}
+              sx={{ width: 32, height: 32, position: "absolute", left: 20, zIndex: 1, border: "2px solid", borderColor: "background.paper" }}
+            >
+              {rightName?.[0]}
+            </Avatar>
+          </Box>
+          <Box sx={{ ml: 1 }}>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0, lineHeight: 1.3 }}>
+              {leftName} / {rightName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0 }}>
+              {effectiveMode === "full" && pool
+                ? `Fee: ${pool.fee_pct.toFixed(1)}%`
+                : "Choose your own price range"}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Mode switch */}
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          size="small"
+          value={effectiveMode}
+          onChange={(_, v) => v && setMode(v)}
+          sx={{
+            mb: 2.5,
+            "& .MuiToggleButton-root": {
+              textTransform: "none",
+              fontWeight: 600,
+              borderRadius: "10px",
+              py: 0.75,
+            },
+          }}
+        >
+          <ToggleButton value="full" disabled={!pool}>
+            <Tooltip
+              title={pool ? "Spread liquidity over the whole price curve" : "No full-range pool exists for this pair"}
+              arrow
+            >
+              <span>Full range</span>
+            </Tooltip>
+          </ToggleButton>
+          <ToggleButton value="custom">
+            <Tooltip title="Concentrate liquidity in a price range you choose" arrow>
+              <span>Custom range</span>
+            </Tooltip>
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {effectiveMode === "full" && pool ? (
+        <FullRangeForm
+          pool={pool}
+          userAddresses={userAddresses}
+          ergPrice={ergPrice}
+          icons={icons}
+          onSuccess={onSuccess}
+        />
+      ) : (
+        <CustomRangeForm
+          pair={pair}
+          userAddresses={userAddresses}
+          walletConnected={walletConnected}
+          ergPrice={ergPrice}
+          icons={icons}
+          protocolConfig={protocolConfig}
+          onClose={onClose}
+          onCreated={onClCreated}
+        />
+      )}
     </Dialog>
   );
 };

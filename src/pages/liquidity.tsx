@@ -36,7 +36,22 @@ import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/gene
 import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import { useRouter } from "next/router";
 import AddLiquidityModal from "@components/liquidity/AddLiquidityModal";
-import ClPairsTable from "@components/cl/ClPairsTable";
+import ClPositionRow from "@components/liquidity/ClPositionRow";
+import ClWithdrawDialog from "@components/liquidity/ClWithdrawDialog";
+import type { ClTokenView } from "@components/liquidity/ClWithdrawDialog";
+import { useClPairs, useClPortfolio, fetchClProtocolConfig } from "@components/cl/useClData";
+import type { ClProtocolConfig } from "@components/cl/useClData";
+import { useClPositionActions } from "@components/cl/useClPositionActions";
+import {
+  filterMergedPairs,
+  mergePoolsAndClPairs,
+  sortMergedPairs,
+} from "@components/cl/clLiquidity";
+import type { MergedPair, MergedSortField, VenueSplit } from "@components/cl/clLiquidity";
+import { sortPositionsInRangeFirst } from "@components/cl/clFormat";
+import { ERG_DECIMALS } from "@components/cl/clMath";
+import type { ClPairStats, ClPortfolioPosition } from "@components/cl/clTypes";
+import type { LpPosition, PoolWithApr } from "@components/liquidity/liquidityTypes";
 import RemoveLiquidityModal from "@components/liquidity/RemoveLiquidityModal";
 
 const NO_LIQUIDITY_TOOLTIP = "Liquidity for Lithos pools isn't supported on Crux yet";
@@ -49,50 +64,10 @@ const POOL_TYPE_LABELS: Record<string, string> = {
 
 const supportsLiquidity = (poolType?: string) => poolType !== "lithos";
 
-interface PoolWithApr {
-  pool_id: string;
-  pool_type: string;
-  base_token_id: string;
-  base_token_name: string;
-  base_token_decimals: number;
-  quote_token_id: string;
-  quote_token_name: string;
-  quote_token_decimals: number;
-  base_amount: number;
-  quote_amount: number;
-  tvl_erg: number;
-  fee_pct: number;
-  volume_24h: number;
-  apr_7d: number | null;
-  apr_30d: number | null;
-}
+// A merged row can take liquidity through its CL venue even when its pool is Lithos.
+const canAddToPair = (row: MergedPair) => supportsLiquidity(row.pool?.pool_type) || !!row.cl;
 
-interface LpPosition {
-  pool_id: string;
-  pool_type: string;
-  lp_token_id: string;
-  lp_token_name: string;
-  lp_token_amount: number;
-  share_of_pool: number;
-  base_token: {
-    token_id: string;
-    name: string;
-    decimals: number;
-    amount: number;
-    value_usd: number;
-  };
-  quote_token: {
-    token_id: string;
-    name: string;
-    decimals: number;
-    amount: number;
-    value_usd: number;
-  };
-  total_value_usd: number;
-  pool_tvl_usd: number;
-}
-
-type SortField = "tvl_erg" | "volume_24h" | "fee_pct" | "apr_7d" | "apr_30d";
+type SortField = MergedSortField;
 type SortDirection = "asc" | "desc";
 
 const LiquidityPage: FC = () => {
@@ -116,7 +91,9 @@ const LiquidityPage: FC = () => {
   const [icons, setIcons] = useState<Record<string, string>>({});
 
   // Modal state
-  const [addModalPool, setAddModalPool] = useState<PoolWithApr | null>(null);
+  const [addModalPair, setAddModalPair] = useState<MergedPair | null>(null);
+  const [withdrawCl, setWithdrawCl] = useState<ClPortfolioPosition | null>(null);
+  const [protocolConfig, setProtocolConfig] = useState<ClProtocolConfig | null>(null);
   const [removeModalPosition, setRemoveModalPosition] =
     useState<LpPosition | null>(null);
 
@@ -150,6 +127,38 @@ const LiquidityPage: FC = () => {
     ];
     return [...new Set(addresses)];
   }, [dAppWallet, walletQuery.data]);
+
+  // Concentrated liquidity. Failures here never affect the Spectrum parts.
+  const cl = useClPairs();
+  const clPortfolio = useClPortfolio(userAddresses);
+  const reloadCl = useCallback(() => {
+    cl.reload();
+    clPortfolio.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cl.reload, clPortfolio.reload]);
+  const clActions = useClPositionActions(userAddresses, reloadCl);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchClProtocolConfig().then((c) => !cancelled && setProtocolConfig(c));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const ids = new Set<string>();
+    cl.pairs.forEach((p) => {
+      ids.add(p.token_x);
+      ids.add(p.token_y);
+    });
+    clPortfolio.positions.forEach((p) => {
+      ids.add(p.token_x);
+      ids.add(p.token_y);
+    });
+    if (ids.size > 0) resolveIcons([...ids]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cl.pairs, clPortfolio.positions]);
 
   // Fetch ERG price
   useEffect(() => {
@@ -250,14 +259,33 @@ const LiquidityPage: FC = () => {
     }
   };
 
-  // Sorted pools
-  const sortedPools = useMemo(() => {
-    return [...pools].sort((a, b) => {
-      const aVal = a[sortField] ?? -Infinity;
-      const bVal = b[sortField] ?? -Infinity;
-      return sortDirection === "desc" ? bVal - aVal : aVal - bVal;
-    });
-  }, [pools, sortField, sortDirection]);
+  // One row per token pair: Spectrum pools merged with CL pair stats.
+  const mergedPairs = useMemo(
+    () => mergePoolsAndClPairs(pools, cl.pairs, cl.tokens),
+    [pools, cl.pairs, cl.tokens],
+  );
+  const sortedPairs = useMemo(
+    () =>
+      sortMergedPairs(
+        filterMergedPairs(mergedPairs, searchQuery),
+        sortField,
+        sortDirection,
+      ),
+    [mergedPairs, searchQuery, sortField, sortDirection],
+  );
+
+  const sortedClPositions = useMemo(
+    () => sortPositionsInRangeFirst(clPortfolio.positions),
+    [clPortfolio.positions],
+  );
+  const clTokenView = useCallback(
+    (id: string): ClTokenView => {
+      if (id === ERG_TOKEN_ID) return { id, name: "ERG", decimals: ERG_DECIMALS };
+      const m = clPortfolio.tokens[id] ?? cl.tokens[id];
+      return { id, name: m?.name ?? id.slice(0, 6), decimals: m?.decimals ?? 0 };
+    },
+    [clPortfolio.tokens, cl.tokens],
+  );
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -278,6 +306,7 @@ const LiquidityPage: FC = () => {
     quoteId: string,
     quoteName: string,
     poolType?: string,
+    clStats?: ClPairStats | null,
   ) => (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1, whiteSpace: "nowrap" }}>
       <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
@@ -303,6 +332,20 @@ const LiquidityPage: FC = () => {
           size="small"
           sx={{ height: 18, fontSize: "0.65rem" }}
         />
+      )}
+      {clStats && (
+        <Tooltip
+          title={`Concentrated liquidity: ${clStats.positions} position${clStats.positions === 1 ? "" : "s"}, ${clStats.positions_in_range} in range`}
+          arrow
+        >
+          <Chip
+            label={`CL ${clStats.positions_in_range}/${clStats.positions}`}
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ height: 18, fontSize: "0.65rem" }}
+          />
+        </Tooltip>
       )}
     </Box>
   );
@@ -346,15 +389,48 @@ const LiquidityPage: FC = () => {
     );
   };
 
+  const venueTip = (
+    row: MergedPair,
+    render: (v: VenueSplit, label: string) => string,
+  ): React.ReactNode | undefined => {
+    if (!row.spectrum || !row.clSplit) return undefined;
+    return (
+      <Box>
+        <div>{render(row.spectrum, "Spectrum")}</div>
+        <div>{render(row.clSplit, "Concentrated")}</div>
+      </Box>
+    );
+  };
+  const withTip = (tip: React.ReactNode | undefined, node: React.ReactNode) =>
+    tip ? (
+      <Tooltip title={tip} arrow placement="top">
+        <span>{node}</span>
+      </Tooltip>
+    ) : (
+      node
+    );
+
   const totalTvlUsd = useMemo(
-    () => pools.reduce((sum, p) => sum + p.tvl_erg * ergPrice, 0),
-    [pools, ergPrice],
+    () => mergedPairs.reduce((sum, p) => sum + (p.tvl_erg ?? 0) * ergPrice, 0),
+    [mergedPairs, ergPrice],
   );
 
-  const totalPositionsUsd = useMemo(
-    () => positions.reduce((sum, p) => sum + p.total_value_usd, 0),
-    [positions],
-  );
+  const totalPositionsUsd = useMemo(() => {
+    const spectrum = positions.reduce((sum, p) => sum + p.total_value_usd, 0);
+    const clUsd = clPortfolio.positions.reduce(
+      (sum, p) => sum + (p.value_usd ?? (p.value_erg ?? 0) * ergPrice),
+      0,
+    );
+    return spectrum + clUsd;
+  }, [positions, clPortfolio.positions, ergPrice]);
+
+  const hasAnyPosition = positions.length > 0 || clPortfolio.positions.length > 0;
+  const positionsBusy = positionsLoading || (clPortfolio.loading && clPortfolio.positions.length === 0);
+
+  const openAddForPool = (poolId: string) => {
+    const row = mergedPairs.find((m) => m.pools.some((p) => p.pool_id === poolId));
+    if (row) setAddModalPair(row);
+  };
 
   return (
     <Box sx={{ p: upMd ? 3 : 1.5, maxWidth: 1200, mx: "auto" }}>
@@ -380,7 +456,7 @@ const LiquidityPage: FC = () => {
             ${formatFullNumber(totalTvlUsd, 0)}
           </Typography>
         </Box>
-        {isAuthenticated && positions.length > 0 && (
+        {isAuthenticated && hasAnyPosition && (
           <Box>
             <Typography variant="caption" color="text.secondary">
               Your Positions
@@ -392,10 +468,10 @@ const LiquidityPage: FC = () => {
         )}
         <Box>
           <Typography variant="caption" color="text.secondary">
-            Pools
+            Pairs
           </Typography>
           <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-            {pools.length}
+            {mergedPairs.length}
           </Typography>
         </Box>
       </Paper>
@@ -406,11 +482,11 @@ const LiquidityPage: FC = () => {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Your Positions
           </Typography>
-          {positionsLoading ? (
+          {positionsBusy ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
               <CircularProgress size={32} />
             </Box>
-          ) : positions.length === 0 ? (
+          ) : !hasAnyPosition ? (
             <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
               No LP positions found. Add liquidity to a pool below to get
               started.
@@ -421,15 +497,20 @@ const LiquidityPage: FC = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Pool</TableCell>
+                    <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Range</TableCell>
                     <TableCell align="right">Value (USD)</TableCell>
                     <TableCell align="right">Base</TableCell>
                     <TableCell align="right">Quote</TableCell>
+                    <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>
+                      <Tooltip title="Uncollected concentrated-liquidity fees" arrow placement="top">
+                        <span>Fees</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {positions.map((pos) => {
-                    // Find matching pool for APR
                     const pool = pools.find((p) => p.pool_id === pos.pool_id);
                     return (
                       <TableRow key={pos.pool_id + pos.lp_token_id}>
@@ -441,6 +522,9 @@ const LiquidityPage: FC = () => {
                             normalizeTicker(pos.quote_token.name),
                             pos.pool_type,
                           )}
+                        </TableCell>
+                        <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                          <Chip label="Full range" size="small" variant="outlined" sx={{ height: 18, fontSize: "0.65rem" }} />
                         </TableCell>
                         <TableCell align="right">
                           ${formatFullNumber(pos.total_value_usd, 2)}
@@ -463,6 +547,11 @@ const LiquidityPage: FC = () => {
                             {pos.quote_token.name}
                           </Typography>
                         </TableCell>
+                        <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>
+                          <Typography variant="body2" color="text.secondary" component="span" sx={{ mb: 0 }}>
+                            &mdash;
+                          </Typography>
+                        </TableCell>
                         <TableCell align="center">
                           <Box
                             sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}
@@ -479,7 +568,7 @@ const LiquidityPage: FC = () => {
                                   <IconButton
                                     size="small"
                                     disabled={!supportsLiquidity(pos.pool_type)}
-                                    onClick={() => setAddModalPool(pool)}
+                                    onClick={() => openAddForPool(pool.pool_id)}
                                   >
                                     <AddIcon fontSize="small" />
                                   </IconButton>
@@ -508,15 +597,29 @@ const LiquidityPage: FC = () => {
                       </TableRow>
                     );
                   })}
+                  {sortedClPositions.map((pos) => (
+                    <ClPositionRow
+                      key={pos.position_id}
+                      position={pos}
+                      tokenX={clTokenView(pos.token_x)}
+                      tokenY={clTokenView(pos.token_y)}
+                      icons={icons}
+                      busy={clActions.busyId === pos.position_id}
+                      onCollect={() => clActions.collect(pos.position_id)}
+                      onWithdraw={() => setWithdrawCl(pos)}
+                    />
+                  ))}
                 </TableBody>
               </Table>
             </TableContainer>
           )}
+          {clPortfolio.error && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, mb: 0 }}>
+              Concentrated-liquidity positions are unavailable right now.
+            </Typography>
+          )}
         </Paper>
       )}
-
-      {/* Concentrated liquidity */}
-      <ClPairsTable />
 
       {/* All Pools */}
       <Paper sx={{ p: 2 }}>
@@ -630,44 +733,69 @@ const LiquidityPage: FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {sortedPools.slice(0, visibleCount).map((pool) => (
-                  <TableRow key={pool.pool_id} hover>
+                {sortedPairs.slice(0, visibleCount).map((row) => (
+                  <TableRow key={row.key} hover>
                     <TableCell>
                       {renderTokenPair(
-                        pool.base_token_id,
-                        normalizeTicker(pool.base_token_name),
-                        pool.quote_token_id,
-                        normalizeTicker(pool.quote_token_name),
-                        pool.pool_type,
+                        row.rightId,
+                        normalizeTicker(row.rightId === row.tokenX ? row.nameX : row.nameY),
+                        row.leftId,
+                        normalizeTicker(row.leftId === row.tokenX ? row.nameX : row.nameY),
+                        row.pool?.pool_type,
+                        row.cl,
                       )}
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                      {formatFullNumber(pool.tvl_erg, 2)} ERG{" "}
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        component="span"
-                      >
-                        (${formatFullNumber(pool.tvl_erg * ergPrice, 0)})
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: "nowrap", display: { xs: "none", md: "table-cell" } }}>
-                      {pool.volume_24h === 0 ? (
+                      {row.tvl_erg === null ? (
                         <Typography variant="body2" color="text.secondary" component="span">
                           —
                         </Typography>
                       ) : (
-                        <>{formatFullNumber(pool.volume_24h, 2)} ERG</>
+                        withTip(
+                          venueTip(row, (v, label) =>
+                            `${label}: ${v.tvl_erg === null ? "—" : `${formatFullNumber(v.tvl_erg, 2)} ERG`}`,
+                          ),
+                          <>
+                            {formatFullNumber(row.tvl_erg, 2)} ERG{" "}
+                            <Typography variant="caption" color="text.secondary" component="span">
+                              (${formatFullNumber(row.tvl_erg * ergPrice, 0)})
+                            </Typography>
+                          </>,
+                        )
+                      )}
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: "nowrap", display: { xs: "none", md: "table-cell" } }}>
+                      {row.volume_24h === 0 ? (
+                        <Typography variant="body2" color="text.secondary" component="span">
+                          —
+                        </Typography>
+                      ) : (
+                        withTip(
+                          venueTip(row, (v, label) => `${label}: ${formatFullNumber(v.volume_24h, 2)} ERG`),
+                          <>{formatFullNumber(row.volume_24h, 2)} ERG</>,
+                        )
                       )}
                     </TableCell>
                     <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>
-                      {formatFee(pool.fee_pct)}
+                      {row.fee_pct === null ? (
+                        <Typography variant="body2" color="text.secondary" component="span" sx={{ mb: 0 }}>
+                          —
+                        </Typography>
+                      ) : (
+                        formatFee(row.fee_pct)
+                      )}
                     </TableCell>
                     <TableCell align="right" sx={{ display: { xs: "none", md: "table-cell" } }}>
-                      {formatApr(pool.apr_7d)}
+                      {withTip(
+                        venueTip(row, (v, label) => `${label}: ${v.apr === null ? "—" : `${v.apr.toFixed(2)}%`}`),
+                        formatApr(row.apr_7d),
+                      )}
                     </TableCell>
                     <TableCell align="right">
-                      {formatApr(pool.apr_30d)}
+                      {withTip(
+                        venueTip(row, (v, label) => `${label}: ${v.apr === null ? "—" : `${v.apr.toFixed(2)}%`}`),
+                        formatApr(row.apr_30d),
+                      )}
                     </TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center", alignItems: "center" }}>
@@ -675,12 +803,16 @@ const LiquidityPage: FC = () => {
                           <IconButton
                             size="small"
                             onClick={() => {
-                              // Always put non-ERG token as the left side (token=)
-                              // and ERG as the right side (pair=), regardless of
-                              // how the pool data orders them.
-                              const isErgBase = pool.base_token_id === ERG_TOKEN_ID;
-                              const tokenId = isErgBase ? pool.quote_token_id : pool.base_token_id;
-                              const pairId = isErgBase ? pool.base_token_id : pool.quote_token_id;
+                              // Non-ERG token on the left (token=), ERG on the
+                              // right (pair=), however the venues order them.
+                              const pool = row.pool;
+                              const isErgBase = pool
+                                ? pool.base_token_id === ERG_TOKEN_ID
+                                : row.tokenX === ERG_TOKEN_ID;
+                              const base = pool ? pool.base_token_id : row.tokenX;
+                              const quote = pool ? pool.quote_token_id : row.tokenY;
+                              const tokenId = isErgBase ? quote : base;
+                              const pairId = isErgBase ? base : quote;
                               router.push(`/trade?token=${tokenId}&pair=${pairId}`);
                             }}
                           >
@@ -689,7 +821,7 @@ const LiquidityPage: FC = () => {
                         </Tooltip>
                         <Tooltip
                           title={
-                            supportsLiquidity(pool.pool_type)
+                            canAddToPair(row)
                               ? "Add Liquidity"
                               : NO_LIQUIDITY_TOOLTIP
                           }
@@ -699,8 +831,8 @@ const LiquidityPage: FC = () => {
                               size="small"
                               variant="outlined"
                               startIcon={<AddIcon />}
-                              disabled={!supportsLiquidity(pool.pool_type)}
-                              onClick={() => setAddModalPool(pool)}
+                              disabled={!canAddToPair(row)}
+                              onClick={() => setAddModalPair(row)}
                               sx={{
                                 whiteSpace: "nowrap",
                                 "tr:hover &": {
@@ -718,7 +850,7 @@ const LiquidityPage: FC = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {sortedPools.length === 0 && (
+                {sortedPairs.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} align="center">
                       <Typography
@@ -735,7 +867,7 @@ const LiquidityPage: FC = () => {
             </Table>
           </TableContainer>
         )}
-        {!poolsLoading && visibleCount < sortedPools.length && (
+        {!poolsLoading && visibleCount < sortedPairs.length && (
           <Box sx={{ display: "flex", justifyContent: "center", pt: 2 }}>
             <Button
               variant="text"
@@ -748,17 +880,35 @@ const LiquidityPage: FC = () => {
       </Paper>
 
       {/* Modals */}
-      {addModalPool && (
+      {addModalPair && (
         <AddLiquidityModal
-          open={!!addModalPool}
-          pool={addModalPool}
+          open={!!addModalPair}
+          pair={addModalPair}
           userAddresses={userAddresses}
+          walletConnected={dAppWallet.connected}
           ergPrice={ergPrice}
           icons={icons}
-          onClose={() => setAddModalPool(null)}
+          protocolConfig={protocolConfig}
+          onClose={() => setAddModalPair(null)}
           onSuccess={() => {
-            setAddModalPool(null);
+            setAddModalPair(null);
             fetchPools();
+          }}
+          onClCreated={reloadCl}
+        />
+      )}
+      {withdrawCl && (
+        <ClWithdrawDialog
+          open={!!withdrawCl}
+          position={withdrawCl}
+          tokenX={clTokenView(withdrawCl.token_x)}
+          tokenY={clTokenView(withdrawCl.token_y)}
+          icons={icons}
+          busy={clActions.busyId === withdrawCl.position_id}
+          onClose={() => setWithdrawCl(null)}
+          onConfirm={async () => {
+            const ok = await clActions.withdraw(withdrawCl.position_id);
+            if (ok) setWithdrawCl(null);
           }}
         />
       )}
