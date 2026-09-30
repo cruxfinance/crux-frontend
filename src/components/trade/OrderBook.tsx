@@ -589,22 +589,6 @@ const TableView: FC<TableViewProps> = ({
                 AMM
               </Box>
             )}
-            {row.clAmount > 0 && (
-              <Box
-                component="span"
-                sx={{
-                  fontSize: "0.6rem",
-                  bgcolor: `${color}40`,
-                  color,
-                  px: 0.5,
-                  borderRadius: "3px",
-                  lineHeight: 1.4,
-                  fontStyle: "normal",
-                }}
-              >
-                CL
-              </Box>
-            )}
             {row.isVirtual && row.isReal && (
               <Box
                 component="span"
