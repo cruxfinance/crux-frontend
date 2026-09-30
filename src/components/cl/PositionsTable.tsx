@@ -38,6 +38,13 @@ import {
   rawToHuman,
   shortId,
 } from "./clMath";
+import { sortPositionsInRangeFirst } from "./clFormat";
+import type {
+  ClPair,
+  ClPositionDto,
+  ClPositionsResponse as PositionsResponse,
+  ClTokenMeta,
+} from "./clTypes";
 import { submitSignedTx } from "./walletTokens";
 
 declare global {
@@ -48,46 +55,7 @@ declare global {
 
 const REFRESH_INTERVAL_MS = 15000;
 
-export interface ClPair {
-  tokenX: string;
-  tokenY: string;
-}
-
-interface ClPositionDto {
-  position_id: string;
-  box_id: string;
-  pair_type: "erg_token" | "token_token";
-  token_x: string;
-  token_y: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  fee_bps: number;
-  fee_x: number;
-  fee_y: number;
-  erg_value: number;
-  price_lower: number;
-  price_upper: number;
-  price_current: number;
-  liquidity: number;
-  in_range: boolean;
-  owned: boolean;
-  /** Effective protocol-fee rate for this position's fee_bps, in bps of the
-   * net input (`max(phi * fee_bps, floor_bps * 10000) / 10000`). */
-  protocol_fee_bps: number;
-}
-
-interface ClTokenMeta {
-  name: string;
-  decimals: number;
-}
-
-interface PositionsResponse {
-  positions: ClPositionDto[];
-  tokens: Record<string, ClTokenMeta>;
-  error?: string;
-}
+export type { ClPair };
 
 interface PositionsTableProps {
   userAddresses: string[];
@@ -181,7 +149,10 @@ const PositionsTable: FC<PositionsTableProps> = ({
   }, [fetchPositions, refreshTrigger]);
 
   const displayedPositions = useMemo(
-    () => (mineOnly ? positions.filter((p) => p.owned) : positions),
+    () =>
+      sortPositionsInRangeFirst(
+        mineOnly ? positions.filter((p) => p.owned) : positions,
+      ),
     [positions, mineOnly],
   );
 
@@ -344,7 +315,9 @@ const PositionsTable: FC<PositionsTableProps> = ({
                 <TableCell align="center">In range</TableCell>
                 <TableCell align="right">Reserve X</TableCell>
                 <TableCell align="right">Reserve Y</TableCell>
-                <TableCell align="right">Fees X/Y</TableCell>
+                <TableCell align="right">Uncollected X/Y</TableCell>
+                <TableCell align="right">Earned X/Y</TableCell>
+                <TableCell align="right">Volume X/Y</TableCell>
                 <TableCell align="right">Protocol fee</TableCell>
                 <TableCell>Position id</TableCell>
                 <TableCell align="center">Owned</TableCell>
@@ -357,7 +330,11 @@ const PositionsTable: FC<PositionsTableProps> = ({
                 const yMeta = getTokenMeta(p.token_y);
                 const isBusy = busyPositionId === p.position_id;
                 return (
-                  <TableRow key={p.position_id} hover>
+                  <TableRow
+                    key={p.position_id}
+                    hover
+                    sx={p.in_range ? undefined : { opacity: 0.55 }}
+                  >
                     <TableCell>{renderPair(p)}</TableCell>
                     <TableCell>{renderRange(p)}</TableCell>
                     <TableCell>{renderCurrentPrice(p)}</TableCell>
@@ -365,7 +342,7 @@ const PositionsTable: FC<PositionsTableProps> = ({
                       <Chip
                         label={p.in_range ? "In range" : "Out of range"}
                         size="small"
-                        color={p.in_range ? "success" : "default"}
+                        color={p.in_range ? "success" : "warning"}
                         variant={p.in_range ? "filled" : "outlined"}
                         sx={{ height: 20, fontSize: "0.65rem" }}
                       />
@@ -393,6 +370,24 @@ const PositionsTable: FC<PositionsTableProps> = ({
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         raw {p.fee_x.toLocaleString()} / {p.fee_y.toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                      <Typography variant="body2">
+                        {formatHuman(p.fees_earned_x ?? 0, xMeta.decimals)} /{" "}
+                        {formatHuman(p.fees_earned_y ?? 0, yMeta.decimals)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        lifetime
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                      <Typography variant="body2">
+                        {formatHuman(p.volume_x ?? 0, xMeta.decimals)} /{" "}
+                        {formatHuman(p.volume_y ?? 0, yMeta.decimals)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {(p.swap_count ?? 0).toLocaleString()} swaps
                       </Typography>
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
