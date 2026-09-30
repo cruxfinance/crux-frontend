@@ -125,6 +125,8 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
       initialPair.tokenX === ERG_TOKEN_ID ? "ERG" : initialPair.tokenX,
     );
     setTokenYInput(initialPair.tokenY);
+    // Keyed on the token ids so a re-created pair object doesn't reset edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPair?.tokenX, initialPair?.tokenY]);
 
   // Wallet assets, for the Token X / Y dropdowns and the deposit balance +
