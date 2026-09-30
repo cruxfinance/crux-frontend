@@ -88,3 +88,31 @@ export function parsePreselectedPair(query: {
   if (!x || !y || y === ERG_TOKEN_ID) return null;
   return { tokenX: x, tokenY: y };
 }
+
+/**
+ * Picks the ERG or USD figure for the portfolio's currency toggle
+ * ("ERG" or "USE", where USE is dollar-pegged) and formats it.
+ */
+export function formatPortfolioValue(
+  currency: "ERG" | "USE",
+  erg: number | null | undefined,
+  usd: number | null | undefined,
+): string {
+  return currency === "ERG"
+    ? formatErgAmount(erg)
+    : formatUsdAmount(usd, 2);
+}
+
+/**
+ * USD estimate of an ERG-denominated amount using the position's own
+ * value/value_usd ratio. Null when the ratio is unavailable.
+ */
+export function estimateUsdFromErg(
+  erg: number | null | undefined,
+  valueErg: number | null | undefined,
+  valueUsd: number | null | undefined,
+): number | null {
+  if (erg === null || erg === undefined) return null;
+  if (!valueErg || valueUsd === null || valueUsd === undefined) return null;
+  return erg * (valueUsd / valueErg);
+}

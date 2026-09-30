@@ -35,4 +35,13 @@ export const portfolioRouter = createTRPCRouter({
       const positions = await positionsApi.postStakedPositions(addresses);
       return positions
     }),
+  getClPositions: publicProcedure
+    .input(
+      z.object({
+        addresses: z.array(z.string()),
+      })
+    )
+    .query(async ({ input }) => {
+      return await positionsApi.postClPortfolio(input.addresses);
+    }),
 });

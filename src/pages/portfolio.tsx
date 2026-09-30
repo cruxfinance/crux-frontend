@@ -24,6 +24,7 @@ import { tokenListInfo } from "../lib/utils/assetsNew";
 import { adjustDecimals, formatNumber, formatFullNumber } from "../lib/utils/general";
 import HistoricValues from "@components/portfolio/HistoricValues";
 import StakedPositions from "@components/portfolio/positions/StakedPositions";
+import ClPositions from "@components/portfolio/positions/ClPositions";
 import LiquidityPositions from "@components/portfolio/positions/LiquidityPositions";
 // import { useSession } from "next-auth/react";
 import Positions from "@components/portfolio/positions/Positions";
@@ -117,6 +118,20 @@ const Portfolio = () => {
       refetchOnWindowFocus: false,
     },
   );
+
+  // CL positions sit in contract boxes, so the wallet token list does not
+  // include them; add their value to the headline total. A failed or
+  // still-loading request contributes nothing.
+  const clPortfolio = trpc.portfolio.getClPositions.useQuery(
+    { addresses: submittedAddressList },
+    {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: false,
+      enabled: submittedAddressList.length > 0,
+    },
+  );
+  const clValueErg = clPortfolio.data?.total_value_erg ?? 0;
 
   useEffect(() => {
     if (positions.data && stakedPositions.data && lpPositions.data) {
@@ -544,8 +559,8 @@ const Portfolio = () => {
               {currencies[currency]}
               {Number(
                 (currency === "ERG"
-                  ? totalValue
-                  : totalValue * exchangeRate
+                  ? totalValue + clValueErg
+                  : (totalValue + clValueErg) * exchangeRate
                 ).toFixed(2),
               ).toLocaleString()}
             </Typography>
@@ -840,6 +855,12 @@ const Portfolio = () => {
       />
 
       <LiquidityPositions
+        currency={currency}
+        setCurrency={setCurrency}
+        addressList={submittedAddressList}
+      />
+
+      <ClPositions
         currency={currency}
         setCurrency={setCurrency}
         addressList={submittedAddressList}

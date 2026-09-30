@@ -2,7 +2,9 @@ import {
   NO_VALUE,
   clPositionsHref,
   formatAprFraction,
+  estimateUsdFromErg,
   formatErgAmount,
+  formatPortfolioValue,
   formatUsdAmount,
   parsePreselectedPair,
   sortPairsByTvl,
@@ -107,5 +109,20 @@ describe("clPositionsHref / parsePreselectedPair", () => {
       tokenY: "c",
     });
     expect(parsePreselectedPair({ x: "a", y: ERG_TOKEN_ID })).toBeNull();
+  });
+});
+
+describe("formatPortfolioValue / estimateUsdFromErg", () => {
+  it("picks the figure for the selected currency", () => {
+    expect(formatPortfolioValue("ERG", 10, 5)).toBe("10.00 ERG");
+    expect(formatPortfolioValue("USE", 10, 5)).toBe("$5.00");
+    expect(formatPortfolioValue("USE", 10, null)).toBe(NO_VALUE);
+  });
+
+  it("derives USD from the position's value ratio", () => {
+    expect(estimateUsdFromErg(2, 100, 50)).toBe(1);
+    expect(estimateUsdFromErg(2, 0, 50)).toBeNull();
+    expect(estimateUsdFromErg(null, 100, 50)).toBeNull();
+    expect(estimateUsdFromErg(2, 100, null)).toBeNull();
   });
 });

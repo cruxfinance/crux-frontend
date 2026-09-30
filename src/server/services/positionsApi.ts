@@ -3,6 +3,7 @@ import { mapAxiosErrorToTRPCError } from "@server/utils/mapErrors";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { cruxApi } from "./axiosInstance";
+import type { ClPortfolioResponse } from "@components/cl/clTypes";
 
 declare global {
   type TTokenData = {
@@ -89,6 +90,25 @@ export const positionsApi = {
         addresses: addresses,
       });
       return toCamelCase(response.data) as TStakedTokensData;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw mapAxiosErrorToTRPCError(error);
+      } else {
+        console.error(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An unknown error occurred",
+        });
+      }
+    }
+  },
+  async postClPortfolio(addresses: string[]): Promise<ClPortfolioResponse> {
+    try {
+      // Kept in snake_case: these are the CL DTOs the CL components use.
+      const response = await cruxApi.post("/dex/cl/portfolio", {
+        user_addresses: addresses,
+      });
+      return response.data as ClPortfolioResponse;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw mapAxiosErrorToTRPCError(error);
