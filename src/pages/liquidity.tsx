@@ -36,6 +36,7 @@ import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/gene
 import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import { useRouter } from "next/router";
 import AddLiquidityModal from "@components/liquidity/AddLiquidityModal";
+import ClPairsTable from "@components/cl/ClPairsTable";
 import RemoveLiquidityModal from "@components/liquidity/RemoveLiquidityModal";
 
 const NO_LIQUIDITY_TOOLTIP = "Liquidity for Lithos pools isn't supported on Crux yet";
@@ -513,6 +514,9 @@ const LiquidityPage: FC = () => {
           )}
         </Paper>
       )}
+
+      {/* Concentrated liquidity */}
+      <ClPairsTable />
 
       {/* All Pools */}
       <Paper sx={{ p: 2 }}>
