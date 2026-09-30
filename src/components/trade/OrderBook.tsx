@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { clFraction, depthBackground, depthSegments } from "./orderBookDepth";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -47,6 +48,10 @@ interface VirtualOrderBookLevel {
   total: number;
   cumulative_amount: number;
   cumulative_total: number;
+  /** Part of `amount` supplied by concentrated-liquidity positions (base raw units). */
+  cl_amount?: number;
+  /** Part of `total` supplied by concentrated-liquidity positions (quote raw units). */
+  cl_total?: number;
 }
 
 interface OrderBookData {
@@ -57,6 +62,8 @@ interface OrderBookData {
   virtual_bids?: VirtualOrderBookLevel[];
   virtual_asks?: VirtualOrderBookLevel[];
   pool_mid_price?: number;
+  /** Concentrated-liquidity positions contributing to the virtual levels. */
+  cl_positions?: number;
 }
 
 /** Merged row for display — real orders, virtual AMM levels, or both at the same price */
@@ -67,8 +74,12 @@ interface MergedRow {
   /** Base token amount (raw) from virtual AMM */
   virtualAmount: number;
   orderCount: number;
+  /** Part of `virtualAmount` that comes from concentrated liquidity (base raw units) */
+  clAmount: number;
   /** Cumulative ERG value up to this row (for depth bar) */
   cumulativeErg: number;
+  /** Cumulative ERG value of the CL share up to this row */
+  cumulativeClErg: number;
   isVirtual: boolean;
   isReal: boolean;
 }
@@ -150,7 +161,9 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
           realAmount: ask.amount,
           virtualAmount: 0,
           orderCount: ask.order_count,
+          clAmount: 0,
           cumulativeErg: 0,
+          cumulativeClErg: 0,
           isVirtual: false,
           isReal: true,
         });
@@ -163,6 +176,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
         const existing = askMap.get(key);
         if (existing) {
           existing.virtualAmount += va.amount;
+          existing.clAmount += va.cl_amount ?? 0;
           existing.isVirtual = true;
         } else {
           askMap.set(key, {
@@ -170,7 +184,9 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
             realAmount: 0,
             virtualAmount: va.amount,
             orderCount: 0,
-            cumulativeErg: 0,
+            clAmount: va.cl_amount ?? 0,
+          cumulativeErg: 0,
+          cumulativeClErg: 0,
             isVirtual: true,
             isReal: false,
           });
@@ -181,10 +197,13 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
     // Sort asks ascending by price, compute cumulative
     const sortedAsks = Array.from(askMap.values()).sort((a, b) => a.price - b.price);
     let cumErg = 0;
+    let cumClErg = 0;
     for (const row of sortedAsks) {
       const totalAmount = row.realAmount + row.virtualAmount;
       cumErg += (totalAmount / baseDec) * row.price;
+      cumClErg += (row.clAmount / baseDec) * row.price;
       row.cumulativeErg = cumErg;
+      row.cumulativeClErg = cumClErg;
     }
 
     // === BIDS ===
@@ -205,7 +224,9 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
           realAmount: baseAmount,
           virtualAmount: 0,
           orderCount: bid.order_count,
+          clAmount: 0,
           cumulativeErg: 0,
+          cumulativeClErg: 0,
           isVirtual: false,
           isReal: true,
         });
@@ -218,6 +239,7 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
         const existing = bidMap.get(key);
         if (existing) {
           existing.virtualAmount += vb.amount;
+          existing.clAmount += vb.cl_amount ?? 0;
           existing.isVirtual = true;
         } else {
           bidMap.set(key, {
@@ -225,7 +247,9 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
             realAmount: 0,
             virtualAmount: vb.amount,
             orderCount: 0,
-            cumulativeErg: 0,
+            clAmount: vb.cl_amount ?? 0,
+          cumulativeErg: 0,
+          cumulativeClErg: 0,
             isVirtual: true,
             isReal: false,
           });
@@ -236,12 +260,15 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
     // Sort bids descending by price, compute cumulative
     const sortedBids = Array.from(bidMap.values()).sort((a, b) => b.price - a.price);
     cumErg = 0;
+    cumClErg = 0;
     for (const row of sortedBids) {
       // For bids: real amount is in quote token raw units
       const realErg = row.realAmount / quoteDec;
       const virtualErg = (row.virtualAmount / baseDec) * row.price;
       cumErg += realErg + virtualErg;
+      cumClErg += (row.clAmount / baseDec) * row.price;
       row.cumulativeErg = cumErg;
+      row.cumulativeClErg = cumClErg;
     }
 
     const maxAsk = sortedAsks.length > 0 ? sortedAsks[sortedAsks.length - 1].cumulativeErg : 0;
@@ -257,6 +284,14 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
   const hasVirtualData = orderBook &&
     ((orderBook.virtual_bids && orderBook.virtual_bids.length > 0) ||
      (orderBook.virtual_asks && orderBook.virtual_asks.length > 0));
+
+  const clPositions = orderBook?.cl_positions ?? 0;
+  const hasClData =
+    showVirtual &&
+    (clPositions > 0 ||
+      [...(orderBook?.virtual_bids ?? []), ...(orderBook?.virtual_asks ?? [])].some(
+        (l) => (l.cl_amount ?? 0) > 0,
+      ));
 
   if (!baseToken) {
     return (
@@ -339,6 +374,8 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
         </Box>
       </Box>
 
+      {hasClData && <ClLegend positions={clPositions} />}
+
       {!hasData ? (
         <Box
           sx={{
@@ -365,6 +402,36 @@ const OrderBook: FC<OrderBookProps> = ({ baseToken, quoteToken, onPriceClick }) 
         />
       )}
     </Paper>
+  );
+};
+
+// ============================================================
+// Legend
+// ============================================================
+
+const ClLegend: FC<{ positions: number }> = ({ positions }) => {
+  const theme = useTheme();
+  return (
+    <Tooltip
+      arrow
+      placement="bottom-start"
+      title="Concentrated liquidity: depth from Crux CL positions, already included in the AMM levels. The darker part of each depth bar is the CL share."
+    >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.75, width: "fit-content" }}>
+        <Box
+          sx={{
+            width: 16,
+            height: 8,
+            borderRadius: "2px",
+            background: `linear-gradient(to right, ${theme.palette.success.main}77 50%, ${theme.palette.error.main}77 50%)`,
+          }}
+        />
+        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem" }}>
+          Concentrated liquidity
+          {positions > 0 ? ` (${positions} position${positions === 1 ? "" : "s"})` : ""}
+        </Typography>
+      </Box>
+    </Tooltip>
   );
 };
 
@@ -455,9 +522,7 @@ const TableView: FC<TableViewProps> = ({
   }, [displayBids, baseDec, quoteDec]);
 
   const renderRow = (row: MergedRow, side: "ask" | "bid", index: number, cumulativeBaseAmount?: number) => {
-    const depthPercent = maxCumulativeErg > 0
-      ? (row.cumulativeErg / maxCumulativeErg) * 100
-      : 0;
+    const segments = depthSegments(row.cumulativeErg, row.cumulativeClErg, maxCumulativeErg);
     const color = side === "ask" ? theme.palette.error.main : theme.palette.success.main;
     const onlyVirtual = row.isVirtual && !row.isReal;
 
@@ -474,6 +539,9 @@ const TableView: FC<TableViewProps> = ({
       displayBaseAmount = realBaseAmount + virtualBaseAmount;
     }
 
+    const clBaseAmount = row.clAmount / baseDec;
+    const clShare = clFraction(row.clAmount, row.realAmount + row.virtualAmount);
+
     // Total column shows cumulative ERG value (depth)
     const displayTotal = row.cumulativeErg;
 
@@ -481,7 +549,7 @@ const TableView: FC<TableViewProps> = ({
       <TableRow
         key={`${side}-${index}`}
         sx={{
-          background: `linear-gradient(to left, ${color}${onlyVirtual ? "22" : "33"} ${depthPercent}%, transparent ${depthPercent}%)`,
+          background: depthBackground(color, segments, onlyVirtual ? "22" : "33"),
           cursor: onPriceClick ? "pointer" : "default",
           "&:hover": onPriceClick ? { bgcolor: "action.hover" } : {},
           opacity: onlyVirtual ? 0.7 : 1,
@@ -521,6 +589,22 @@ const TableView: FC<TableViewProps> = ({
                 AMM
               </Box>
             )}
+            {row.clAmount > 0 && (
+              <Box
+                component="span"
+                sx={{
+                  fontSize: "0.6rem",
+                  bgcolor: `${color}40`,
+                  color,
+                  px: 0.5,
+                  borderRadius: "3px",
+                  lineHeight: 1.4,
+                  fontStyle: "normal",
+                }}
+              >
+                CL
+              </Box>
+            )}
             {row.isVirtual && row.isReal && (
               <Box
                 component="span"
@@ -540,7 +624,19 @@ const TableView: FC<TableViewProps> = ({
           </Box>
         </TableCell>
         <TableCell align="right" sx={{ py: 0.5 }}>
-          {formatFullNumber(displayBaseAmount, 4)}
+          {clBaseAmount > 0 ? (
+            <Tooltip
+              arrow
+              placement="left"
+              title={`Concentrated liquidity: ${formatFullNumber(clBaseAmount, 4)} ${baseToken.ticker}${
+                side === "ask" ? ` (${(clShare * 100).toFixed(0)}% of this level)` : ""
+              }`}
+            >
+              <span>{formatFullNumber(displayBaseAmount, 4)}</span>
+            </Tooltip>
+          ) : (
+            formatFullNumber(displayBaseAmount, 4)
+          )}
         </TableCell>
         <TableCell align="right" sx={{ py: 0.5 }}>
           {formatFullNumber(displayTotal, 2)}

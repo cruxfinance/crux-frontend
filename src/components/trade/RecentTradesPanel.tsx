@@ -22,6 +22,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import { formatNumber, formatFullNumber, getShortAddress } from "@lib/utils/general";
+import { exchangeLabel, isClExchange } from "@lib/utils/exchanges";
 
 interface TokenInfo {
   tokenId: string;
@@ -49,6 +50,8 @@ interface Trade {
   total: number;
   makerAddress: string;
   takerAddress: string;
+  /** Venue code from ci-api (0-3 Spectrum, 4 TradeHouse, 5 Crux CL). */
+  exchange: number;
 }
 
 type SortField = "timestamp" | "price" | "amount" | "total";
@@ -123,6 +126,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
             total: filledBase,
             makerAddress: order.maker_address,
             takerAddress: order.taker_address,
+            exchange: order.exchange,
           };
         });
 
@@ -195,6 +199,7 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                   total: filledBase,
                   makerAddress: order.maker_address,
                   takerAddress: order.taker_address,
+                  exchange: order.exchange,
                 };
               });
 
@@ -495,6 +500,9 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                           Type: {trade.side === "buy" ? "Buy" : "Sell"}
                         </Typography>
                         <Typography variant="caption" display="block">
+                          Venue: {exchangeLabel(trade.exchange)}
+                        </Typography>
+                        <Typography variant="caption" display="block">
                           Price: {formatFullNumber(trade.price, 6)} {quoteToken.ticker}
                         </Typography>
                         <Typography variant="caption" display="block" sx={{ mt: 0.5, color: "text.secondary" }}>
@@ -547,6 +555,22 @@ const RecentTradesPanel: FC<RecentTradesPanelProps> = ({
                           >
                             {formatDateTime(trade.timestamp)}
                           </Typography>
+                          {isClExchange(trade.exchange) && (
+                            <Box
+                              component="span"
+                              title="Concentrated liquidity (Crux CL)"
+                              sx={{
+                                fontSize: "0.6rem",
+                                bgcolor: `${sideColor}25`,
+                                color: sideColor,
+                                px: 0.5,
+                                borderRadius: "3px",
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              CL
+                            </Box>
+                          )}
                         </Box>
                       </TableCell>
 
