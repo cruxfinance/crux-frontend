@@ -1,5 +1,3 @@
-import { ERG_TOKEN_ID } from "./clMath";
-import type { ClPair, ClPairStats } from "./clTypes";
 
 /** Placeholder for a value the backend could not price. */
 export const NO_VALUE = "—";
@@ -19,13 +17,6 @@ export function sortPositionsInRangeFirst<
       return diff !== 0 ? diff : a.i - b.i;
     })
     .map(({ p }) => p);
-}
-
-/** Orders pairs by TVL descending; unpriced pairs go last. */
-export function sortPairsByTvl(pairs: readonly ClPairStats[]): ClPairStats[] {
-  return [...pairs].sort(
-    (a, b) => (b.tvl_erg ?? -Infinity) - (a.tvl_erg ?? -Infinity),
-  );
 }
 
 /** APR as a percentage string from a fraction (0.12 -> "12.00%"). */
@@ -62,31 +53,6 @@ export function formatUsdAmount(
 ): string {
   if (usd === null || usd === undefined || !Number.isFinite(usd)) return NO_VALUE;
   return `$${fixed(usd, decimals)}`;
-}
-
-/** Link to the CL page with a pair preselected. */
-export function clPositionsHref(pair?: { token_x: string; token_y: string }): string {
-  if (!pair) return "/cl-positions";
-  const q = new URLSearchParams({ x: pair.token_x, y: pair.token_y });
-  return `/cl-positions?${q.toString()}`;
-}
-
-function firstString(v: string | string[] | undefined): string {
-  return (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
-}
-
-/**
- * Reads `?x=<tokenId>&y=<tokenId>` (Next router query) into a pair. Needs
- * both sides; token Y may not be ERG by the CL convention.
- */
-export function parsePreselectedPair(query: {
-  x?: string | string[];
-  y?: string | string[];
-}): ClPair | null {
-  const x = firstString(query.x);
-  const y = firstString(query.y);
-  if (!x || !y || y === ERG_TOKEN_ID) return null;
-  return { tokenX: x, tokenY: y };
 }
 
 /**

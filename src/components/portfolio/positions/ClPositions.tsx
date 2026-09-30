@@ -8,7 +8,6 @@ import CruxTableScroll from "@components/CruxTableScroll";
 import CurrencyButton from "@components/CurrencyButton";
 import Link from "@components/Link";
 import {
-  clPositionsHref,
   estimateUsdFromErg,
   formatPortfolioValue,
   sortPositionsInRangeFirst,
@@ -107,7 +106,7 @@ const ClPositions: FC<ClPositionsProps> = ({ currency, addressList, setCurrency 
         Value: formatPortfolioValue(currency, p.value_erg, p.value_usd),
         "Uncollected Fees": formatPortfolioValue(currency, p.uncollected_fees_erg, feesUsd),
         Manage: (
-          <Link href={clPositionsHref(p)} sx={{ whiteSpace: "nowrap" }}>
+          <Link href="/liquidity" sx={{ whiteSpace: "nowrap" }}>
             Manage
           </Link>
         ),

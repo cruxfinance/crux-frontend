@@ -1,17 +1,12 @@
 import {
   NO_VALUE,
-  clPositionsHref,
   formatAprFraction,
   estimateUsdFromErg,
   formatErgAmount,
   formatPortfolioValue,
   formatUsdAmount,
-  parsePreselectedPair,
-  sortPairsByTvl,
   sortPositionsInRangeFirst,
 } from "../clFormat";
-import { ERG_TOKEN_ID } from "../clMath";
-import type { ClPairStats } from "../clTypes";
 
 describe("sortPositionsInRangeFirst", () => {
   const pos = (id: string, in_range: boolean, erg_value: number) => ({
@@ -47,16 +42,6 @@ describe("sortPositionsInRangeFirst", () => {
   });
 });
 
-describe("sortPairsByTvl", () => {
-  const pair = (token_y: string, tvl_erg: number | null) =>
-    ({ token_x: ERG_TOKEN_ID, token_y, tvl_erg }) as ClPairStats;
-
-  it("sorts by TVL descending with unpriced pairs last", () => {
-    const sorted = sortPairsByTvl([pair("a", null), pair("b", 5), pair("c", 50)]);
-    expect(sorted.map((p) => p.token_y)).toEqual(["c", "b", "a"]);
-  });
-});
-
 describe("formatAprFraction", () => {
   it("converts a fraction to a percentage", () => {
     expect(formatAprFraction(0.12)).toBe("12.00%");
@@ -83,32 +68,6 @@ describe("formatErgAmount / formatUsdAmount", () => {
     expect(formatUsdAmount(1234.4)).toBe("$1,234");
     expect(formatUsdAmount(12.345, 2)).toBe("$12.35");
     expect(formatUsdAmount(null)).toBe(NO_VALUE);
-  });
-});
-
-describe("clPositionsHref / parsePreselectedPair", () => {
-  it("round-trips a pair through the query string", () => {
-    const href = clPositionsHref({ token_x: ERG_TOKEN_ID, token_y: "abc123" });
-    expect(href).toBe(`/cl-positions?x=${ERG_TOKEN_ID}&y=abc123`);
-    const q = Object.fromEntries(new URL(href, "http://x").searchParams);
-    expect(parsePreselectedPair(q)).toEqual({
-      tokenX: ERG_TOKEN_ID,
-      tokenY: "abc123",
-    });
-  });
-
-  it("links to the bare page without a pair", () => {
-    expect(clPositionsHref()).toBe("/cl-positions");
-  });
-
-  it("requires both sides, takes the first of repeated params, rejects ERG as Y", () => {
-    expect(parsePreselectedPair({})).toBeNull();
-    expect(parsePreselectedPair({ x: "a" })).toBeNull();
-    expect(parsePreselectedPair({ x: ["a", "b"], y: " c " })).toEqual({
-      tokenX: "a",
-      tokenY: "c",
-    });
-    expect(parsePreselectedPair({ x: "a", y: ERG_TOKEN_ID })).toBeNull();
   });
 });
 
