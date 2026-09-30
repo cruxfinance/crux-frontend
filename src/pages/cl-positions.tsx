@@ -1,3 +1,4 @@
+import { useRouter } from "next/router";
 import ErrorBoundary from "@components/ErrorBoundary";
 import React, { FC, useEffect, useMemo, useState } from "react";
 import { Box, Typography, useTheme, useMediaQuery } from "@mui/material";
@@ -8,6 +9,7 @@ import LimitOrderCard from "@components/cl/LimitOrderCard";
 import PositionsTable, { ClPair } from "@components/cl/PositionsTable";
 import DevMintPanel from "@components/cl/DevMintPanel";
 import DevConfigPanel from "@components/cl/DevConfigPanel";
+import { parsePreselectedPair } from "@components/cl/clFormat";
 import { formatProtocolFeeFormula, shortId } from "@components/cl/clMath";
 
 /** Response shape of `GET /dex/cl/config` — see ci-api's `entities::cl::ClProtocolConfigDto`. */
@@ -36,9 +38,9 @@ async function fetchClProtocolConfig(): Promise<ClProtocolConfigDto | null> {
 }
 
 /**
- * Hidden POC page for the CL (concentrated-liquidity) "range position"
- * contract. Not linked from any nav — reachable only by URL. Debugging
- * tool: raw units are shown alongside human units throughout.
+ * Page for the CL (concentrated-liquidity) "range position" contract.
+ * Accepts `?x=<tokenId>&y=<tokenId>` to preselect a pair. Raw units are
+ * shown alongside human units throughout.
  *
  * See openspec/changes/cl-lp-poc/design.md for the API contract.
  */
@@ -74,6 +76,12 @@ const ClPositionsPage: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dAppWallet, walletQuery.data]);
 
+  const router = useRouter();
+  const preselectedPair = useMemo(
+    () => (router.isReady ? parsePreselectedPair(router.query) : null),
+    [router.isReady, router.query],
+  );
+
   const [pair, setPair] = useState<ClPair | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const bumpRefresh = () => setRefreshTrigger((n) => n + 1);
@@ -92,11 +100,11 @@ const ClPositionsPage: FC = () => {
   return (
     <Box sx={{ p: upMd ? 3 : 1.5, maxWidth: 1200, mx: "auto" }}>
       <Typography variant="h5" sx={{ mb: 0.5 }}>
-        CL Positions (POC)
+        Concentrated liquidity
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: protocolConfig ? 0.5 : 3 }}>
-        Internal tool for testing concentrated-liquidity range positions on
-        mainnet with self-minted test tokens. Not linked from navigation.
+        Provide liquidity in a price range and earn the swap fees routed
+        through it. Amounts are shown in human units with raw units alongside.
       </Typography>
       {protocolConfig && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -112,6 +120,7 @@ const ClPositionsPage: FC = () => {
           onPairChange={setPair}
           onCreated={bumpRefresh}
           refreshTrigger={refreshTrigger}
+          initialPair={preselectedPair}
         />
       </Box>
 

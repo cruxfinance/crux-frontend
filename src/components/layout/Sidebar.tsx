@@ -26,6 +26,7 @@ import {
     AddCircleOutline as MintIcon,
     ShowChart as AnalyticsIcon,
     SwapHoriz as TradeIcon,
+    StackedLineChart as ConcentratedLiquidityIcon,
 } from "@mui/icons-material";
 import { useRouter } from "next/router";
 import Link from "@components/Link";
@@ -57,6 +58,11 @@ const pages: PageItem[] = [
         name: "Liquidity",
         link: "/liquidity",
         icon: <SwapCallsIcon />,
+    },
+    {
+        name: "Concentrated liquidity",
+        link: "/cl-positions",
+        icon: <ConcentratedLiquidityIcon />,
     },
     {
         name: "Portfolio",

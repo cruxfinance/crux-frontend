@@ -63,6 +63,9 @@ interface CreatePositionCardProps {
   /** Bumped by the page after a successful create or dev-mint, so wallet
    * balances (and the token pickers built from them) can be refreshed. */
   refreshTrigger?: number;
+  /** Pair to fill into the token inputs (e.g. from the `?x=&y=` query on the
+   * page). Applied whenever its token ids change. */
+  initialPair?: ClPair | null;
 }
 
 interface PreviewResponse {
@@ -103,6 +106,7 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
   onPairChange,
   onCreated,
   refreshTrigger,
+  initialPair,
 }) => {
   const { addAlert } = useAlert();
   const { minerFee } = useMinerFee();
@@ -113,6 +117,15 @@ const CreatePositionCard: FC<CreatePositionCardProps> = ({
   const [tokenY, setTokenY] = useState<ResolvedToken | null>(null);
   const [tokenXResolving, setTokenXResolving] = useState(false);
   const [tokenYResolving, setTokenYResolving] = useState(false);
+
+  // Preselect a pair handed in by the page (link from the liquidity page).
+  useEffect(() => {
+    if (!initialPair) return;
+    setTokenXInput(
+      initialPair.tokenX === ERG_TOKEN_ID ? "ERG" : initialPair.tokenX,
+    );
+    setTokenYInput(initialPair.tokenY);
+  }, [initialPair?.tokenX, initialPair?.tokenY]);
 
   // Wallet assets, for the Token X / Y dropdowns and the deposit balance +
   // Max button.
