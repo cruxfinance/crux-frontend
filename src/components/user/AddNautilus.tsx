@@ -1,3 +1,4 @@
+import { walletAddressList } from "@lib/utils/addresses";
 import React, { useEffect, useState, FC } from "react";
 import {
   Box,
@@ -120,11 +121,11 @@ const AddNautilus: FC<IAddNautilus> = ({
       setDAppWallet({
         connected: true,
         name: "nautilus",
-        addresses: [
+        addresses: walletAddressList(
           changeAddress,
-          ...fetchUsedAddresses,
-          ...fetchUnusedAddresses,
-        ],
+          fetchUsedAddresses,
+          fetchUnusedAddresses
+        ),
       });
     } catch (error) {
       setDappConnected(false);

@@ -1,3 +1,4 @@
+import { walletAddressList } from "@lib/utils/addresses";
 import {
   ReactNode,
   createContext,
@@ -121,7 +122,7 @@ const WalletProvider: FunctionComponent<{ children: ReactNode }> = ({
         const changeAddress = await context.get_change_address();
         const usedAddresses = await context.get_used_addresses();
         const unusedAddresses = await context.get_unused_addresses();
-        const allAddresses = [changeAddress, ...usedAddresses, ...unusedAddresses];
+        const allAddresses = walletAddressList(changeAddress, usedAddresses, unusedAddresses);
 
         // Verify reconnected wallet matches the authenticated session
         if (sessionAddr && !allAddresses.includes(sessionAddr)) {
@@ -216,7 +217,7 @@ const WalletProvider: FunctionComponent<{ children: ReactNode }> = ({
         if (changeAddress !== dAppWallet.addresses[0]) {
           const usedAddresses = await context.get_used_addresses();
           const unusedAddresses = await context.get_unused_addresses();
-          const allAddresses = [changeAddress, ...usedAddresses, ...unusedAddresses];
+          const allAddresses = walletAddressList(changeAddress, usedAddresses, unusedAddresses);
 
           if (sessionData?.user?.address && !allAddresses.includes(sessionData.user.address)) {
             // Wallet no longer matches session — disconnect
