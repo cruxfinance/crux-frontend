@@ -4,7 +4,8 @@ import {
   ERG_TOKEN_ID,
   classifyRangeSide,
   computeMaxDepositHuman,
-  exceedsDepositBalance,
+  exceedsWalletBalance,
+  formatAmountTrimmed,
   feeBpsToPercent,
   formatProtocolFeeBps,
   formatProtocolFeeFormula,
@@ -19,7 +20,10 @@ import {
   normalizeClTokenIdInput,
   rawPriceToHuman,
   rawToHuman,
+  reserveToWalletRaw,
   shortId,
+  trimDecimalZeros,
+  walletToReserveRaw,
 } from "../clMath";
 
 describe("isErgTokenInput / normalizeClTokenIdInput", () => {
@@ -195,42 +199,65 @@ describe("formatProtocolFeeBps", () => {
   });
 });
 
-describe("computeMaxDepositHuman", () => {
-  it("holds back the ERG reserve for ERG", () => {
-    expect(computeMaxDepositHuman(5, true, 9)).toBeCloseTo(5 - ERG_DEPOSIT_RESERVE_HUMAN, 9);
+describe("walletToReserveRaw / reserveToWalletRaw", () => {
+  it("adds and removes the dust unit for a token", () => {
+    expect(reserveToWalletRaw(3113, false)).toBe(3114);
+    expect(walletToReserveRaw(3114, false)).toBe(3113);
+    expect(walletToReserveRaw(1, false)).toBe(0);
   });
 
-  it("holds back one dust unit for a non-ERG token", () => {
-    expect(computeMaxDepositHuman(31.14, false, 2)).toBe(31.13);
-    expect(computeMaxDepositHuman(5, false, 0)).toBe(4);
-  });
-
-  it("never goes negative when the balance is below the reserve", () => {
-    expect(computeMaxDepositHuman(0.001, true, 9)).toBe(0);
-    expect(computeMaxDepositHuman(0, true, 9)).toBe(0);
-    expect(computeMaxDepositHuman(0, false, 2)).toBe(0);
-  });
-
-  it("treats a non-finite balance as zero", () => {
-    expect(computeMaxDepositHuman(NaN, false, 2)).toBe(0);
-    expect(computeMaxDepositHuman(Infinity, true, 9)).toBe(0);
+  it("leaves ERG unchanged", () => {
+    expect(reserveToWalletRaw(5_000_000_000, true)).toBe(5_000_000_000);
+    expect(walletToReserveRaw(5_000_000_000, true)).toBe(5_000_000_000);
   });
 });
 
-describe("exceedsDepositBalance", () => {
-  it("counts the dust unit for a token deposit", () => {
-    expect(exceedsDepositBalance(31.14, 3114, false, 2)).toBe(true);
-    expect(exceedsDepositBalance(31.13, 3114, false, 2)).toBe(false);
+describe("computeMaxDepositHuman", () => {
+  it("holds back the ERG reserve for ERG", () => {
+    expect(computeMaxDepositHuman(5, true)).toBeCloseTo(5 - ERG_DEPOSIT_RESERVE_HUMAN, 9);
   });
 
-  it("compares ERG against the balance alone", () => {
-    expect(exceedsDepositBalance(1, 1_000_000_000, true, 9)).toBe(false);
-    expect(exceedsDepositBalance(1.000000001, 1_000_000_000, true, 9)).toBe(true);
+  it("fills the whole balance for a non-ERG token", () => {
+    expect(computeMaxDepositHuman(31.14, false)).toBe(31.14);
   });
 
-  it("feeds Max output back in without tripping", () => {
-    const max = computeMaxDepositHuman(31.14, false, 2);
-    expect(exceedsDepositBalance(max, 3114, false, 2)).toBe(false);
+  it("never goes negative when the balance is below the reserve", () => {
+    expect(computeMaxDepositHuman(0.001, true)).toBe(0);
+    expect(computeMaxDepositHuman(0, false)).toBe(0);
+  });
+
+  it("treats a non-finite balance as zero", () => {
+    expect(computeMaxDepositHuman(NaN, false)).toBe(0);
+    expect(computeMaxDepositHuman(Infinity, true)).toBe(0);
+  });
+});
+
+describe("exceedsWalletBalance", () => {
+  it("compares the wallet amount to the balance with no extra dust", () => {
+    expect(exceedsWalletBalance(3114, 3114)).toBe(false);
+    expect(exceedsWalletBalance(3115, 3114)).toBe(true);
+  });
+});
+
+describe("trimDecimalZeros / formatAmountTrimmed", () => {
+  it("only strips zeros after a decimal point", () => {
+    expect(trimDecimalZeros("10")).toBe("10");
+    expect(trimDecimalZeros("1.500")).toBe("1.5");
+    expect(trimDecimalZeros("2.000")).toBe("2");
+  });
+
+  it("trims to 6 places by default", () => {
+    expect(formatAmountTrimmed(90.283114619, 9)).toBe("90.283115");
+    expect(formatAmountTrimmed(1.5, 9)).toBe("1.5");
+  });
+
+  it("never exceeds the token's decimals", () => {
+    expect(formatAmountTrimmed(31.14, 2)).toBe("31.14");
+    expect(formatAmountTrimmed(10, 0)).toBe("10");
+  });
+
+  it("honours a larger maxPlaces up to the decimals", () => {
+    expect(formatAmountTrimmed(0.000000001, 9, 9)).toBe("0.000000001");
   });
 });
 

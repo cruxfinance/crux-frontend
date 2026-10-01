@@ -132,31 +132,57 @@ export const ERG_DEPOSIT_RESERVE_HUMAN = 0.01;
 export const CL_TOKEN_DUST_RAW = 1;
 
 /**
- * The largest human-unit amount the "Max" button should fill for a wallet
- * balance, given whether the deposit token is ERG. ERG holds back
- * `ERG_DEPOSIT_RESERVE_HUMAN` for the miner fee and box minimums; any other
- * token holds back `CL_TOKEN_DUST_RAW`. Never negative.
+ * ERG held by the position box and by the separate key box on top of the
+ * reserve. Mirrors crux-boxes `FLOOR` and `SAFE_USER_MIN`; both are returned
+ * to the user on withdraw.
  */
-export function computeMaxDepositHuman(balanceHuman: number, isErg: boolean, decimals: number): number {
-  if (!Number.isFinite(balanceHuman)) return 0;
-  const max = isErg
-    ? balanceHuman - ERG_DEPOSIT_RESERVE_HUMAN
-    : rawToHuman(humanToRaw(balanceHuman, decimals) - CL_TOKEN_DUST_RAW, decimals);
-  return Math.max(max, 0);
+export const CL_POSITION_FLOOR_NANOERG = 1_000_000;
+export const CL_KEY_BOX_NANOERG = 1_000_000;
+
+/**
+ * The amount fields show what leaves the wallet for that asset (excluding the
+ * network fee and the ERG box minimums); the API takes the position's
+ * reserve. A token's wallet amount is its reserve plus `CL_TOKEN_DUST_RAW`;
+ * ERG's is the reserve itself.
+ */
+export function walletToReserveRaw(walletRaw: number, isErg: boolean): number {
+  return isErg ? walletRaw : walletRaw - CL_TOKEN_DUST_RAW;
+}
+
+/** Inverse of `walletToReserveRaw`. */
+export function reserveToWalletRaw(reserveRaw: number, isErg: boolean): number {
+  return isErg ? reserveRaw : reserveRaw + CL_TOKEN_DUST_RAW;
 }
 
 /**
- * Whether a deposit of `amountHuman` needs more than `balanceRaw`. A token
- * deposit also needs `CL_TOKEN_DUST_RAW`; ERG fees are not counted here.
+ * The largest human-unit amount the "Max" button should fill for a wallet
+ * balance, given whether the deposit token is ERG. ERG holds back
+ * `ERG_DEPOSIT_RESERVE_HUMAN` for the miner fee and box minimums; any other
+ * token fills the whole balance. Never negative.
  */
-export function exceedsDepositBalance(
-  amountHuman: number,
-  balanceRaw: number,
-  isErg: boolean,
-  decimals: number,
-): boolean {
-  const needRaw = humanToRaw(amountHuman, decimals) + (isErg ? 0 : CL_TOKEN_DUST_RAW);
-  return needRaw > balanceRaw;
+export function computeMaxDepositHuman(balanceHuman: number, isErg: boolean): number {
+  if (!Number.isFinite(balanceHuman)) return 0;
+  return Math.max(isErg ? balanceHuman - ERG_DEPOSIT_RESERVE_HUMAN : balanceHuman, 0);
+}
+
+/** Whether a wallet amount (dust already included) exceeds the raw balance. */
+export function exceedsWalletBalance(walletRaw: number, balanceRaw: number): boolean {
+  return walletRaw > balanceRaw;
+}
+
+/** Strips trailing zeros (and a dangling "."), but only after a decimal point. */
+export function trimDecimalZeros(text: string): string {
+  return text.includes(".") ? text.replace(/0+$/, "").replace(/\.$/, "") : text;
+}
+
+/**
+ * Formats a human amount with at most `maxPlaces` decimal places (never more
+ * than the token's `decimals`) and trailing zeros stripped, e.g.
+ * `(90.283114619, 9)` -> `"90.283115"`.
+ */
+export function formatAmountTrimmed(human: number, decimals: number, maxPlaces = 6): string {
+  if (!Number.isFinite(human)) return "0";
+  return trimDecimalZeros(human.toFixed(Math.min(decimals, maxPlaces)));
 }
 
 /**

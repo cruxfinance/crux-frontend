@@ -22,15 +22,23 @@ import {
   ERG_DEPOSIT_RESERVE_HUMAN,
   classifyRangeSide,
   computeMaxDepositHuman,
-  exceedsDepositBalance,
+  exceedsWalletBalance,
   feeBpsToPercent,
+  formatAmountTrimmed,
   formatProtocolFeeBps,
   formatProtocolFeeFormula,
   formatWalletBalanceHuman,
+  humanToRaw,
   isClNotDeployedError,
   isValidFeeBps,
   rawPriceToHuman,
   rawToHuman,
+  reserveToWalletRaw,
+  trimDecimalZeros,
+  walletToReserveRaw,
+  CL_KEY_BOX_NANOERG,
+  CL_POSITION_FLOOR_NANOERG,
+  CL_TOKEN_DUST_RAW,
 } from "@components/cl/clMath";
 import {
   RANGE_PRESETS_PCT,
@@ -47,6 +55,7 @@ import type { LiquidityRange, MergedPair, PriceRange } from "@components/cl/clLi
 import { fetchPairPositions } from "@components/cl/useClData";
 import type { ClProtocolConfig } from "@components/cl/useClData";
 import { ClPreviewResponse, useClCreate } from "@components/cl/useClCreate";
+import { useMinerFee } from "@contexts/MinerFeeContext";
 import { apiJson, fetchWalletBalances } from "@components/cl/walletTokens";
 import type { ClPositionDto } from "@components/cl/clTypes";
 
@@ -78,7 +87,7 @@ interface CustomRangeFormProps {
 /** Amount text for an input: trims float noise, keeps up to `decimals` places. */
 function amountText(human: number, decimals: number): string {
   if (!Number.isFinite(human) || human <= 0) return "";
-  return human.toFixed(Math.min(decimals, 9)).replace(/\.?0+$/, "");
+  return trimDecimalZeros(human.toFixed(Math.min(decimals, 9)));
 }
 
 const CustomRangeForm: FC<CustomRangeFormProps> = ({
@@ -93,6 +102,7 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
 }) => {
   const theme = useTheme();
   const { create, creating } = useClCreate(userAddresses);
+  const { minerFee } = useMinerFee();
 
   const { tokenX, tokenY, nameX, nameY, decimalsX: decX, decimalsY: decY } = pair;
 
@@ -126,6 +136,8 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
   const [amtX, setAmtX] = useState("");
   const [amtY, setAmtY] = useState("");
   const [edited, setEdited] = useState<"x" | "y">("x");
+  // Exact wallet amount (raw) of the side filled from the preview; its text is trimmed.
+  const [derivedRaw, setDerivedRaw] = useState<number | null>(null);
 
   const [preview, setPreview] = useState<ClPreviewResponse | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -239,7 +251,17 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
   const balX = balanceHuman(tokenX, decX);
   const balY = balanceHuman(tokenY, decY);
 
-  const editedNum = parseFloat(edited === "x" ? amtX : amtY);
+  const isErgX = tokenX === ERG_TOKEN_ID;
+  const isErgY = tokenY === ERG_TOKEN_ID;
+
+  // Reserve (raw) the request carries for the edited side; <= 0 means no amount.
+  const editedReserveRaw = (side: "x" | "y", text: string): number => {
+    const wallet = humanToRaw(parseFloat(text) || 0, side === "x" ? decX : decY);
+    return walletToReserveRaw(wallet, side === "x" ? isErgX : isErgY);
+  };
+  const editedText = edited === "x" ? amtX : amtY;
+  const editedReserve = editedReserveRaw(edited, editedText);
+  const editedNum = rawToHuman(editedReserve, edited === "x" ? decX : decY);
 
   const requestBody = useMemo(() => {
     if (!selection) return null;
@@ -273,8 +295,15 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
         setPreview(r);
         setPreviewError(null);
         setNotDeployed(null);
-        if (edited === "x") setAmtY(amountText(rawToHuman(r.y, decY), decY));
-        else setAmtX(amountText(rawToHuman(r.x, decX), decX));
+        if (edited === "x") {
+          const raw = reserveToWalletRaw(r.y, isErgY);
+          setDerivedRaw(raw);
+          setAmtY(formatAmountTrimmed(rawToHuman(raw, decY), decY));
+        } else {
+          const raw = reserveToWalletRaw(r.x, isErgX);
+          setDerivedRaw(raw);
+          setAmtX(formatAmountTrimmed(rawToHuman(raw, decX), decX));
+        }
       } catch (e: any) {
         if (cancelled) return;
         setPreview(null);
@@ -298,9 +327,10 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
 
   const onAmountChange = (side: "x" | "y", text: string) => {
     setEdited(side);
+    setDerivedRaw(null);
     if (side === "x") setAmtX(text);
     else setAmtY(text);
-    if (!(parseFloat(text) > 0)) {
+    if (editedReserveRaw(side, text) <= 0) {
       if (side === "x") setAmtY("");
       else setAmtX("");
       setPreview(null);
@@ -311,7 +341,7 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
     const bal = side === "x" ? balX : balY;
     if (bal === undefined) return undefined;
     const tok = side === "x" ? tokenX : tokenY;
-    return computeMaxDepositHuman(bal, tok === ERG_TOKEN_ID, side === "x" ? decX : decY);
+    return computeMaxDepositHuman(bal, tok === ERG_TOKEN_ID);
   };
   const onMax = (side: "x" | "y") => {
     const m = maxFor(side);
@@ -319,13 +349,18 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
     onAmountChange(side, amountText(m, side === "x" ? decX : decY) || "0");
   };
 
-  const amountXNum = parseFloat(amtX) || 0;
-  const amountYNum = parseFloat(amtY) || 0;
-  const exceeds = (amount: number, tok: string, dec: number): boolean => {
-    const raw = balances?.get(tok);
-    return raw !== undefined && exceedsDepositBalance(amount, raw, tok === ERG_TOKEN_ID, dec);
+  // Exact wallet amounts (raw): the typed side from its text, the other from the preview.
+  const walletRawFor = (s: "x" | "y"): number =>
+    s === edited
+      ? humanToRaw(parseFloat(s === "x" ? amtX : amtY) || 0, s === "x" ? decX : decY)
+      : derivedRaw ?? humanToRaw(parseFloat(s === "x" ? amtX : amtY) || 0, s === "x" ? decX : decY);
+  const amountXNum = rawToHuman(walletRawFor("x"), decX);
+  const amountYNum = rawToHuman(walletRawFor("y"), decY);
+  const exceeds = (s: "x" | "y"): boolean => {
+    const raw = balances?.get(s === "x" ? tokenX : tokenY);
+    return raw !== undefined && exceedsWalletBalance(walletRawFor(s), raw);
   };
-  const insufficient = exceeds(amountXNum, tokenX, decX) || exceeds(amountYNum, tokenY, decY);
+  const insufficient = exceeds("x") || exceeds("y");
 
   // Which side of the range the current price is on.
   const effectiveCurrent = preview
@@ -357,6 +392,7 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
     setSuccess(null);
     setAmtX("");
     setAmtY("");
+    setDerivedRaw(null);
     setPreview(null);
   };
 
@@ -729,6 +765,44 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
                 : ""}
             </Typography>
           </Box>
+          {preview && (
+            <>
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0 }}>
+                  In position
+                </Typography>
+                <Typography variant="body2" fontWeight={500} sx={{ mb: 0 }}>
+                  {formatAmountTrimmed(rawToHuman(preview.x, decX), decX)} {nameX} +{" "}
+                  {formatAmountTrimmed(rawToHuman(preview.y, decY), decY)} {nameY}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0 }}>
+                  Returned on withdraw
+                </Typography>
+                <Typography variant="body2" fontWeight={500} sx={{ mb: 0 }}>
+                  {[
+                    !isErgX && `${formatAmountTrimmed(rawToHuman(CL_TOKEN_DUST_RAW, decX), decX, decX)} ${nameX}`,
+                    !isErgY && `${formatAmountTrimmed(rawToHuman(CL_TOKEN_DUST_RAW, decY), decY, decY)} ${nameY}`,
+                    `${formatAmountTrimmed(rawToHuman(CL_POSITION_FLOOR_NANOERG + CL_KEY_BOX_NANOERG, 9), 9, 9)} ERG`,
+                  ]
+                    .filter(Boolean)
+                    .join(" + ")}
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                Kept in the position and key boxes; returned when you withdraw.
+              </Typography>
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0 }}>
+                  Network fee
+                </Typography>
+                <Typography variant="body2" fontWeight={500} sx={{ mb: 0 }}>
+                  {formatAmountTrimmed(minerFee / 1e9, 9, 9)} ERG
+                </Typography>
+              </Box>
+            </>
+          )}
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0 }}>
             You earn fees only while the price is inside your range.
           </Typography>
