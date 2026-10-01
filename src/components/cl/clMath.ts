@@ -125,15 +125,38 @@ export function isClNotDeployedError(error: unknown): boolean {
 export const ERG_DEPOSIT_RESERVE_HUMAN = 0.01;
 
 /**
+ * Raw units of each deposited token the position box holds on top of the
+ * reserve (a contract invariant), so a token deposit of `n` takes `n + 1`
+ * from the wallet.
+ */
+export const CL_TOKEN_DUST_RAW = 1;
+
+/**
  * The largest human-unit amount the "Max" button should fill for a wallet
  * balance, given whether the deposit token is ERG. ERG holds back
  * `ERG_DEPOSIT_RESERVE_HUMAN` for the miner fee and box minimums; any other
- * token can use its full balance. Never negative.
+ * token holds back `CL_TOKEN_DUST_RAW`. Never negative.
  */
-export function computeMaxDepositHuman(balanceHuman: number, isErg: boolean): number {
+export function computeMaxDepositHuman(balanceHuman: number, isErg: boolean, decimals: number): number {
   if (!Number.isFinite(balanceHuman)) return 0;
-  const max = isErg ? balanceHuman - ERG_DEPOSIT_RESERVE_HUMAN : balanceHuman;
+  const max = isErg
+    ? balanceHuman - ERG_DEPOSIT_RESERVE_HUMAN
+    : rawToHuman(humanToRaw(balanceHuman, decimals) - CL_TOKEN_DUST_RAW, decimals);
   return Math.max(max, 0);
+}
+
+/**
+ * Whether a deposit of `amountHuman` needs more than `balanceRaw`. A token
+ * deposit also needs `CL_TOKEN_DUST_RAW`; ERG fees are not counted here.
+ */
+export function exceedsDepositBalance(
+  amountHuman: number,
+  balanceRaw: number,
+  isErg: boolean,
+  decimals: number,
+): boolean {
+  const needRaw = humanToRaw(amountHuman, decimals) + (isErg ? 0 : CL_TOKEN_DUST_RAW);
+  return needRaw > balanceRaw;
 }
 
 /**

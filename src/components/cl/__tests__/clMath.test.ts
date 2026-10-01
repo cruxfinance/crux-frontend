@@ -4,6 +4,7 @@ import {
   ERG_TOKEN_ID,
   classifyRangeSide,
   computeMaxDepositHuman,
+  exceedsDepositBalance,
   feeBpsToPercent,
   formatProtocolFeeBps,
   formatProtocolFeeFormula,
@@ -196,21 +197,40 @@ describe("formatProtocolFeeBps", () => {
 
 describe("computeMaxDepositHuman", () => {
   it("holds back the ERG reserve for ERG", () => {
-    expect(computeMaxDepositHuman(5, true)).toBeCloseTo(5 - ERG_DEPOSIT_RESERVE_HUMAN, 9);
+    expect(computeMaxDepositHuman(5, true, 9)).toBeCloseTo(5 - ERG_DEPOSIT_RESERVE_HUMAN, 9);
   });
 
-  it("uses the full balance for a non-ERG token", () => {
-    expect(computeMaxDepositHuman(5, false)).toBe(5);
+  it("holds back one dust unit for a non-ERG token", () => {
+    expect(computeMaxDepositHuman(31.14, false, 2)).toBe(31.13);
+    expect(computeMaxDepositHuman(5, false, 0)).toBe(4);
   });
 
-  it("never goes negative when the ERG balance is below the reserve", () => {
-    expect(computeMaxDepositHuman(0.001, true)).toBe(0);
-    expect(computeMaxDepositHuman(0, true)).toBe(0);
+  it("never goes negative when the balance is below the reserve", () => {
+    expect(computeMaxDepositHuman(0.001, true, 9)).toBe(0);
+    expect(computeMaxDepositHuman(0, true, 9)).toBe(0);
+    expect(computeMaxDepositHuman(0, false, 2)).toBe(0);
   });
 
   it("treats a non-finite balance as zero", () => {
-    expect(computeMaxDepositHuman(NaN, false)).toBe(0);
-    expect(computeMaxDepositHuman(Infinity, true)).toBe(0);
+    expect(computeMaxDepositHuman(NaN, false, 2)).toBe(0);
+    expect(computeMaxDepositHuman(Infinity, true, 9)).toBe(0);
+  });
+});
+
+describe("exceedsDepositBalance", () => {
+  it("counts the dust unit for a token deposit", () => {
+    expect(exceedsDepositBalance(31.14, 3114, false, 2)).toBe(true);
+    expect(exceedsDepositBalance(31.13, 3114, false, 2)).toBe(false);
+  });
+
+  it("compares ERG against the balance alone", () => {
+    expect(exceedsDepositBalance(1, 1_000_000_000, true, 9)).toBe(false);
+    expect(exceedsDepositBalance(1.000000001, 1_000_000_000, true, 9)).toBe(true);
+  });
+
+  it("feeds Max output back in without tripping", () => {
+    const max = computeMaxDepositHuman(31.14, false, 2);
+    expect(exceedsDepositBalance(max, 3114, false, 2)).toBe(false);
   });
 });
 

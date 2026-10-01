@@ -22,6 +22,7 @@ import {
   ERG_DEPOSIT_RESERVE_HUMAN,
   classifyRangeSide,
   computeMaxDepositHuman,
+  exceedsDepositBalance,
   feeBpsToPercent,
   formatProtocolFeeBps,
   formatProtocolFeeFormula,
@@ -310,7 +311,7 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
     const bal = side === "x" ? balX : balY;
     if (bal === undefined) return undefined;
     const tok = side === "x" ? tokenX : tokenY;
-    return computeMaxDepositHuman(bal, tok === ERG_TOKEN_ID);
+    return computeMaxDepositHuman(bal, tok === ERG_TOKEN_ID, side === "x" ? decX : decY);
   };
   const onMax = (side: "x" | "y") => {
     const m = maxFor(side);
@@ -320,9 +321,11 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
 
   const amountXNum = parseFloat(amtX) || 0;
   const amountYNum = parseFloat(amtY) || 0;
-  const insufficient =
-    (balX !== undefined && amountXNum > balX + 1e-12) ||
-    (balY !== undefined && amountYNum > balY + 1e-12);
+  const exceeds = (amount: number, tok: string, dec: number): boolean => {
+    const raw = balances?.get(tok);
+    return raw !== undefined && exceedsDepositBalance(amount, raw, tok === ERG_TOKEN_ID, dec);
+  };
+  const insufficient = exceeds(amountXNum, tokenX, decX) || exceeds(amountYNum, tokenY, decY);
 
   // Which side of the range the current price is on.
   const effectiveCurrent = preview
