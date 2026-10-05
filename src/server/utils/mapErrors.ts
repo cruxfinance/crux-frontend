@@ -1,5 +1,29 @@
 import { TRPCError } from '@trpc/server';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+
+const describeUpstreamError = (error: AxiosError): string => {
+  const data = error.response?.data as unknown;
+  let detail: string;
+  if (data === undefined || data === null || data === '') {
+    detail = error.message;
+  } else if (typeof data === 'string') {
+    detail = data;
+  } else if (typeof (data as any).error === 'string') {
+    detail = (data as any).error;
+  } else if (typeof (data as any).message === 'string') {
+    detail = (data as any).message;
+  } else {
+    detail = JSON.stringify(data);
+  }
+
+  const request = [error.config?.method?.toUpperCase(), error.config?.url]
+    .filter(Boolean)
+    .join(' ');
+  const prefix = ['Upstream', error.response?.status, request]
+    .filter(Boolean)
+    .join(' ');
+  return `${prefix}: ${detail}`;
+};
 
 export const mapAxiosErrorToTRPCError = (error: any): TRPCError => {
   if (axios.isAxiosError(error)) {
@@ -21,12 +45,10 @@ export const mapAxiosErrorToTRPCError = (error: any): TRPCError => {
       }
     };
 
-    console.log(error.response?.status)
-    console.log(error.response?.data)
-    console.log(code(error.response?.status))
     return new TRPCError({
-      message: error.response?.data as string,
+      message: describeUpstreamError(error),
       code: code(error.response?.status),
+      cause: error,
     });
   }
 
