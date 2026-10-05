@@ -7,7 +7,7 @@ import {
   Avatar
 } from "@mui/material";
 import { currencies, Currencies } from '@lib/utils/currencies';
-import { formatNumber } from '@lib/utils/general';
+import { formatNumber, formatFullNumber } from '@lib/utils/general';
 import { trpc } from '@lib/trpc';
 import CurrencyButton from '@components/CurrencyButton';
 import CruxTableScroll from '@components/CruxTableScroll';
@@ -86,11 +86,11 @@ const StakedPositions: FC<StakedPositionsProps> = ({ currency, addressList, setC
 
           return {
             "Name": symbolWithName(tokenName, tokenId),
-            "Total Stake": formatNumber(totalStake),
-            "Current Value": `${currencySymbol}${formatNumber(totalStake * currentPrice[currentCurrency as keyof PriceInfo])}`,
-            "Staked Amount": formatNumber(stakedAmount),
-            "Total Rewards": formatNumber(rewardAmount),
-            "Withdrawn Amount": formatNumber(unstakedAmount)
+            "Total Stake": formatFullNumber(totalStake),
+            "Current Value": `${currencySymbol}${formatFullNumber(totalStake * currentPrice[currentCurrency as keyof PriceInfo])}`,
+            "Staked Amount": formatFullNumber(stakedAmount),
+            "Total Rewards": formatFullNumber(rewardAmount),
+            "Withdrawn Amount": formatFullNumber(unstakedAmount)
           }
         })
       )

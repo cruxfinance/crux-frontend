@@ -2,7 +2,6 @@ import { getYearTimestamps } from "@lib/utils/daytime";
 import { prisma } from "@server/prisma";
 import { accountingApi } from "@server/services/accountingApi";
 import { checkTransactionStatus } from "@server/utils/checkTransactionStatus";
-import { generateDownloadLink } from "@server/utils/s3";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -135,6 +134,26 @@ export const accountingRouter = createTRPCRouter({
         });
       }
 
+      const claimed = await prisma.report.updateMany({
+        where: {
+          id: reportId,
+          userId: ctx.session.user.id,
+          OR: [
+            { koinlyGenerating: false },
+            { updatedAt: { lt: new Date(Date.now() - 30 * 60 * 1000) } },
+          ],
+        },
+        data: { koinlyGenerating: true },
+      });
+
+      if (claimed.count === 0) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message:
+            "A Koinly export is already being generated for this report.",
+        });
+      }
+
       let dateFrom = report.dateFrom
         ? report.dateFrom.getTime()
         : getYearTimestamps(report.taxYear)[0];
@@ -146,22 +165,27 @@ export const accountingRouter = createTRPCRouter({
         dateFrom,
         dateTo,
       };
-      const download = await accountingApi.downloadKoinly(
-        wallets,
-        reportId,
-        modifiedQueries,
-        baseUrl
-      );
 
-      if (download) {
-        await prisma.report.update({
-          where: {
-            userId: ctx.session.user.id,
-            id: reportId,
-          },
-          data: {
-            koinlyGenerating: true,
-          },
+      let download;
+      try {
+        download = await accountingApi.downloadKoinly(
+          wallets,
+          reportId,
+          modifiedQueries,
+          baseUrl
+        );
+      } catch (error) {
+        await prisma.report.updateMany({
+          where: { id: reportId, userId: ctx.session.user.id },
+          data: { koinlyGenerating: false },
+        });
+        throw error;
+      }
+
+      if (!download) {
+        await prisma.report.updateMany({
+          where: { id: reportId, userId: ctx.session.user.id },
+          data: { koinlyGenerating: false },
         });
       }
 
@@ -530,16 +554,21 @@ export const accountingRouter = createTRPCRouter({
         filename: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      try {
-        const url = await generateDownloadLink(input.filename);
-        return { url };
-      } catch (error: any) {
-        console.error("Error generating download URL:", error.message);
+    .mutation(async ({ input, ctx }) => {
+      const report = await prisma.report.findFirst({
+        where: {
+          reportFilename: input.filename,
+          userId: ctx.session.user.id,
+        },
+      });
+
+      if (!report) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to generate download URL",
+          code: "NOT_FOUND",
+          message: "Report not found",
         });
       }
+
+      return { url: `/api/files/reports/${input.filename}` };
     }),
 });

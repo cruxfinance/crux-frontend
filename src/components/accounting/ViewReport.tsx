@@ -17,7 +17,6 @@ import { useAlert } from "@lib/contexts/AlertContext";
 import { addressListFlatMap } from "@lib/utils/addresses";
 import { slugify } from "@lib/utils/general";
 import { LoadingButton } from "@mui/lab";
-import { generateDownloadLink } from "@server/utils/s3";
 
 const getBaseUrl = (): string => {
   if (typeof window === "undefined") {
@@ -265,7 +264,7 @@ const ViewReport: FC<IViewReportProps> = ({ report }) => {
               size="small"
             >
               <ToggleButton value="USE">USE</ToggleButton>
-              <ToggleButton value="ERG">Erg</ToggleButton>
+              <ToggleButton value="ERG">ERG</ToggleButton>
             </ToggleButtonGroup>
           </Box>
         </Box>

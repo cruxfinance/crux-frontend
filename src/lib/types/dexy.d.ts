@@ -31,7 +31,8 @@ declare global {
     | "stablecoin_on_hands"
     | "erg_in_bank"
     | "erg_tvl"
-    | "protocol_tvl_usd";
+    | "protocol_tvl_usd"
+    | "lp_bank_ratio";
 
   type DexyResolution = "1h" | "1d" | "1w";
 
@@ -134,6 +135,10 @@ declare global {
     feeAmount: number;
     feeToken: string;
     feeUsd: number;
+    /** Oracle rate at contract scale (nanoERG per raw stablecoin unit) */
+    rawOracleRate: number;
+    /** Number of decimal places for the stablecoin token */
+    stablecoinDecimals: number;
   };
 
   // Result of mint transaction building

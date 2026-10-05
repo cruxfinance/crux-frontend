@@ -7,7 +7,7 @@ import {
   Avatar
 } from "@mui/material";
 import { currencies, Currencies } from '@lib/utils/currencies';
-import { formatNumber } from '@lib/utils/general';
+import { formatNumber, formatFullNumber } from '@lib/utils/general';
 import { trpc } from '@lib/trpc';
 import CruxTableScroll from '@components/CruxTableScroll';
 import CurrencyButton from '@components/CurrencyButton';
@@ -101,12 +101,12 @@ const LiquidityPositions: FC<LiquidityPositionsProps> = ({ currency, addressList
             "Paired Token": symbolWithName(quoteTokenName, quoteTokenId),
             "Base Token": symbolWithName(baseTokenName, baseTokenId),
             "Total Value": `${currencySymbol}${calcTotalPrice(baseCurrentAmount, baseCurrentPrice[currentCurrency as keyof PriceInfo], quoteCurrentAmount, quoteCurrentPrice[currentCurrency as keyof PriceInfo])}`,
-            "Pair Qty": quoteCurrentAmount.toLocaleString(undefined, { maximumFractionDigits: 0 }),
-            "Base Qty": baseCurrentAmount.toLocaleString(undefined, { maximumFractionDigits: 0 }),
-            "Pair Price": `${currencySymbol}${formatNumber(quoteCurrentPrice[currentCurrency as keyof PriceInfo])}`,
-            "Base Price": `${currencySymbol}${formatNumber(baseCurrentPrice[currentCurrency as keyof PriceInfo])}`,
-            "Initial Pair Qty": quoteProvidedAmount.toLocaleString(undefined, { maximumFractionDigits: 0 }),
-            "Initial Base Qty": baseProvidedAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })
+            "Pair Qty": formatFullNumber(quoteCurrentAmount, 0),
+            "Base Qty": formatFullNumber(baseCurrentAmount, 0),
+            "Pair Price": `${currencySymbol}${formatFullNumber(quoteCurrentPrice[currentCurrency as keyof PriceInfo])}`,
+            "Base Price": `${currencySymbol}${formatFullNumber(baseCurrentPrice[currentCurrency as keyof PriceInfo])}`,
+            "Initial Pair Qty": formatFullNumber(quoteProvidedAmount, 0),
+            "Initial Base Qty": formatFullNumber(baseProvidedAmount, 0)
           }
         })
       )

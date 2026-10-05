@@ -1,6 +1,5 @@
 import { cruxApi } from "@server/services/axiosInstance";
-
-const ERG_DECIMALS = 9;
+import { ERG_DECIMALS } from "@lib/configs/paymentTokens";
 
 // Token USD Price Info
 export const getTokenPriceInfo = async (tokenId: string | null) => {

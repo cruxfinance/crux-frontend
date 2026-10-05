@@ -122,6 +122,8 @@ export const dexyApi = {
               feeAmount: 0,
               feeToken: feeToken,
               feeUsd: 0,
+              rawOracleRate: 0,
+              stablecoinDecimals: 0,
             };
           }
         }

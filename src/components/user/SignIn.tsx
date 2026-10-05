@@ -57,7 +57,26 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
   const [expanded, setExpanded] = useState<Expanded>(undefined);
 
   useEffect(() => {
-    setNautilusAvailable(!!window.ergoConnector?.nautilus);
+    // Check immediately
+    if (window.ergoConnector?.nautilus) {
+      setNautilusAvailable(true);
+      return;
+    }
+
+    // Poll for extension injection (it loads asynchronously)
+    const interval = setInterval(() => {
+      if (window.ergoConnector?.nautilus) {
+        setNautilusAvailable(true);
+        clearInterval(interval);
+      }
+    }, 300);
+
+    const timeout = setTimeout(() => clearInterval(interval), 5000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleClose = () => {
@@ -94,9 +113,18 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
   const [nautilusLoading, setNautilusLoading] = useState(false);
   const [dappConnected, setDappConnected] = useState(false);
   const dappConnection = async () => {
+    console.log("[SignIn] dappConnection called, ergoConnector:", !!window.ergoConnector?.nautilus);
+    if (!window.ergoConnector?.nautilus) {
+      console.error("[SignIn] Nautilus extension not available");
+      setExpanded(undefined);
+      return;
+    }
     setNautilusLoading(true);
+    setNautilusAvailable(true);
     try {
+      console.log("[SignIn] calling nautilus.connect()...");
       const connect = await window.ergoConnector.nautilus.connect();
+      console.log("[SignIn] nautilus.connect() returned:", connect);
       if (connect) {
         setDappConnected(true);
       } else {
@@ -104,7 +132,7 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
         setExpanded(undefined);
       }
     } catch (error) {
-      console.error("Error connecting to dApp:", error);
+      console.error("[SignIn] Error connecting to dApp:", error);
       setNautilusLoading(false);
     }
   };
@@ -116,7 +144,6 @@ export const SignIn: FC<ISignIn> = ({ open, setOpen, setLoading }) => {
         onClose={handleClose}
         fullScreen={fullScreen}
         sx={{
-          zIndex: 12000,
           '& .MuiBackdrop-root': {
             backdropFilter: 'blur(3px)',
             backgroundColor: 'rgba(0, 0, 0, 0.5)'

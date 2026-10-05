@@ -2,6 +2,7 @@ import type { AppRouter } from "@server/routers/_app";
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
 import superjson from "superjson";
+import * as Sentry from "@sentry/nextjs";
 
 function getBaseUrl() {
   if (typeof window !== "undefined")
@@ -38,3 +39,7 @@ export const trpc = createTRPCNext<AppRouter>({
    **/
   ssr: false,
 });
+
+export function reportTRPCError(error: unknown) {
+  Sentry.captureException(error);
+}

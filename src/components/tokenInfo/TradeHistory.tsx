@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useInView } from "react-intersection-observer";
 import Grid from "@mui/system/Unstable_Grid/Grid";
-import { formatNumber, getShorterAddress } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, getShorterAddress } from "@lib/utils/general";
 import { timeFromNow } from "@lib/utils/daytime";
 import { currencies, Currencies } from "@lib/utils/currencies";
 import Link from "../Link";
@@ -25,25 +25,7 @@ export interface PropsType {
   tokenId: string;
   tokenTicker: string;
   exchangeRate: number;
-}
-
-interface DexOrder {
-  id: number;
-  transaction_id: string;
-  quote_name: string;
-  base_name: string;
-  order_quote_amount: string;
-  order_base_amount: string;
-  filled_quote_amount: string;
-  filled_base_amount: string;
-  total_filled_quote_amount: string;
-  total_filled_base_amount: string;
-  exchange: number;
-  order_type: string;
-  status: string;
-  maker_address: string;
-  taker_address: string;
-  chain_time: number;
+  inverted?: boolean;
 }
 
 const TradeHistory: FC<PropsType> = ({
@@ -52,6 +34,7 @@ const TradeHistory: FC<PropsType> = ({
   tokenId,
   tokenTicker,
   exchangeRate,
+  inverted,
 }) => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
@@ -247,18 +230,12 @@ const TradeHistory: FC<PropsType> = ({
   // END WEBSOCKET STUFF
   ////////////////////////////////////
 
-  const getPrice = (
-    baseAmount: string | number,
-    quoteAmount: string | number,
-    decimals?: number,
-  ) => {
-    var price = Number(baseAmount) / Number(quoteAmount);
-
-    if (currency === "USE") {
-      price = price * exchangeRate;
+  const getPrice = (price: number, decimals?: number) => {
+    let displayPrice = inverted ? (1 / price) : price;
+    if (currency === "USE" && !inverted) {
+      displayPrice = price * exchangeRate;
     }
-
-    return formatNumber(price, decimals ? decimals : 6, true);
+    return formatFullNumber(displayPrice, decimals ?? 6);
   };
 
   const removeCurrentForTesting = () => {
@@ -313,8 +290,8 @@ const TradeHistory: FC<PropsType> = ({
               <Grid xs={2} sx={{ textAlign: "left" }}>
                 Type
               </Grid>
-              <Grid xs={2}>Total {tradingPair}</Grid>
-              <Grid xs={2}>Total {tokenTicker}</Grid>
+              <Grid xs={2}>Total {inverted ? tokenTicker : tradingPair}</Grid>
+              <Grid xs={2}>Total {inverted ? tradingPair : tokenTicker}</Grid>
               <Grid xs={2}>Price ({currency})</Grid>
               <Grid xs={2}>Age</Grid>
               <Grid xs={2} sx={{ textAlign: "right" }}>
@@ -332,7 +309,10 @@ const TradeHistory: FC<PropsType> = ({
           >
             {!initialLoading &&
               tradeHistory.map((item, i) => {
-                const itemColor = item.order_type.includes("Buy")
+                const side = inverted
+                  ? (item.order_type.includes("Buy") ? "Sell" : "Buy")
+                  : item.order_type;
+                const itemColor = side.includes("Buy")
                   ? theme.palette.up.main
                   : theme.palette.down.main;
                 return (
@@ -359,7 +339,7 @@ const TradeHistory: FC<PropsType> = ({
                       },
                       animation:
                         highlightedItems[item.id] &&
-                        highlightedItems[item.id] > Date.now()
+                          highlightedItems[item.id] > Date.now()
                           ? "highlightGlow 2s ease-in-out"
                           : "none",
                       background: i % 2 ? "" : theme.palette.background.paper,
@@ -378,33 +358,29 @@ const TradeHistory: FC<PropsType> = ({
                         <Typography
                           sx={{ color: itemColor, textAlign: "left" }}
                         >
-                          {item.order_type}
+                          {side}
                         </Typography>
                       </Grid>
                       <Grid xs={2}>
                         <Typography sx={{ color: itemColor }}>
-                          {formatNumber(
-                            Number(item.total_filled_base_amount),
+                          {formatFullNumber(
+                            inverted ? Number(item.total_filled_quote_amount) : Number(item.total_filled_base_amount),
                             4,
                           )}
                         </Typography>
                       </Grid>
                       <Grid xs={2}>
                         <Typography sx={{ color: itemColor }}>
-                          {formatNumber(
-                            Number(item.total_filled_quote_amount),
+                          {formatFullNumber(
+                            inverted ? Number(item.total_filled_base_amount) : Number(item.total_filled_quote_amount),
                             2,
-                            true,
                           )}
                         </Typography>
                       </Grid>
                       <Grid xs={2}>
                         <Typography sx={{ color: itemColor }}>
                           {currencies[currency]}
-                          {getPrice(
-                            item.total_filled_base_amount,
-                            item.filled_quote_amount,
-                          )}
+                          {getPrice(item.price)}
                         </Typography>
                       </Grid>
                       <Grid xs={2}>
@@ -549,7 +525,10 @@ const TradeHistory: FC<PropsType> = ({
           >
             {!initialLoading &&
               tradeHistory.map((item, i) => {
-                const itemColor = item.order_type.includes("Buy")
+                const side = inverted
+                  ? (item.order_type.includes("Buy") ? "Sell" : "Buy")
+                  : item.order_type;
+                const itemColor = side.includes("Buy")
                   ? theme.palette.up.main
                   : theme.palette.down.main;
                 return (
@@ -576,7 +555,7 @@ const TradeHistory: FC<PropsType> = ({
                       },
                       animation:
                         highlightedItems[item.id] &&
-                        highlightedItems[item.id] > Date.now()
+                          highlightedItems[item.id] > Date.now()
                           ? "highlightGlow 2s ease-in-out"
                           : "none",
                       background: i % 2 ? "" : theme.palette.background.paper,
@@ -596,7 +575,7 @@ const TradeHistory: FC<PropsType> = ({
                         <Typography
                           sx={{ color: itemColor, textAlign: "left" }}
                         >
-                          {item.order_type}
+                          {side}
                         </Typography>
                         <Typography
                           sx={{ color: itemColor, textAlign: "left" }}
@@ -607,26 +586,20 @@ const TradeHistory: FC<PropsType> = ({
                       <Grid xs={3} sx={{ textAlign: "left" }}>
                         <Typography sx={{ color: itemColor }}>
                           {currencies[currency]}
-                          {getPrice(
-                            item.total_filled_base_amount,
-                            item.filled_quote_amount,
-                            4,
-                          )}
+                          {getPrice(item.price, 4)}
                         </Typography>
                       </Grid>
                       <Grid xs={2} sx={{ textAlign: "left" }}>
                         <Typography sx={{ color: itemColor }}>
-                          {formatNumber(
-                            Number(item.order_base_amount),
+                          {formatFullNumber(
+                            inverted ? Number(item.filled_quote_amount) : Number(item.order_base_amount),
                             2,
-                            true,
                           )}
                         </Typography>
                         <Typography sx={{ color: itemColor }}>
-                          {formatNumber(
-                            Number(item.filled_quote_amount),
+                          {formatFullNumber(
+                            inverted ? Number(item.order_base_amount) : Number(item.filled_quote_amount),
                             2,
-                            true,
                           )}
                         </Typography>
                       </Grid>

@@ -22,7 +22,7 @@ import {
 import Grid from "@mui/material/Unstable_Grid2";
 import TokenSort from "@components/tokens/TokenSort";
 import TokenFilterOptions from "@components/tokens/Filters";
-import { formatNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { useRouter } from "next/router";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { currencies, Currencies } from "@lib/utils/currencies";
@@ -495,7 +495,7 @@ const Tokens: FC = () => {
 
     return {
       name,
-      ticker,
+      ticker: normalizeTicker(ticker),
       tokenId: id,
       icon: url || "",
       price: price_erg,
@@ -653,7 +653,7 @@ const Tokens: FC = () => {
             <PairLogos baseIcon={ergIcon} />
             <Typography variant="caption">
               {currencies[currency] +
-                formatNumber(
+                formatFullNumber(
                   currency === "USE" ? ergValue * ergExchange : ergValue,
                   2,
                 )}
@@ -665,7 +665,7 @@ const Tokens: FC = () => {
             <PairLogos baseIcon={useIcon} />
             <Typography variant="caption">
               {currencies[currency] +
-                formatNumber(
+                formatFullNumber(
                   currency === "USE" ? useValue * ergExchange : useValue,
                   2,
                 )}
@@ -720,8 +720,20 @@ const Tokens: FC = () => {
         onChange={handleCurrencyChange}
         size="small"
       >
-        <ToggleButton value="USE">USE</ToggleButton>
-        <ToggleButton value="ERG">Erg</ToggleButton>
+        <ToggleButton value="USE" sx={{ gap: 1 }}>
+          <Avatar
+            src="/icons/tokens/a55b8735ed1a99e46c2c89f8994aacdf4b1109bdcf682f1e5b34479c6e392669.png"
+            sx={{ width: 18, height: 18, background: "transparent" }}
+          />
+          USE
+        </ToggleButton>
+        <ToggleButton value="ERG" sx={{ gap: 1 }}>
+          <Avatar
+            src="/icons/tokens/0000000000000000000000000000000000000000000000000000000000000000.svg"
+            sx={{ width: 18, height: 18, background: "transparent" }}
+          />
+          Erg
+        </ToggleButton>
       </ToggleButtonGroup>
     );
   };
@@ -838,7 +850,7 @@ const Tokens: FC = () => {
                   </Typography>
                 </Box>
                 <Typography variant="body1">
-                  Vol: {formatNumber(token.vol)} {currencies.ERG}
+                  Vol: {formatFullNumber(token.vol)} {currencies.ERG}
                 </Typography>
               </Box>
             ))
@@ -1337,14 +1349,14 @@ const Tokens: FC = () => {
                                   {token.name}
                                 </Typography>
                                 {/* <Typography sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {token.ticker.toUpperCase()}
+                                        {normalizeTicker(token.ticker)}
                                       </Typography> */}
                               </Box>
                             </Box>
                           </Grid>
                           <Grid xs={2}>
                             {currencies[currency] +
-                              formatNumber(
+                              formatFullNumber(
                                 currency === "USE"
                                   ? token.price * ergExchange
                                   : token.price,
@@ -1379,7 +1391,7 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 V{" "}
                                 {currencies[currency] +
-                                  formatNumber(
+                                  formatFullNumber(
                                     currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
@@ -1402,7 +1414,7 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 L{" "}
                                 {currencies[currency] +
-                                  formatNumber(
+                                  formatFullNumber(
                                     currency === "USE"
                                       ? token.liquidity * ergExchange
                                       : token.liquidity,
@@ -1418,7 +1430,7 @@ const Tokens: FC = () => {
                             <Typography>
                               M{" "}
                               {currencies[currency] +
-                                formatNumber(
+                                formatFullNumber(
                                   currency === "USE"
                                     ? token.mktCap * ergExchange
                                     : token.mktCap,
@@ -1587,7 +1599,7 @@ const Tokens: FC = () => {
                           <Grid xs={4} sm={3}>
                             <Typography>
                               {currencies[currency] +
-                                formatNumber(
+                                formatFullNumber(
                                   currency === "USE"
                                     ? token.price * ergExchange
                                     : token.price,
@@ -1614,7 +1626,7 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 V{" "}
                                 {currencies[currency] +
-                                  formatNumber(
+                                  formatFullNumber(
                                     currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,

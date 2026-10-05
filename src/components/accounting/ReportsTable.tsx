@@ -151,7 +151,7 @@ const ReportsTable: FC<IReportsTable> = ({ currency, reportId, addresses }) => {
                   <TableCell sx={{ maxWidth: '190px' }}>
                     {row.transactionElements.map((transaction, i) => (
                       <Typography key={i} sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {transaction.tokenName === 'erg' ? 'Erg' : transaction.tokenName}
+                        {transaction.tokenName === 'erg' ? 'ERG' : transaction.tokenName}
                       </Typography>
                     ))}
                   </TableCell>

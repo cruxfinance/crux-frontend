@@ -74,6 +74,35 @@ export const formatNumber = (
   }
 };
 
+/**
+ * Format a number as a full-precision financial value with locale-aware
+ * thousands separators and no abbreviations (K, M, B, T).
+ *
+ * Use this for TVL, volume, balances, position values, and other financial
+ * absolute numbers where precision matters. For compact display contexts
+ * (tooltips, badges, sparklines), use {@link formatNumber} instead.
+ *
+ * @param value  - The number to format
+ * @param decimals - Number of decimal places (default: 2, max: 9)
+ * @returns Formatted string with thousands separators (e.g. "1,234,567.89")
+ */
+export const formatFullNumber = (value: number, decimals?: number): string => {
+  const maxDecimals = Math.min(decimals ?? 2, 9);
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: maxDecimals,
+    maximumFractionDigits: maxDecimals,
+  }).format(value);
+};
+
+/**
+ * Normalize a ticker string for display.
+ * "erg" → "ERG" (the blockchain's native token has a special-cased lowercase name from the API).
+ * All other tickers pass through unchanged to preserve readability (e.g., "rsBTC").
+ */
+export const normalizeTicker = (ticker: string): string => {
+  return ticker === "erg" ? "ERG" : ticker;
+};
+
 export const stringToUrl = (str: string): string | undefined => {
   if (str) {
     // Replace all spaces with dashes and convert to lowercase
@@ -147,4 +176,62 @@ export const adjustDecimals = (amount: number, decimals: number): number => {
 
 export const adjustDecimalsBigInt = (amount: bigint, decimals: bigint): bigint => {
   return amount / (BigInt(10) ** decimals);
+};
+
+/**
+ * Converts a human-entered decimal string (e.g. "0.29") into its raw integer
+ * amount for a token with the given decimals (e.g. 29n at 2 decimals).
+ *
+ * Operates on the string directly instead of `parseFloat(x) * 10 ** decimals`,
+ * which loses precision to floating point (0.29 * 100 can come out as
+ * 28.999999999999996, truncating to 28 instead of 29).
+ *
+ * Excess fraction digits beyond `decimals` are truncated, not rounded.
+ * Empty or otherwise invalid input returns 0n.
+ */
+export const toRawAmount = (value: string, decimals: number): bigint => {
+  const trimmed = value.trim();
+  if (!/^-?\d*\.?\d*$/.test(trimmed) || !/\d/.test(trimmed)) {
+    return BigInt(0);
+  }
+
+  const negative = trimmed.startsWith("-");
+  const unsigned = negative ? trimmed.slice(1) : trimmed;
+  const [whole = "0", fraction = ""] = unsigned.split(".");
+
+  const digits = `${whole || "0"}${fraction.slice(0, decimals).padEnd(decimals, "0")}`;
+  const raw = BigInt(digits);
+  return negative ? -raw : raw;
+};
+
+/**
+ * Calculate the exchange rate between two tokens when each token's price is expressed in a common unit (e.g. ERG).
+ *
+ * Given:
+ *   basePrice = price of 1 base token in common unit
+ *   quotePrice = price of 1 quote token in common unit
+ *
+ * Returns: how many quote tokens are needed to buy 1 base token.
+ *
+ * Examples:
+ *   - ERG (1) / USE (0.333) → 3.0  (1 ERG = 3 USE)
+ *   - CRUX (0.0001) / ERG (1) → 0.0001  (1 CRUX = 0.0001 ERG)
+ *   - CRUX (0.0001) / USE (0.333) → 0.0003003  (1 CRUX = 0.0003 USE)
+ *
+ * Edge cases:
+ *   - If either price is 0, null, undefined, or NaN → returns 0
+ *   - If quotePrice is Infinity → returns 0
+ */
+export const calculatePairPrice = (
+  basePrice: number | null | undefined,
+  quotePrice: number | null | undefined
+): number => {
+  const base = typeof basePrice === "number" && !isNaN(basePrice) ? basePrice : 0;
+  const quote = typeof quotePrice === "number" && !isNaN(quotePrice) ? quotePrice : 0;
+
+  if (base === 0 || quote === 0 || !isFinite(quote)) {
+    return 0;
+  }
+
+  return base / quote;
 };

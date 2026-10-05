@@ -57,27 +57,34 @@ const NautilusLogin: FC<INautilusLogin> = ({
   const deleteEmptyUser = trpc.user.deleteEmptyUser.useMutation();
 
   useEffect(() => {
+    console.log("[NautilusLogin] useEffect:", { defaultAddress, dappConnected, sessionStatus, allAddressesLength: allAddresses.length });
     if (
       defaultAddress &&
       dappConnected &&
       sessionStatus === "unauthenticated" &&
       allAddresses.length > 0
     ) {
+      console.log("[NautilusLogin] → refetchData (getting nonce)");
       refetchData();
-    } else if (dappConnected && !defaultAddress) getAddress();
+    } else if (dappConnected && !defaultAddress) {
+      console.log("[NautilusLogin] → getAddress");
+      getAddress();
+    }
   }, [defaultAddress, dappConnected, sessionStatus, allAddresses.length]);
 
   const getAddress = async () => {
     try {
-      // @ts-ignore
-      const changeAddress = await ergo.get_change_address();
-      if (changeAddress) {
-        setDefaultAddress(changeAddress);
-      }
-      // @ts-ignore
-      const fetchUsedAddresses = await ergo.get_used_addresses();
-      // @ts-ignore
-      const fetchUnusedAddresses = await ergo.get_unused_addresses();
+      console.log("[NautilusLogin] getAddress: getting context...");
+      const context = await window.ergoConnector.nautilus.getContext();
+      console.log("[NautilusLogin] getAddress: got context, fetching all addresses...");
+      const changeAddress = await context.get_change_address();
+      const fetchUsedAddresses = await context.get_used_addresses();
+      const fetchUnusedAddresses = await context.get_unused_addresses();
+      console.log("[NautilusLogin] getAddress: changeAddress =", changeAddress);
+      if (!changeAddress) return;
+      // Batch all state updates together to avoid multiple renders
+      // that would trigger duplicate nonce fetches
+      setDefaultAddress(changeAddress);
       setUsedAddresses(fetchUsedAddresses);
       setUnusedAddresses(fetchUnusedAddresses);
       setDAppWallet({
@@ -89,9 +96,9 @@ const NautilusLogin: FC<INautilusLogin> = ({
           ...fetchUnusedAddresses,
         ],
       });
-    } catch {
+    } catch (e) {
       setLocalLoading(false);
-      console.error("Error fetching wallet address");
+      console.error("Error fetching wallet address:", e);
     }
   };
 
@@ -115,8 +122,10 @@ const NautilusLogin: FC<INautilusLogin> = ({
   };
 
   useEffect(() => {
+    console.log("[NautilusLogin] nonce useEffect:", { newNonce: !!newNonce, defaultAddress, sessionStatus });
     if (newNonce && defaultAddress) {
       if (sessionStatus === "unauthenticated" && newNonce) {
+        console.log("[NautilusLogin] → verifyOwnership");
         verifyOwnership(newNonce, defaultAddress);
       }
     }
@@ -133,9 +142,11 @@ const NautilusLogin: FC<INautilusLogin> = ({
     // console.log('nonce: ' + nonce.nonce);
 
     try {
-      // Try for ergo.auth
-      // @ts-ignore
-      const signature = await ergo.auth(address, nonce.nonce);
+      console.log("[NautilusLogin] verifyOwnership: getting context for auth...");
+      const context = await window.ergoConnector.nautilus.getContext();
+      console.log("[NautilusLogin] verifyOwnership: calling auth...");
+      const signature = await context.auth(address, nonce.nonce);
+      console.log("[NautilusLogin] verifyOwnership: got signature");
       // console.log(signature);
 
       if (!signature.signedMessage || !signature.proof) {
@@ -192,14 +203,14 @@ const NautilusLogin: FC<INautilusLogin> = ({
     deleteEmptyUser.mutateAsync({
       userId: nonce.userId,
     });
-    window.ergoConnector.nautilus.disconnect();
+    try { window.ergoConnector?.nautilus?.disconnect(); } catch {}
   };
 
   const cleanup = () => {
     setDefaultAddress(undefined);
     setDappConnected(false);
     setErrorMessage(undefined);
-    window.ergoConnector.nautilus.disconnect();
+    try { window.ergoConnector?.nautilus?.disconnect(); } catch {}
     dappConnection();
   };
 

@@ -9,7 +9,7 @@ import {
   FormControlLabel
 } from "@mui/material";
 import { currencies, Currencies } from '@lib/utils/currencies';
-import { formatNumber } from '@lib/utils/general';
+import { formatNumber, formatFullNumber } from '@lib/utils/general';
 import { trpc } from '@lib/trpc';
 import CruxTableScroll from '@components/CruxTableScroll';
 import CurrencyButton from '@components/CurrencyButton';
@@ -114,11 +114,11 @@ const Positions: FC<PositionsProps> = ({ currency, addressList, setCurrency }) =
           const date = dayjs(tradeDate * 1000).format("YYYY/MM/DD");
           return {
             "Name": symbolWithName(tokenName, tokenId),
-            "Qty": formatNumber(tokenAmount),
-            "Current Price": `${currencySymbol}${formatNumber(lastPrice[currentCurrency as keyof PriceInfo])}`,
-            "Cost Per Token": `${currencySymbol}${formatNumber(costBasis[currentCurrency as keyof PriceInfo])}`,
-            "Total Cost": `${currencySymbol}${formatNumber(totalCost[currentCurrency as keyof PriceInfo])}`,
-            "Current Value": `${currencySymbol}${formatNumber(totalValue[currentCurrency as keyof PriceInfo])}`,
+            "Qty": formatFullNumber(tokenAmount),
+            "Current Price": `${currencySymbol}${formatFullNumber(lastPrice[currentCurrency as keyof PriceInfo])}`,
+            "Cost Per Token": `${currencySymbol}${formatFullNumber(costBasis[currentCurrency as keyof PriceInfo])}`,
+            "Total Cost": `${currencySymbol}${formatFullNumber(totalCost[currentCurrency as keyof PriceInfo])}`,
+            "Current Value": `${currencySymbol}${formatFullNumber(totalValue[currentCurrency as keyof PriceInfo])}`,
             "Open Date": date,
             "P/L Open": formatPL(pnlOpen[currentCurrency as keyof PriceInfo], currencySymbol),
             "P/L Open (%)": formatPL(pnlOpenPct[currentCurrency as keyof PriceInfo], '', true),

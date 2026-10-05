@@ -3,7 +3,8 @@ import { prisma } from "@server/prisma";
 import { getCurrentUpdatedSubcription } from "@server/services/subscription/subscription";
 import { checkAddressAvailability } from "@server/utils/checkAddress";
 import { deleteEmptyUser } from "@server/utils/deleteEmptyUser";
-import { uploadFile } from "@server/utils/s3";
+import { uploadFile, UploadValidationError } from "@server/storage/upload";
+import { deletePublicObject } from "@server/storage/client";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -16,6 +17,11 @@ interface WalletResponse {
   severity: Severity;
   data: any;
 }
+
+const UPLOAD_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}\.(jpe?g|png)$/;
+const IMAGE_PROXY_PATTERN =
+  /^\/api\/files\/public\/([A-Za-z0-9_-]{1,64}\.(?:jpe?g|png))$/;
+const MAX_UPLOADS_PER_HOUR = 10;
 
 export const userRouter = createTRPCRouter({
   getNonce: publicProcedure
@@ -620,9 +626,39 @@ export const userRouter = createTRPCRouter({
       if (email) {
         updateData.email = email;
       }
+
       if (image) {
+        const match = image.match(IMAGE_PROXY_PATTERN);
+        const newImageKey = match?.[1];
+        if (!newImageKey) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid image",
+          });
+        }
+
+        const ownedUpload = await prisma.userUpload.findUnique({
+          where: { key: newImageKey },
+        });
+        if (
+          !ownedUpload ||
+          ownedUpload.userId !== userId ||
+          ownedUpload.deletedAt !== null
+        ) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid image",
+          });
+        }
+
         updateData.image = image;
       }
+
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { image: true },
+      });
+      const previousImage = existingUser?.image;
 
       const updatedUser = await prisma.user.update({
         where: { id: userId },
@@ -631,6 +667,30 @@ export const userRouter = createTRPCRouter({
 
       if (!updatedUser) {
         throw new Error("Error updating user profile");
+      }
+
+      if (image && previousImage && previousImage !== image) {
+        const previousMatch = previousImage.match(IMAGE_PROXY_PATTERN);
+        const previousKey = previousMatch?.[1];
+        if (previousKey) {
+          try {
+            const previousUpload = await prisma.userUpload.findUnique({
+              where: { key: previousKey },
+            });
+            if (previousUpload && previousUpload.userId === userId) {
+              await deletePublicObject(previousKey);
+              await prisma.userUpload.update({
+                where: { key: previousKey },
+                data: { deletedAt: new Date() },
+              });
+            }
+          } catch (e: any) {
+            console.error(
+              "Error cleaning up previous avatar upload:",
+              e?.message ?? e,
+            );
+          }
+        }
       }
 
       return { success: true };
@@ -682,9 +742,97 @@ export const userRouter = createTRPCRouter({
         encodedFile: z.string(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.session.user.id;
+
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentUploadCount = await prisma.userUpload.count({
+        where: {
+          userId,
+          createdAt: { gte: oneHourAgo },
+        },
+      });
+
+      if (recentUploadCount >= MAX_UPLOADS_PER_HOUR) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Upload limit reached, try again later.",
+        });
+      }
+
       const type = input.fileName.split(".").pop() ?? "";
-      const updatedFileName = nanoid() + "." + type;
-      return await uploadFile(updatedFileName, input.encodedFile);
+      const updatedFileName = nanoid() + "." + type.toLowerCase();
+
+      if (!UPLOAD_KEY_PATTERN.test(updatedFileName)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Unsupported file type. Only supports jpeg/png.",
+        });
+      }
+
+      // Sweep any orphaned uploads before creating a new one, so a user
+      // holds at most the live avatar plus one pending upload.
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { image: true },
+      });
+      const liveImageMatch = currentUser?.image?.match(IMAGE_PROXY_PATTERN);
+      const liveImageKey = liveImageMatch?.[1];
+
+      const staleUploads = await prisma.userUpload.findMany({
+        where: { userId, deletedAt: null },
+      });
+
+      for (const upload of staleUploads) {
+        if (liveImageKey && upload.key === liveImageKey) {
+          continue;
+        }
+        try {
+          await deletePublicObject(upload.key);
+          await prisma.userUpload.update({
+            where: { key: upload.key },
+            data: { deletedAt: new Date() },
+          });
+        } catch (e: any) {
+          console.error("Error sweeping orphaned upload:", e?.message ?? e);
+        }
+      }
+
+      // Reserve the row before the PUT so it's tracked even if the process
+      // dies mid-upload.
+      await prisma.userUpload.create({
+        data: { key: updatedFileName, userId },
+      });
+
+      let result;
+      try {
+        result = await uploadFile(updatedFileName, input.encodedFile);
+      } catch (e: any) {
+        try {
+          await prisma.userUpload.delete({ where: { key: updatedFileName } });
+        } catch (cleanupError: any) {
+          console.error(
+            "Error cleaning up reserved upload row:",
+            cleanupError?.message ?? cleanupError,
+          );
+        }
+
+        if (e instanceof UploadValidationError) {
+          throw new TRPCError({
+            code: e.message.includes("too large")
+              ? "PAYLOAD_TOO_LARGE"
+              : "BAD_REQUEST",
+            message: e.message,
+          });
+        }
+
+        console.error("Error uploading file:", e?.message ?? e);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to upload file",
+        });
+      }
+
+      return result;
     }),
 });

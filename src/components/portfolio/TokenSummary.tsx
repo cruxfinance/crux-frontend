@@ -5,7 +5,7 @@ import { PieChart, IPieToken } from "@components/charts/PieChart";
 import { currencies, Currencies } from "@lib/utils/currencies";
 import { IReducedToken } from "@pages/portfolio";
 import { generateGradient } from "@lib/utils/color";
-import { formatNumber, adjustDecimals } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, adjustDecimals } from "@lib/utils/general";
 
 export type IActiveToken = {
   name: string;
@@ -216,9 +216,9 @@ const TokenSummary: FC<ITokenSummary> = ({
                     <Typography
                       sx={{ fontSize: "16px !important", fontWeight: 700 }}
                     >
-                      {formatNumber(item.amount)} (
+                      {formatFullNumber(item.amount)} (
                       {currencySymbol +
-                        formatNumber(
+                        formatFullNumber(
                           (currency === "ERG"
                             ? item.value
                             : item.value * exchangeRate) * item.amount

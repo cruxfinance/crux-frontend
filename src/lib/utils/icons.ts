@@ -1,30 +1,80 @@
-export const getIconUrlFromServer = async (tokenId: string) => {
-  try {
-    const response = await fetch(`/api/icon/${tokenId}`);
-    if (!response.ok) {
-      throw new Error('Server responded with an error.');
-    }
-    // Expecting the response to contain the path
-    const data = await response.json();
-    return data.iconPath;
-  } catch (error) {
-    console.error('Failed to fetch icon from server:', error);
-    return null;
-  }
-};
+import iconManifest from "./icon-manifest.json";
 
-export const checkLocalIcon = async (tokenId: string) => {
-  const extensions = ['svg', 'jpg', 'png'];
-  for (const ext of extensions) {
-    const localIconPath = `/icons/tokens/${tokenId}.${ext}`;
-    try {
-      const response = await fetch(localIconPath, { method: 'HEAD' });
-      if (response.ok) {
-        return localIconPath;
-      }
-    } catch (error) {
-      // Ignore and try next extension
-    }
+const iconCache = new Map<string, string>();
+
+const baseIconUrl =
+  "https://raw.githubusercontent.com/spectrum-finance/token-logos/09655f0b3328762b22fdb3266952f74a3e30be36/logos/ergo/";
+
+function getLocalIconPath(tokenId: string): string | null {
+  const extension = iconManifest[tokenId as keyof typeof iconManifest];
+  if (extension) {
+    return `/icons/tokens/${tokenId}.${extension}`;
   }
   return null;
+}
+
+export const checkLocalIcon = (tokenId: string): string | null => {
+  if (iconCache.has(tokenId)) return iconCache.get(tokenId)!;
+
+  const localPath = getLocalIconPath(tokenId);
+  if (localPath) {
+    iconCache.set(tokenId, localPath);
+    return localPath;
+  }
+
+  return null;
+};
+
+export const getIconUrlFromServer = (tokenId: string): string | null => {
+  if (iconCache.has(tokenId)) return iconCache.get(tokenId)!;
+
+  const localPath = getLocalIconPath(tokenId);
+  if (localPath) {
+    iconCache.set(tokenId, localPath);
+    return localPath;
+  }
+
+  const externalUrl = `${baseIconUrl}${tokenId}.svg`;
+  iconCache.set(tokenId, externalUrl);
+  return externalUrl;
+};
+
+export const resolveIcons = (
+  tokenIds: string[]
+): Record<string, string> => {
+  const result: Record<string, string> = {};
+
+  for (const id of tokenIds) {
+    if (iconCache.has(id)) {
+      result[id] = iconCache.get(id)!;
+      continue;
+    }
+
+    const localPath = getLocalIconPath(id);
+    if (localPath) {
+      iconCache.set(id, localPath);
+      result[id] = localPath;
+      continue;
+    }
+
+    const externalUrl = `${baseIconUrl}${id}.svg`;
+    iconCache.set(id, externalUrl);
+    result[id] = externalUrl;
+  }
+
+  return result;
+};
+
+export const getCachedIcon = (tokenId: string): string | null => {
+  if (iconCache.has(tokenId)) return iconCache.get(tokenId)!;
+
+  const localPath = getLocalIconPath(tokenId);
+  if (localPath) {
+    iconCache.set(tokenId, localPath);
+    return localPath;
+  }
+
+  const externalUrl = `${baseIconUrl}${tokenId}.svg`;
+  iconCache.set(tokenId, externalUrl);
+  return externalUrl;
 };

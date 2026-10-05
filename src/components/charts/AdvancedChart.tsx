@@ -14,12 +14,14 @@ interface TVProps {
   defaultWidgetProps: Partial<ChartingLibraryWidgetOptions>;
   currency: string;
   height?: string;
+  onChartReady?: (chart: IChartWidgetApi, container: HTMLElement) => void;
 }
 
 export const TVChartContainer: FC<TVProps> = ({
   defaultWidgetProps,
   currency,
   height,
+  onChartReady,
 }) => {
   const theme = useTheme();
   const upSm = useMediaQuery(theme.breakpoints.up("sm"));
@@ -38,6 +40,8 @@ export const TVChartContainer: FC<TVProps> = ({
       initialSettings = JSON.parse(savedSettings);
     }
 
+    const bgColor = theme.palette.background.default;
+
     const widgetOptions: ChartingLibraryWidgetOptions = {
       symbol:
         currency === "USE"
@@ -52,14 +56,16 @@ export const TVChartContainer: FC<TVProps> = ({
       locale: defaultWidgetProps.locale as LanguageCode,
       // @ts-ignore
       disabled_features: disabledFeatures,
-      // charts_storage_url: defaultWidgetProps.charts_storage_url,
-      // charts_storage_api_version: defaultWidgetProps.charts_storage_api_version,
-      // client_id: defaultWidgetProps.client_id,
-      // user_id: defaultWidgetProps.user_id,
       fullscreen: defaultWidgetProps.fullscreen,
       autosize: defaultWidgetProps.autosize,
       theme: "dark",
-      // debug: true
+      overrides: {
+        "paneProperties.background": bgColor,
+        "paneProperties.backgroundType": "solid",
+        "paneProperties.vertGridProperties.color": "rgba(120,150,150,0.06)",
+        "paneProperties.horzGridProperties.color": "rgba(120,150,150,0.06)",
+      },
+      loading_screen: { backgroundColor: bgColor },
     };
 
     const mergedWidgetOptions = {
@@ -72,18 +78,27 @@ export const TVChartContainer: FC<TVProps> = ({
     tvWidget.onChartReady(() => {
       const chart = tvWidget.activeChart();
 
-      // Remove default volume from the main pane
-      const studies = chart.getAllStudies();
-      studies.forEach((study) => {
-        if (study.name === "Volume") {
-          chart.removeEntity(study.id);
+      // Restore persisted chart state (drawings, indicators) for this symbol
+      const stateKey = `chartState_${widgetOptions.symbol}`;
+      const savedState = localStorage.getItem(stateKey);
+      if (savedState) {
+        try {
+          tvWidget.load(JSON.parse(savedState));
+        } catch (e) {
+          console.error("Failed to load chart state:", e);
+          localStorage.removeItem(stateKey);
         }
-      });
+      }
 
-      // Add volume as indicator
+      // Always clean up Volume studies and ensure exactly one exists
+      const studies = chart.getAllStudies();
+      const volumeStudies = studies.filter((s) => s.name === "Volume");
+      volumeStudies.forEach((study) => {
+        chart.removeEntity(study.id);
+      });
       chart.createStudy('Volume', true, false);
 
-      // Capture changes in settings
+      // Capture changes in settings and persist chart state
       chart.onIntervalChanged().subscribe(null, () => {
         updateChartSettings(chart);
       });
@@ -97,10 +112,26 @@ export const TVChartContainer: FC<TVProps> = ({
           timeframe: chart.getVisibleRange(),
         };
         localStorage.setItem("chartSettings", JSON.stringify(currentSettings));
+        // Persist full chart state (drawings, indicators) per symbol
+        tvWidget.save((state: object) => {
+          localStorage.setItem(stateKey, JSON.stringify(state));
+        });
+      }
+
+      // Expose chart to parent
+      if (onChartReady) {
+        onChartReady(chart, chartContainerRef.current);
       }
     });
 
     return () => {
+      // Best-effort save before destruction
+      try {
+        const stateKey = `chartState_${widgetOptions.symbol}`;
+        tvWidget.save((state: object) => {
+          localStorage.setItem(stateKey, JSON.stringify(state));
+        });
+      } catch {}
       tvWidget.remove();
     };
   }, [defaultWidgetProps, currency]);

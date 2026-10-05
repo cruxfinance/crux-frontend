@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     try {
       const updatedReport = await prisma.report.update({
         where: { id: reportId },
-        data: { reportFilename: fileName },
+        data: { reportFilename: fileName, koinlyGenerating: false },
       });
 
       const addedNotification = await prisma.notification.create({
