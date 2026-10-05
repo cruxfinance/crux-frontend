@@ -41,7 +41,8 @@ import { getCachedIcon, resolveIcons as batchResolveIcons } from "@lib/utils/ico
 import { useWallet } from "@lib/contexts/WalletContext";
 import { trpc } from "@lib/trpc";
 import { formatNumber, formatFullNumber, normalizeTicker, calculatePairPrice } from "@lib/utils/general";
-import { USE_TOKEN_ID, ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
+import { USE_TOKEN_ID, ERG_TOKEN_ID, CRUX_TOKEN_ID } from "@lib/configs/paymentTokens";
+import { getOrderSide, getOrderPrice } from "@lib/utils/pairPrice";
 import MarketOrderWidget from "@components/trade/MarketOrderWidget";
 import TradeTabsPanel from "@components/trade/TradeTabsPanel";
 import LimitOrderWidget from "@components/trade/LimitOrderWidget";
@@ -399,9 +400,17 @@ const TradePage: FC = () => {
     const hasParams = !!tokenParam;
 
     if (!hasParams) {
-      // No URL params — load default pair
-      urlParamsStatusRef.current = "skipped";
-      loadDefaultPair();
+      // The USE LP pool is drained, so its ERG/USE price is meaningless. Land
+      // on CRUX/ERG until the pool is refilled, then go back to
+      // loadDefaultPair() here.
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, token: CRUX_TOKEN_ID, pair: ERG_TOKEN_ID },
+        },
+        undefined,
+        { shallow: true },
+      );
       return;
     }
 
@@ -683,18 +692,9 @@ const TradePage: FC = () => {
 
       for (const order of pairOrders) {
         // Determine side: if you're giving away the quote token, you're buying base
-        const givenIsQuote =
-          order.given_token_id === null ||
-          order.given_token_id === quoteToken.tokenId;
-        const side = givenIsQuote ? "buy" : "sell";
-
-        if (order.price_denominator === 0) continue;
-        const rawRatio = order.price_numerator / order.price_denominator;
-        const givenDec = order.given_token_decimals || 9;
-        const takenDec = order.taken_token_decimals || 9;
-        const rawPrice = side === "buy"
-          ? Math.pow(10, takenDec) / (rawRatio * Math.pow(10, givenDec))
-          : (rawRatio * Math.pow(10, givenDec)) / Math.pow(10, takenDec);
+        const side = getOrderSide(order, quoteToken.tokenId);
+        const rawPrice = getOrderPrice(order, side);
+        const givenDec = order.given_token_decimals ?? 9;
 
         if (rawPrice <= 0 || !isFinite(rawPrice)) continue;
 

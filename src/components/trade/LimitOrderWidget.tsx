@@ -23,7 +23,8 @@ import { useTheme } from "@mui/material/styles";
 import { useAlert } from "@contexts/AlertContext";
 import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
-import { formatNumber, formatFullNumber, calculatePairPrice } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, calculatePairPrice, toRawAmount } from "@lib/utils/general";
+import { calculateLimitOrderPriceRatio } from "@lib/utils/pairPrice";
 import { WidgetSettings } from "@components/common/WidgetSettings";
 import LimitOrderConfirmationModal from "@components/trade/LimitOrderConfirmationModal";
 
@@ -129,11 +130,13 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
   // Check if user has already agreed to the limit order beta disclaimer
   useEffect(() => {
-    // Reset previous agreement so users see the updated disclaimer text
-    localStorage.removeItem("limitOrderDisclaimerAgreed");
-    const agreed = localStorage.getItem("limitOrderDisclaimerAgreed");
-    if (agreed === "true") {
-      setHasAgreedToDisclaimer(true);
+    try {
+      const agreed = localStorage.getItem("limitOrderDisclaimerAgreed_v2");
+      if (agreed === "true") {
+        setHasAgreedToDisclaimer(true);
+      }
+    } catch (error) {
+      console.error("Error reading disclaimer agreement:", error);
     }
   }, []);
 
@@ -321,7 +324,11 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
   const handleDisclaimerAgree = async () => {
     if (disclaimerCheckbox) {
-      localStorage.setItem("limitOrderDisclaimerAgreed", "true");
+      try {
+        localStorage.setItem("limitOrderDisclaimerAgreed_v2", "true");
+      } catch (error) {
+        console.error("Error saving disclaimer agreement:", error);
+      }
       setHasAgreedToDisclaimer(true);
       setShowDisclaimerDialog(false);
       setDisclaimerCheckbox(false);
@@ -375,11 +382,17 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       const givenDecimals =
         orderType === "buy" ? quoteToken.decimals : baseToken.decimals;
 
-      // Calculate given amount
-      const givenAmount =
+      // Calculate given amount (string-based to avoid float precision loss)
+      const givenAmountRaw =
         orderType === "buy"
-          ? Math.floor(parseFloat(total) * Math.pow(10, quoteToken.decimals))
-          : Math.floor(parseFloat(amount) * Math.pow(10, baseToken.decimals));
+          ? toRawAmount(total, quoteToken.decimals)
+          : toRawAmount(amount, baseToken.decimals);
+
+      if (givenAmountRaw > BigInt(Number.MAX_SAFE_INTEGER)) {
+        addAlert("error", "Amount is too large");
+        return;
+      }
+      const givenAmount = Number(givenAmountRaw);
 
       // Price as ratio: taken/given
       // For buy: we give ERG, get base token. Price is base_per_erg.
@@ -394,11 +407,12 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       // For SELL: user wants to receive at least X ERG, so use ceil() to guarantee minimum
       const takenDecimals =
         orderType === "buy" ? baseToken.decimals : quoteToken.decimals;
-      const priceDenominator = Math.pow(10, givenDecimals);
-      const priceNumerator =
-        orderType === "buy"
-          ? Math.ceil((1 / priceFloat) * Math.pow(10, takenDecimals))
-          : Math.ceil(priceFloat * Math.pow(10, takenDecimals));
+      const { priceNumerator, priceDenominator } = calculateLimitOrderPriceRatio(
+        priceFloat,
+        orderType,
+        givenDecimals,
+        takenDecimals,
+      );
 
       const requestBody = {
         user_addresses: userAddresses,

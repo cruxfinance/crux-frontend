@@ -31,6 +31,7 @@ import { useMinerFee } from "@contexts/MinerFeeContext";
 import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
 import { copyToClipboard } from "@lib/utils/clipboard";
 import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
+import { getOrderSide as getOrderSideShared, getOrderPrice } from "@lib/utils/pairPrice";
 
 declare global {
   interface Window {
@@ -216,25 +217,11 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
     }
   };
 
-  const getOrderSide = (order: LimitOrder): "buy" | "sell" => {
-    const givenIsQuote =
-      order.given_token_id === null ||
-      order.given_token_id === quoteToken.tokenId;
-    return givenIsQuote ? "buy" : "sell";
-  };
+  const getOrderSide = (order: LimitOrder): "buy" | "sell" =>
+    getOrderSideShared(order, quoteToken.tokenId);
 
-  const getPrice = (order: LimitOrder): number => {
-    if (order.price_denominator === 0) return 0;
-    const rawRatio = order.price_numerator / order.price_denominator;
-    const givenDec = order.given_token_decimals || 9;
-    const takenDec = order.taken_token_decimals || 9;
-    const side = getOrderSide(order);
-    if (side === "buy") {
-      return Math.pow(10, takenDec) / (rawRatio * Math.pow(10, givenDec));
-    } else {
-      return (rawRatio * Math.pow(10, givenDec)) / Math.pow(10, takenDec);
-    }
-  };
+  const getPrice = (order: LimitOrder): number =>
+    getOrderPrice(order, getOrderSide(order));
 
   const getFilledPercent = (order: LimitOrder): number => {
     if (order.original_given_amount === 0) return 0;
@@ -247,7 +234,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
     order: LimitOrder,
   ): { filled: number; original: number; token: string } => {
     const side = getOrderSide(order);
-    const givenDec = order.given_token_decimals || 9;
+    const givenDec = order.given_token_decimals ?? 9;
 
     if (side === "buy") {
       const price = getPrice(order);

@@ -16,7 +16,7 @@ import { useWallet } from "@contexts/WalletContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
 import { WidgetSettings } from "@components/common/WidgetSettings";
 import TradeConfirmationModal from "@components/trade/TradeConfirmationModal";
-import { formatNumber, formatFullNumber } from "@lib/utils/general";
+import { formatNumber, formatFullNumber, toRawAmount } from "@lib/utils/general";
 
 declare global {
   interface Window {
@@ -175,9 +175,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
         const requestedDecimals =
           direction === "reverse" ? baseToken.decimals : quoteToken.decimals;
 
-        const rawAmount = Math.floor(
-          parseFloat(amount) * Math.pow(10, givenDecimals),
-        );
+        const rawAmount = toRawAmount(amount, givenDecimals);
 
         const params = new URLSearchParams({
           given_token_id: givenTokenId,
@@ -276,9 +274,7 @@ const MarketOrderWidget: FC<MarketOrderWidgetProps> = ({
         direction === "reverse" ? quoteToken.tokenId : baseToken.tokenId;
       const givenDecimals =
         direction === "reverse" ? quoteToken.decimals : baseToken.decimals;
-      const rawAmount = Math.floor(
-        parseFloat(amount) * Math.pow(10, givenDecimals),
-      );
+      const rawAmount = toRawAmount(amount, givenDecimals);
 
       const params = new URLSearchParams({
         user_addresses: userAddresses,

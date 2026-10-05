@@ -1,4 +1,4 @@
-import { formatFullNumber } from "../general";
+import { formatFullNumber, toRawAmount } from "../general";
 
 describe("formatFullNumber", () => {
   // Core formatting: full numbers with commas, no abbreviations
@@ -83,5 +83,44 @@ describe("formatFullNumber", () => {
   it("handles Infinity gracefully via Intl (will produce '∞')", () => {
     const result = formatFullNumber(Infinity);
     expect(result).toBe("∞");
+  });
+});
+
+describe("toRawAmount", () => {
+  it("converts a simple decimal without float truncation loss", () => {
+    // 0.29 * 10 ** 2 as a float is 28.999999999999996, which Math.floor
+    // would truncate to 28n instead of 29n.
+    expect(toRawAmount("0.29", 2)).toBe(BigInt(29));
+  });
+
+  it("converts a whole number string at 0 decimals", () => {
+    expect(toRawAmount("1", 0)).toBe(BigInt(1));
+  });
+
+  it("truncates excess fraction digits instead of rounding", () => {
+    expect(toRawAmount("0.299", 2)).toBe(BigInt(29));
+    expect(toRawAmount("0.999", 0)).toBe(BigInt(0));
+  });
+
+  it("pads short fraction digits", () => {
+    expect(toRawAmount("1.2", 4)).toBe(BigInt(12000));
+  });
+
+  it("handles a value with no fractional part", () => {
+    expect(toRawAmount("5", 3)).toBe(BigInt(5000));
+  });
+
+  it("handles negative amounts", () => {
+    expect(toRawAmount("-0.29", 2)).toBe(BigInt(-29));
+  });
+
+  it("returns 0n for empty input", () => {
+    expect(toRawAmount("", 2)).toBe(BigInt(0));
+  });
+
+  it("returns 0n for invalid input", () => {
+    expect(toRawAmount("abc", 2)).toBe(BigInt(0));
+    expect(toRawAmount("1.2.3", 2)).toBe(BigInt(0));
+    expect(toRawAmount(".", 2)).toBe(BigInt(0));
   });
 });

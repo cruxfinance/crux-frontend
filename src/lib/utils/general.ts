@@ -179,6 +179,32 @@ export const adjustDecimalsBigInt = (amount: bigint, decimals: bigint): bigint =
 };
 
 /**
+ * Converts a human-entered decimal string (e.g. "0.29") into its raw integer
+ * amount for a token with the given decimals (e.g. 29n at 2 decimals).
+ *
+ * Operates on the string directly instead of `parseFloat(x) * 10 ** decimals`,
+ * which loses precision to floating point (0.29 * 100 can come out as
+ * 28.999999999999996, truncating to 28 instead of 29).
+ *
+ * Excess fraction digits beyond `decimals` are truncated, not rounded.
+ * Empty or otherwise invalid input returns 0n.
+ */
+export const toRawAmount = (value: string, decimals: number): bigint => {
+  const trimmed = value.trim();
+  if (!/^-?\d*\.?\d*$/.test(trimmed) || !/\d/.test(trimmed)) {
+    return BigInt(0);
+  }
+
+  const negative = trimmed.startsWith("-");
+  const unsigned = negative ? trimmed.slice(1) : trimmed;
+  const [whole = "0", fraction = ""] = unsigned.split(".");
+
+  const digits = `${whole || "0"}${fraction.slice(0, decimals).padEnd(decimals, "0")}`;
+  const raw = BigInt(digits);
+  return negative ? -raw : raw;
+};
+
+/**
  * Calculate the exchange rate between two tokens when each token's price is expressed in a common unit (e.g. ERG).
  *
  * Given:
