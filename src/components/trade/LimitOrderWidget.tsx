@@ -70,6 +70,23 @@ const EXPIRY_PRESETS: { label: string; blocks: number | null }[] = [
   { label: "No Expiry", blocks: null },
 ];
 
+// Mirrors ci-api's LIMIT_ORDER_VERSION flag: "v3" makes expiry required and
+// drops the minimum fill; anything else keeps the v2 form.
+const IS_V3 = process.env.NEXT_PUBLIC_LIMIT_ORDER_VERSION === "v3";
+
+const BLOCKS_PER_DAY = 720;
+// ci-api rejects an expiry more than 3 years ahead.
+const MAX_EXPIRY_BLOCKS = 3 * 262800;
+
+const EXPIRY_PRESETS_V3: { label: string; blocks: number }[] = [
+  { label: "1 day", blocks: BLOCKS_PER_DAY },
+  { label: "1 week", blocks: 7 * BLOCKS_PER_DAY },
+  { label: "1 month", blocks: 30 * BLOCKS_PER_DAY },
+  { label: "3 months", blocks: 90 * BLOCKS_PER_DAY },
+  { label: "1 year", blocks: 365 * BLOCKS_PER_DAY },
+  { label: "3 years", blocks: MAX_EXPIRY_BLOCKS },
+];
+
 const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   baseToken,
   quoteToken,
@@ -106,7 +123,9 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [total, setTotal] = useState("");
-  const [expiryPreset, setExpiryPreset] = useState<number | null>(720); // blocks, null = no expiry
+  const [expiryPreset, setExpiryPreset] = useState<number | null>(
+    IS_V3 ? 30 * BLOCKS_PER_DAY : 720,
+  ); // blocks, null = no expiry (v2 only)
 
   // State
   const [submitting, setSubmitting] = useState(false);
@@ -357,6 +376,11 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       return;
     }
 
+    if (IS_V3 && !currentHeight) {
+      addAlert("error", "Current block height not loaded yet, try again");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const ergoCnct = window.ergoConnector.nautilus;
@@ -423,7 +447,9 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         price_denominator: priceDenominator,
         min_fill_amount: 0,
         expiry_height:
-          expiryPreset !== null && currentHeight ? currentHeight + expiryPreset : null,
+          expiryPreset !== null && currentHeight
+            ? currentHeight + Math.min(expiryPreset, MAX_EXPIRY_BLOCKS)
+            : null,
         // executor_fee is calculated by the API based on USD target value
         miner_fee: minerFee,
         fee_token_id: feeToken === "crux" ? CRUX_TOKEN_ID : null,
@@ -485,7 +511,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
 
   const expiryTimeLabel = (): string | null => {
     if (expiryPreset === null) return null;
-    const preset = EXPIRY_PRESETS.find((p) => p.blocks === expiryPreset);
+    const preset = (IS_V3 ? EXPIRY_PRESETS_V3 : EXPIRY_PRESETS).find((p) => p.blocks === expiryPreset);
     return preset ? preset.label : null;
   };
 
@@ -743,6 +769,26 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
       </Box>
 
       {/* Expiry Option */}
+      {IS_V3 ? (
+        <Box sx={{ mb: 2 }}>
+          <TextField
+            select
+            fullWidth
+            size="small"
+            label="Expiry"
+            value={expiryPreset ?? 30 * BLOCKS_PER_DAY}
+            onChange={(e) => setExpiryPreset(Number(e.target.value))}
+            disabled={disabled || submitting}
+            SelectProps={{ native: true }}
+          >
+            {EXPIRY_PRESETS_V3.map((p) => (
+              <option key={p.label} value={p.blocks}>
+                {p.label}
+              </option>
+            ))}
+          </TextField>
+        </Box>
+      ) : (
       <Box sx={{ mb: 2 }}>
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
           Expiry
@@ -764,6 +810,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           Expired orders return funds automatically
         </Typography>
       </Box>
+      )}
 
       {/* Order Summary */}
       {price && amount && baseToken && (
@@ -885,6 +932,15 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
             `Place ${orderType === "buy" ? "Buy" : "Sell"} Order`
           )}
         </Button>
+      )}
+      {IS_V3 && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ mt: 1, display: "block", textAlign: "center" }}
+        >
+          Partial fills stay in the order until it completes or you cancel it.
+        </Typography>
       )}
 
       {/* Confirmation Modal */}
