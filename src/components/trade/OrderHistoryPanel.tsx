@@ -28,6 +28,11 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useWallet } from "@contexts/WalletContext";
 import { useAlert } from "@contexts/AlertContext";
 import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/general";
+import {
+  isV3Order,
+  v3FilledPercent,
+  v3ReceivedAmount,
+} from "@components/trade/limitOrderV3";
 import { copyToClipboard } from "@lib/utils/clipboard";
 import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import { getOrderSide as getOrderSideShared, getOrderPrice } from "@lib/utils/pairPrice";
@@ -78,6 +83,12 @@ interface LimitOrder {
   updated_at: number;
   created_tx_hash?: string;
   is_mempool?: boolean;
+  // v3 only
+  version?: string;
+  effective_status?: string;
+  fill_count?: number;
+  total_sold?: number;
+  total_bought?: number;
 }
 
 type StatusFilter = "all" | "filled" | "cancelled";
@@ -234,6 +245,7 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
   };
 
   const getFilledPercent = (order: LimitOrder): number => {
+    if (isV3Order(order)) return v3FilledPercent(order);
     if (order.original_given_amount === 0) return 0;
     const filled = order.original_given_amount - order.remaining_given_amount;
     return Math.min(100, Math.max(0, (filled / order.original_given_amount) * 100));
@@ -458,6 +470,48 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
         ))}
       </TableRow>
     ));
+
+  // v3 rows: same progress, labelled, plus what the order received (paid out
+  // to the user when the order ended).
+  const renderV3FilledCell = (order: LimitOrder, filledPercent: number) => {
+    const received = v3ReceivedAmount(order);
+    const takenSymbol = normalizeTicker(order.taken_token_name || "ERG");
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 0.25 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "flex-end" }}>
+          {filledPercent > 0 && filledPercent < 100 && (
+            <Box sx={{ width: 50 }}>
+              <LinearProgress
+                variant="determinate"
+                value={filledPercent}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  "& .MuiLinearProgress-bar": { borderRadius: 3 },
+                }}
+              />
+            </Box>
+          )}
+          <Typography
+            variant="caption"
+            color={filledPercent >= 100 ? "success.main" : filledPercent > 0 ? "primary" : "text.secondary"}
+          >
+            Filled {filledPercent.toFixed(0)}%
+          </Typography>
+        </Box>
+        {received > 0 && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "0.65rem", lineHeight: 1.2, textAlign: "right" }}
+          >
+            Received: {formatFullNumber(received, 4)} {takenSymbol}
+          </Typography>
+        )}
+      </Box>
+    );
+  };
 
   const renderFilledCell = (filledPercent: number) => {
     if (filledPercent === 0) {
@@ -807,7 +861,9 @@ const OrderHistoryPanel: FC<OrderHistoryPanelProps> = ({
 
                         {/* Filled - progress bar */}
                         <TableCell align="right" sx={{ py: 0.5 }}>
-                          {renderFilledCell(filledPercent)}
+                          {isV3Order(order)
+                            ? renderV3FilledCell(order, filledPercent)
+                            : renderFilledCell(filledPercent)}
                         </TableCell>
 
                         {/* Status - outlined chip (filled for pending) + copy order ID */}

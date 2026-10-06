@@ -22,6 +22,12 @@ import {
   Chip,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import {
+  isPastExpiry,
+  isV3Order,
+  v3FilledPercent,
+  v3ReceivedAmount,
+} from "@components/trade/limitOrderV3";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
@@ -79,6 +85,12 @@ interface LimitOrder {
   created_at: number;
   updated_at: number;
   is_mempool?: boolean;
+  // v3 only
+  version?: string;
+  effective_status?: string;
+  fill_count?: number;
+  total_sold?: number;
+  total_bought?: number;
 }
 
 
@@ -224,6 +236,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
     getOrderPrice(order, getOrderSide(order));
 
   const getFilledPercent = (order: LimitOrder): number => {
+    if (isV3Order(order)) return v3FilledPercent(order);
     if (order.original_given_amount === 0) return 0;
     const filled = order.original_given_amount - order.remaining_given_amount;
     const percent = (filled / order.original_given_amount) * 100;
@@ -344,6 +357,45 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
         ))}
       </TableRow>
     ));
+
+  // v3: the bought asset stays in the order until it completes or is
+  // cancelled, so show progress plus what is held, not per-fill payouts.
+  const renderV3FilledCell = (order: LimitOrder, filledPercent: number) => {
+    const received = v3ReceivedAmount(order);
+    const takenSymbol = normalizeTicker(order.taken_token_name || "ERG");
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 0.25 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "flex-end" }}>
+          {filledPercent > 0 && (
+            <Box sx={{ width: 50 }}>
+              <LinearProgress
+                variant="determinate"
+                value={filledPercent}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  "& .MuiLinearProgress-bar": { borderRadius: 3 },
+                }}
+              />
+            </Box>
+          )}
+          <Typography variant="caption" color={filledPercent > 0 ? "primary" : "text.secondary"}>
+            Filled {filledPercent.toFixed(0)}%
+          </Typography>
+        </Box>
+        {received > 0 && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: "0.65rem", lineHeight: 1.2, textAlign: "right" }}
+          >
+            Received so far: {formatFullNumber(received, 4)} {takenSymbol} (held in the order)
+          </Typography>
+        )}
+      </Box>
+    );
+  };
 
   const renderFilledCell = (filledPercent: number, amt: { filled: number; original: number; token: string }) => {
     if (filledPercent === 0) {
@@ -488,6 +540,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
                     order.status === "pending_fill" ||
                     order.status === "pending_partial_fill";
                   const isPendingCancel = order.status === "pending_cancel";
+                  const pastExpiry = isPastExpiry(order);
                   const hasMempoolStatus =
                     isMempool || isPendingFill || isPendingCancel;
 
@@ -500,6 +553,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
                     isMempool ? "Status: Unconfirmed (in mempool)" : null,
                     isPendingFill ? "Status: Pending fill" : null,
                     isPendingCancel ? "Status: Pending cancellation" : null,
+                    pastExpiry ? "Status: Expired, refund pending" : null,
                   ]
                     .filter(Boolean)
                     .join("\n");
@@ -547,7 +601,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
                         </TableCell>
 
                         <TableCell sx={{ py: 0.5 }}>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.5 }}>
                             <Typography
                               variant="caption"
                               sx={{
@@ -584,6 +638,15 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
                                 size="small"
                                 variant="outlined"
                                 color="error"
+                                sx={{ height: 18, fontSize: "0.6rem" }}
+                              />
+                            )}
+                            {pastExpiry && !hasMempoolStatus && (
+                              <Chip
+                                label="Expired, refund pending"
+                                size="small"
+                                variant="outlined"
+                                color="warning"
                                 sx={{ height: 18, fontSize: "0.6rem" }}
                               />
                             )}
@@ -643,7 +706,9 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
                         </TableCell>
 
                         <TableCell align="right" sx={{ py: 0.5 }}>
-                          {renderFilledCell(filledPercent, amt)}
+                          {isV3Order(order)
+                            ? renderV3FilledCell(order, filledPercent)
+                            : renderFilledCell(filledPercent, amt)}
                         </TableCell>
 
                         <TableCell align="center" sx={{ py: 0.5 }}>
