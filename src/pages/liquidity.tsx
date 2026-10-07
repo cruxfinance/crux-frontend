@@ -38,6 +38,16 @@ import { useRouter } from "next/router";
 import AddLiquidityModal from "@components/liquidity/AddLiquidityModal";
 import RemoveLiquidityModal from "@components/liquidity/RemoveLiquidityModal";
 
+const NO_LIQUIDITY_TOOLTIP = "Liquidity for Lithos pools isn't supported on Crux yet";
+
+const POOL_TYPE_LABELS: Record<string, string> = {
+  spectrum: "Spectrum",
+  dexy: "Dexy",
+  lithos: "Lithos",
+};
+
+const supportsLiquidity = (poolType?: string) => poolType !== "lithos";
+
 interface PoolWithApr {
   pool_id: string;
   pool_type: string;
@@ -288,7 +298,7 @@ const LiquidityPage: FC = () => {
       </Typography>
       {poolType && (
         <Chip
-          label={poolType}
+          label={POOL_TYPE_LABELS[poolType] ?? poolType}
           size="small"
           sx={{ height: 18, fontSize: "0.65rem" }}
         />
@@ -457,22 +467,40 @@ const LiquidityPage: FC = () => {
                             sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}
                           >
                             {pool && (
-                              <Tooltip title="Add Liquidity">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setAddModalPool(pool)}
-                                >
-                                  <AddIcon fontSize="small" />
-                                </IconButton>
+                              <Tooltip
+                                title={
+                                  supportsLiquidity(pos.pool_type)
+                                    ? "Add Liquidity"
+                                    : NO_LIQUIDITY_TOOLTIP
+                                }
+                              >
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    disabled={!supportsLiquidity(pos.pool_type)}
+                                    onClick={() => setAddModalPool(pool)}
+                                  >
+                                    <AddIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
                               </Tooltip>
                             )}
-                            <Tooltip title="Remove Liquidity">
-                              <IconButton
-                                size="small"
-                                onClick={() => setRemoveModalPosition(pos)}
-                              >
-                                <RemoveIcon fontSize="small" />
-                              </IconButton>
+                            <Tooltip
+                              title={
+                                supportsLiquidity(pos.pool_type)
+                                  ? "Remove Liquidity"
+                                  : NO_LIQUIDITY_TOOLTIP
+                              }
+                            >
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  disabled={!supportsLiquidity(pos.pool_type)}
+                                  onClick={() => setRemoveModalPosition(pos)}
+                                >
+                                  <RemoveIcon fontSize="small" />
+                                </IconButton>
+                              </span>
                             </Tooltip>
                           </Box>
                         </TableCell>
@@ -655,23 +683,32 @@ const LiquidityPage: FC = () => {
                             <OpenInNewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Add Liquidity">
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<AddIcon />}
-                            onClick={() => setAddModalPool(pool)}
-                            sx={{
-                              whiteSpace: "nowrap",
-                              "tr:hover &": {
-                                borderColor: "primary.main",
-                                bgcolor: "primary.main",
-                                color: "primary.contrastText",
-                              },
-                            }}
-                          >
-                            Add
-                          </Button>
+                        <Tooltip
+                          title={
+                            supportsLiquidity(pool.pool_type)
+                              ? "Add Liquidity"
+                              : NO_LIQUIDITY_TOOLTIP
+                          }
+                        >
+                          <span>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<AddIcon />}
+                              disabled={!supportsLiquidity(pool.pool_type)}
+                              onClick={() => setAddModalPool(pool)}
+                              sx={{
+                                whiteSpace: "nowrap",
+                                "tr:hover &": {
+                                  borderColor: "primary.main",
+                                  bgcolor: "primary.main",
+                                  color: "primary.contrastText",
+                                },
+                              }}
+                            >
+                              Add
+                            </Button>
+                          </span>
                         </Tooltip>
                       </Box>
                     </TableCell>
