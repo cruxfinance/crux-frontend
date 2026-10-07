@@ -93,6 +93,10 @@ const RemoveLiquidityModal: FC<RemoveLiquidityModalProps> = ({
   );
 
   const handleSubmit = async () => {
+    if (position.pool_type === "lithos") {
+      addAlert("error", "Liquidity for Lithos pools isn't supported on Crux yet");
+      return;
+    }
     if (!window.ergoConnector?.nautilus) {
       addAlert("error", "Please connect Nautilus wallet");
       return;
