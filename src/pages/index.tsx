@@ -1396,7 +1396,7 @@ const Tokens: FC = () => {
                                     currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
-                                    5,
+                                    8,
                                   )}
                               </Typography>
                             </Tooltip>
@@ -1419,7 +1419,7 @@ const Tokens: FC = () => {
                                     currency === "USE"
                                       ? token.liquidity * ergExchange
                                       : token.liquidity,
-                                    5,
+                                    8,
                                   )}
                               </Typography>
                             </Tooltip>
@@ -1435,7 +1435,7 @@ const Tokens: FC = () => {
                                   currency === "USE"
                                     ? token.mktCap * ergExchange
                                     : token.mktCap,
-                                  5,
+                                  8,
                                 )}
                             </Typography>
                           </Grid>
