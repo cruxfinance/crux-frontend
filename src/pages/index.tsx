@@ -1604,7 +1604,7 @@ const Tokens: FC = () => {
                                   currency === "USE"
                                     ? token.price * ergExchange
                                     : token.price,
-                                  upSm ? 5 : 4,
+                                  6,
                                 )}
                             </Typography>
                             <Typography>
