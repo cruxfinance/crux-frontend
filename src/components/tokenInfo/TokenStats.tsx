@@ -59,11 +59,11 @@ const TokenStats: FC<PropsType> = ({ currency, tokenInfo }) => {
         </Grid>
         {/* <Grid container justifyContent="space-between">
           <Grid>Liquidity: </Grid>
-          <Grid>{currencies[currency] + formatNumber(tokenInfo.liquidity)}</Grid>
+          <Grid>{currencies[currency] + formatNumber(tokenInfo.liquidity, 6)}</Grid>
         </Grid>
         <Grid container justifyContent="space-between">
           <Grid>24hr Volume: </Grid>
-          <Grid>{currencies[currency] + formatNumber(tokenInfo.vol)}</Grid>
+          <Grid>{currencies[currency] + formatNumber(tokenInfo.vol, 6)}</Grid>
         </Grid> */}
       </Box>
       {/* <Box sx={{ mb: 2 }}>

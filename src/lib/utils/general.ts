@@ -35,43 +35,115 @@ export const aspectRatioResize = (
   };
 };
 
+const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
+const toSubscript = (n: number): string =>
+  String(n)
+    .split("")
+    .map((d) => SUBSCRIPT_DIGITS[Number(d)])
+    .join("");
+
+/**
+ * Format a number to a digit budget: show as many significant digits as fit in
+ * `maxDigits` (not counting sign, separators, decimal point, or suffix),
+ * preferring the most significant.
+ *
+ * Numbers whose integer part exceeds the budget are abbreviated with K, M, B or
+ * T (and exponent notation from 1e15). Values below 1 with four or more zeros
+ * after the decimal point use subscript-zero notation (`0.0₅1235`). Trailing
+ * fractional zeros are stripped unless `keepTrailingZeros` is set; `noNeg`
+ * omits the minus sign so the caller can render it.
+ *
+ * @param value - The number to format
+ * @param maxDigits - Digit budget (default: 4)
+ * @returns Formatted string, e.g. "1,235", "150.1K", "0.00012", "0.0₅12"
+ */
 export const formatNumber = (
-  num: number,
-  sigFig: number = 3,
-  fixed?: boolean,
-  noNeg?: boolean
-) => {
-  const sign = noNeg ? "" : num < 0 ? "-" : "";
-  const absNum = Math.abs(num);
+  value: number,
+  maxDigits: number = 4,
+  options?: { keepTrailingZeros?: boolean; noNeg?: boolean },
+): string => {
+  if (!Number.isFinite(value)) return String(value);
+  if (value === 0) return "0";
 
-  const formatSmallNumber = (number: number) => {
-    if (number === 0) return "0";
+  const keep = options?.keepTrailingZeros ?? false;
+  const sign = value < 0 && !options?.noNeg ? "-" : "";
 
-    const magnitude = Math.floor(Math.log10(number));
-    const multiplier = Math.pow(10, sigFig - magnitude - 1);
-    const rounded = Math.round(number * multiplier) / multiplier;
+  const plain = (n: number, decimals: number): string =>
+    new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: keep ? decimals : 0,
+      maximumFractionDigits: decimals,
+    }).format(n);
 
-    return rounded.toString();
+  const intDigits = (n: number): number => Math.floor(n).toString().length;
+  const suffixes = ["", "K", "M", "B", "T"];
+
+  // Round for a value >= 1 according to the plan the budget dictates.
+  const roundGE1 = (v: number): number => {
+    if (v >= 1e15) return v;
+    const n = intDigits(v);
+    if (n <= maxDigits) return Number(v.toFixed(Math.max(maxDigits - n, 0)));
+    const idx = Math.floor((n - 1) / 3);
+    const scale = Math.pow(10, idx * 3);
+    const mant = v / scale;
+    const dec = Math.max(maxDigits - intDigits(mant), 0);
+    return Number(mant.toFixed(dec)) * scale;
   };
 
-  if (absNum >= 1000000000000) {
-    return sign + (absNum / 1000000000000).toFixed(2).replace(/\.0$/, "") + "T";
-  } else if (absNum >= 1000000000) {
-    return sign + (absNum / 1000000000).toFixed(2).replace(/\.0$/, "") + "B";
-  } else if (absNum >= 1000000) {
-    return sign + (absNum / 1000000).toFixed(2).replace(/\.0$/, "") + "M";
-  } else if (absNum >= 1000) {
-    return sign + (absNum / 1000).toFixed(1).replace(/\.0$/, "") + "K";
-  } else if (fixed && absNum < 10) {
-    return sign + absNum.toFixed(sigFig);
-  } else if (absNum >= 1) {
-    // Round numbers close to whole numbers
-    const rounded =
-      Math.round(absNum * Math.pow(10, sigFig)) / Math.pow(10, sigFig);
-    return sign + parseFloat(rounded.toFixed(sigFig)).toString();
-  } else {
-    return sign + formatSmallNumber(absNum);
-  }
+  const renderGE1 = (v: number): string => {
+    if (v >= 1e15) {
+      const dec = Math.max(maxDigits - 1, 0);
+      const [mant, exp] = v.toExponential(dec).split("e");
+      return `${plain(Number(mant), dec)}e${Number(exp)}`;
+    }
+    const n = intDigits(v);
+    if (n <= maxDigits) return plain(v, Math.max(maxDigits - n, 0));
+    const idx = Math.floor((n - 1) / 3);
+    const mant = v / Math.pow(10, idx * 3);
+    const dec = Math.max(maxDigits - intDigits(mant), 0);
+    return plain(mant, dec) + suffixes[idx];
+  };
+
+  // Rounding can push a value into the next digit count or suffix (999.996 ->
+  // 1000), so round first and lay out the rounded value.
+  const formatGE1 = (v: number): string => renderGE1(roundGE1(v));
+
+  const formatLT1 = (v: number): string => {
+    const zerosOf = (n: number): number =>
+      -Number(n.toExponential().split("e")[1]) - 1;
+    let z = zerosOf(v);
+
+    if (z >= 4) {
+      const sig = Math.max(maxDigits - 2, 2);
+      // Round half-up on the decimal digits (binary floats would turn
+      // 1.2345e-6 into 1.234e-6); 14 digits drops the representation noise.
+      const [mant, expStr] = v.toExponential(14).split("e");
+      const all = mant.replace(".", "");
+      let rounded = BigInt(all.slice(0, sig));
+      if (Number(all[sig]) >= 5) rounded += BigInt(1);
+      let exp = Number(expStr);
+      let digits = rounded.toString();
+      if (digits.length > sig) {
+        digits = digits.slice(0, sig);
+        exp += 1;
+      }
+      z = -exp - 1;
+      if (z >= 4) {
+        if (!keep) digits = digits.replace(/0+$/, "") || "1";
+        return `0.0${toSubscript(z)}${digits}`;
+      }
+      v = Number(`${digits[0]}.${digits.slice(1) || "0"}e${exp}`);
+    }
+
+    z = zerosOf(v);
+    const sig = Math.max(maxDigits - 1 - z, 2);
+    const dec = z + sig;
+    const r = Number(v.toFixed(dec));
+    if (r >= 1) return formatGE1(r);
+    return plain(r, dec);
+  };
+
+  const abs = Math.abs(value);
+  return sign + (abs >= 1 ? formatGE1(abs) : formatLT1(abs));
 };
 
 /**

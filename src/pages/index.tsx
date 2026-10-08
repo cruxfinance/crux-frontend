@@ -46,6 +46,7 @@ const Tokens: FC = () => {
   const theme = useTheme();
   const router = useRouter();
   const upLg = useMediaQuery(theme.breakpoints.up("lg"));
+  const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const [loading, setLoading] = useState(false);
   const [ergExchange, setErgExchange] = useState(1);
   const [filteredTokens, setFilteredTokens] = useState<ITokenData[]>([]);
@@ -594,7 +595,7 @@ const Tokens: FC = () => {
                 : theme.palette.text.secondary,
         }}
       >
-        {formatNumber(pct * 0.01, 2, true)}%
+        {formatNumber(pct * 0.01, 3)}%
       </Typography>
     );
   };
@@ -1356,11 +1357,11 @@ const Tokens: FC = () => {
                           </Grid>
                           <Grid xs={2}>
                             {currencies[currency] +
-                              formatFullNumber(
+                              formatNumber(
                                 currency === "USE"
                                   ? token.price * ergExchange
                                   : token.price,
-                                4,
+                                6,
                               )}
                           </Grid>
                           <Grid xs={1}>
@@ -1391,11 +1392,11 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 V{" "}
                                 {currencies[currency] +
-                                  formatFullNumber(
+                                  formatNumber(
                                     currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
-                                    2,
+                                    4,
                                   )}
                               </Typography>
                             </Tooltip>
@@ -1414,11 +1415,11 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 L{" "}
                                 {currencies[currency] +
-                                  formatFullNumber(
+                                  formatNumber(
                                     currency === "USE"
                                       ? token.liquidity * ergExchange
                                       : token.liquidity,
-                                    2,
+                                    4,
                                   )}
                               </Typography>
                             </Tooltip>
@@ -1430,11 +1431,11 @@ const Tokens: FC = () => {
                             <Typography>
                               M{" "}
                               {currencies[currency] +
-                                formatFullNumber(
+                                formatNumber(
                                   currency === "USE"
                                     ? token.mktCap * ergExchange
                                     : token.mktCap,
-                                  2,
+                                  4,
                                 )}
                             </Typography>
                           </Grid>
@@ -1599,11 +1600,11 @@ const Tokens: FC = () => {
                           <Grid xs={4} sm={3}>
                             <Typography>
                               {currencies[currency] +
-                                formatFullNumber(
+                                formatNumber(
                                   currency === "USE"
                                     ? token.price * ergExchange
                                     : token.price,
-                                  4,
+                                  upSm ? 5 : 4,
                                 )}
                             </Typography>
                             <Typography>
@@ -1626,11 +1627,11 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 V{" "}
                                 {currencies[currency] +
-                                  formatFullNumber(
+                                  formatNumber(
                                     currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
-                                    2,
+                                    upSm ? 5 : 4,
                                   )}
                               </Typography>
                             </Tooltip>

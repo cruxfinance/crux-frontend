@@ -714,7 +714,7 @@ const TradePage: FC = () => {
           const line = chart.createOrderLine()
             .setPrice(rawPrice)
             .setText(isBuy ? "BUY" : "SELL")
-            .setQuantity(formatNumber(amount, 2))
+            .setQuantity(formatNumber(amount, 4))
             .setLineColor(color)
             .setBodyBackgroundColor(color)
             .setBodyTextColor("#ffffff")
