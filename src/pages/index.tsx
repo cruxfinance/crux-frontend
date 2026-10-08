@@ -1297,7 +1297,12 @@ const Tokens: FC = () => {
                           router.push(`/tokens/${token.tokenId}`);
                         }}
                       >
-                        <Grid container spacing={2} columns={24} alignItems="center">
+                        <Grid
+                          container
+                          spacing={2}
+                          columns={24}
+                          alignItems="center"
+                        >
                           <Grid xs={5}>
                             <Box
                               sx={{
