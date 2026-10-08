@@ -1,4 +1,4 @@
-import { formatFullNumber, toRawAmount } from "../general";
+import { formatFullNumber, formatNumber, toRawAmount } from "../general";
 
 describe("formatFullNumber", () => {
   // Core formatting: full numbers with commas, no abbreviations
@@ -122,5 +122,72 @@ describe("toRawAmount", () => {
     expect(toRawAmount("abc", 2)).toBe(BigInt(0));
     expect(toRawAmount("1.2.3", 2)).toBe(BigInt(0));
     expect(toRawAmount(".", 2)).toBe(BigInt(0));
+  });
+});
+
+describe("formatNumber", () => {
+  it("shows the whole budget as decimals for values >= 1", () => {
+    expect(formatNumber(1234.5678, 6)).toBe("1,234.57");
+    expect(formatNumber(1234.5678, 4)).toBe("1,235");
+  });
+
+  it("abbreviates when the integer part exceeds the budget", () => {
+    expect(formatNumber(150123.4, 4)).toBe("150.1K");
+    expect(formatNumber(1234567, 6)).toBe("1.23457M");
+    expect(formatNumber(1234567, 4)).toBe("1.235M");
+    expect(formatNumber(2.5e9, 4)).toBe("2.5B");
+    expect(formatNumber(3.5e12, 4)).toBe("3.5T");
+  });
+
+  it("uses exponent notation from 1e15", () => {
+    expect(formatNumber(1.23456e15, 4)).toBe("1.235e15");
+    expect(formatNumber(1e15, 4)).toBe("1e15");
+  });
+
+  it("re-checks digits after rounding", () => {
+    expect(formatNumber(999.996, 5)).toBe("1,000");
+    expect(formatNumber(999999.6, 4)).toBe("1M");
+    expect(formatNumber(999960, 4)).toBe("1M");
+  });
+
+  it("strips trailing zeros by default and keeps them on request", () => {
+    expect(formatNumber(1.5, 4)).toBe("1.5");
+    expect(formatNumber(2, 4)).toBe("2");
+    expect(formatNumber(1.5, 4, { keepTrailingZeros: true })).toBe("1.500");
+    expect(formatNumber(2, 4, { keepTrailingZeros: true })).toBe("2.000");
+    expect(formatNumber(0.0000012, 6, { keepTrailingZeros: true })).toBe(
+      "0.0\u2085" + "1200",
+    );
+  });
+
+  it("formats values below 1 plainly up to three leading zeros", () => {
+    expect(formatNumber(0.5, 4)).toBe("0.5");
+    expect(formatNumber(0.123456, 4)).toBe("0.123");
+    expect(formatNumber(0.00012345, 4)).toBe("0.00012");
+    expect(formatNumber(0.00012345, 6)).toBe("0.00012");
+  });
+
+  it("uses subscript-zero notation from four leading zeros", () => {
+    expect(formatNumber(0.0000012345, 6)).toBe("0.0\u2085" + "1235");
+    expect(formatNumber(0.0000012345, 4)).toBe("0.0\u2085" + "12");
+    expect(formatNumber(1.5e-12, 4)).toBe("0.0\u2081\u2081" + "15");
+  });
+
+  it("falls back to plain output when subscript rounding reaches 0.0001", () => {
+    expect(formatNumber(0.000099999, 4)).toBe("0.0001");
+  });
+
+  it("promotes values <1 that round up to 1", () => {
+    expect(formatNumber(0.99996, 3)).toBe("1");
+  });
+
+  it("handles sign, noNeg, zero and non-finite input", () => {
+    expect(formatNumber(-1234.5678, 6)).toBe("-1,234.57");
+    expect(formatNumber(-1234.5678, 6, { noNeg: true })).toBe("1,234.57");
+    expect(formatNumber(-0.5, 4)).toBe("-0.5");
+    expect(formatNumber(0)).toBe("0");
+    expect(formatNumber(NaN)).toBe("NaN");
+    expect(formatNumber(Infinity)).toBe("Infinity");
+    expect(formatNumber(-Infinity)).toBe("-Infinity");
   });
 });

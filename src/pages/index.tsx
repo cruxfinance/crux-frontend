@@ -46,6 +46,7 @@ const Tokens: FC = () => {
   const theme = useTheme();
   const router = useRouter();
   const upLg = useMediaQuery(theme.breakpoints.up("lg"));
+  const upSm = useMediaQuery(theme.breakpoints.up("sm"));
   const [loading, setLoading] = useState(false);
   const [ergExchange, setErgExchange] = useState(1);
   const [filteredTokens, setFilteredTokens] = useState<ITokenData[]>([]);
@@ -594,7 +595,7 @@ const Tokens: FC = () => {
                 : theme.palette.text.secondary,
         }}
       >
-        {formatNumber(pct * 0.01, 2, true)}%
+        {formatNumber(pct * 0.01, 3)}%
       </Typography>
     );
   };
@@ -1208,24 +1209,24 @@ const Tokens: FC = () => {
         {upLg ? (
           <>
             <Box sx={{ py: 1 }}>
-              <Grid container spacing={1} alignItems="center">
-                <Grid xs={3}>
+              <Grid container spacing={2} columns={24} alignItems="center">
+                <Grid xs={5}>
                   <Typography sx={{ ml: 2 }}>Token</Typography>
                 </Grid>
-                <Grid xs={2}>Price</Grid>
-                <Grid xs={1}>H</Grid>
-                <Grid xs={1}>D</Grid>
-                <Grid xs={1}>W</Grid>
-                <Grid xs={1}>M</Grid>
-                <Grid xs={1}>
-                  <Typography>Volume</Typography>
+                <Grid xs={3}>Price</Grid>
+                <Grid xs={2}>H</Grid>
+                <Grid xs={2}>D</Grid>
+                <Grid xs={2}>W</Grid>
+                <Grid xs={2}>M</Grid>
+                <Grid xs={3}>
                   <Typography>Liquidity</Typography>
-                </Grid>
-                <Grid xs={1}>
-                  <Typography>Transactions</Typography>
                   <Typography>Market Cap</Typography>
                 </Grid>
-                <Grid xs={1}>
+                <Grid xs={3}>
+                  <Typography>Volume</Typography>
+                  <Typography>Transactions</Typography>
+                </Grid>
+                <Grid xs={2}>
                   <Typography>Buys</Typography>
                   <Typography>Sells</Typography>
                 </Grid>
@@ -1296,8 +1297,13 @@ const Tokens: FC = () => {
                           router.push(`/tokens/${token.tokenId}`);
                         }}
                       >
-                        <Grid container spacing={2} alignItems="center">
-                          <Grid xs={3}>
+                        <Grid
+                          container
+                          spacing={2}
+                          columns={24}
+                          alignItems="center"
+                        >
+                          <Grid xs={5}>
                             <Box
                               sx={{
                                 display: "flex",
@@ -1354,51 +1360,28 @@ const Tokens: FC = () => {
                               </Box>
                             </Box>
                           </Grid>
-                          <Grid xs={2}>
+                          <Grid xs={3}>
                             {currencies[currency] +
-                              formatFullNumber(
+                              formatNumber(
                                 currency === "USE"
                                   ? token.price * ergExchange
                                   : token.price,
-                                4,
+                                6,
                               )}
                           </Grid>
-                          <Grid xs={1}>
+                          <Grid xs={2}>
                             {formatPercent(token.pctChange1h * 100)}
                           </Grid>
-                          <Grid xs={1}>
+                          <Grid xs={2}>
                             {formatPercent(token.pctChange1d * 100)}
                           </Grid>
-                          <Grid xs={1}>
+                          <Grid xs={2}>
                             {formatPercent(token.pctChange1w * 100)}
                           </Grid>
-                          <Grid xs={1}>
+                          <Grid xs={2}>
                             {formatPercent(token.pctChange1m * 100)}
                           </Grid>
-                          <Grid xs={1}>
-                            <Tooltip
-                              title={renderPairBreakdown(
-                                token.pairIcon || token.icon,
-                                token.volErg,
-                                token.volUse,
-                                "Volume",
-                                token.liquidityErg,
-                                token.liquidityUse,
-                              )}
-                              arrow
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Typography sx={{ cursor: "help" }}>
-                                V{" "}
-                                {currencies[currency] +
-                                  formatFullNumber(
-                                    currency === "USE"
-                                      ? token.vol * ergExchange
-                                      : token.vol,
-                                    2,
-                                  )}
-                              </Typography>
-                            </Tooltip>
+                          <Grid xs={3}>
                             <Tooltip
                               title={renderPairBreakdown(
                                 token.pairIcon || token.icon,
@@ -1414,31 +1397,54 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 L{" "}
                                 {currencies[currency] +
-                                  formatFullNumber(
+                                  formatNumber(
                                     currency === "USE"
                                       ? token.liquidity * ergExchange
                                       : token.liquidity,
-                                    2,
+                                    8,
                                   )}
                               </Typography>
                             </Tooltip>
-                          </Grid>
-                          <Grid xs={1}>
-                            <Typography>
-                              T {token.buys + token.sells}
-                            </Typography>
                             <Typography>
                               M{" "}
                               {currencies[currency] +
-                                formatFullNumber(
+                                formatNumber(
                                   currency === "USE"
                                     ? token.mktCap * ergExchange
                                     : token.mktCap,
-                                  2,
+                                  8,
                                 )}
                             </Typography>
                           </Grid>
-                          <Grid xs={1}>
+                          <Grid xs={3}>
+                            <Tooltip
+                              title={renderPairBreakdown(
+                                token.pairIcon || token.icon,
+                                token.volErg,
+                                token.volUse,
+                                "Volume",
+                                token.liquidityErg,
+                                token.liquidityUse,
+                              )}
+                              arrow
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Typography sx={{ cursor: "help" }}>
+                                V{" "}
+                                {currencies[currency] +
+                                  formatNumber(
+                                    currency === "USE"
+                                      ? token.vol * ergExchange
+                                      : token.vol,
+                                    8,
+                                  )}
+                              </Typography>
+                            </Tooltip>
+                            <Typography>
+                              T {token.buys + token.sells}
+                            </Typography>
+                          </Grid>
+                          <Grid xs={2}>
                             <Typography sx={{ color: theme.palette.up.main }}>
                               B {token.buys}
                             </Typography>
@@ -1599,11 +1605,11 @@ const Tokens: FC = () => {
                           <Grid xs={4} sm={3}>
                             <Typography>
                               {currencies[currency] +
-                                formatFullNumber(
+                                formatNumber(
                                   currency === "USE"
                                     ? token.price * ergExchange
                                     : token.price,
-                                  4,
+                                  6,
                                 )}
                             </Typography>
                             <Typography>
@@ -1626,11 +1632,11 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 V{" "}
                                 {currencies[currency] +
-                                  formatFullNumber(
+                                  formatNumber(
                                     currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
-                                    2,
+                                    upSm ? 5 : 4,
                                   )}
                               </Typography>
                             </Tooltip>
