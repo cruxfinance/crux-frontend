@@ -1391,7 +1391,7 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 V{" "}
                                 {currencies[currency] +
-                                  formatFullNumber(
+                                  formatNumber(
                                     currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
@@ -1414,7 +1414,7 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 L{" "}
                                 {currencies[currency] +
-                                  formatFullNumber(
+                                  formatNumber(
                                     currency === "USE"
                                       ? token.liquidity * ergExchange
                                       : token.liquidity,
@@ -1430,7 +1430,7 @@ const Tokens: FC = () => {
                             <Typography>
                               M{" "}
                               {currencies[currency] +
-                                formatFullNumber(
+                                formatNumber(
                                   currency === "USE"
                                     ? token.mktCap * ergExchange
                                     : token.mktCap,
@@ -1599,7 +1599,7 @@ const Tokens: FC = () => {
                           <Grid xs={4} sm={3}>
                             <Typography>
                               {currencies[currency] +
-                                formatFullNumber(
+                                formatNumber(
                                   currency === "USE"
                                     ? token.price * ergExchange
                                     : token.price,
@@ -1626,7 +1626,7 @@ const Tokens: FC = () => {
                               <Typography sx={{ cursor: "help" }}>
                                 V{" "}
                                 {currencies[currency] +
-                                  formatFullNumber(
+                                  formatNumber(
                                     currency === "USE"
                                       ? token.vol * ergExchange
                                       : token.vol,
