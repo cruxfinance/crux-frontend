@@ -79,7 +79,7 @@ const Positions: FC<PositionsProps> = ({ currency, addressList, setCurrency }) =
   const formatPL = (value: number, currencySymbol: string, isPercentage = false) => {
     return (
       <Typography sx={{ color: colorSwitch(value, theme) }}>
-        {`${value < 0 ? "-" : ''}${currencySymbol}${formatNumber(value, 2, undefined, true)}${isPercentage ? '%' : ''}`}
+        {`${value < 0 ? "-" : ''}${currencySymbol}${formatNumber(value, 5, { noNeg: true })}${isPercentage ? '%' : ''}`}
       </Typography>
     );
   };
