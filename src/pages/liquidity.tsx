@@ -42,6 +42,9 @@ import type { ClTokenView } from "@components/liquidity/ClWithdrawDialog";
 import { useClPairs, useClPortfolio, fetchClProtocolConfig } from "@components/cl/useClData";
 import type { ClProtocolConfig } from "@components/cl/useClData";
 import { useClPositionActions } from "@components/cl/useClPositionActions";
+import { useClStatus } from "@components/cl/useClStatus";
+import { useClKeyBoxRefresh } from "@components/cl/useClKeyBoxRefresh";
+import ClStatusBanner from "@components/liquidity/ClStatusBanner";
 import {
   filterMergedPairs,
   mergePoolsAndClPairs,
@@ -137,6 +140,8 @@ const LiquidityPage: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cl.reload, clPortfolio.reload]);
   const clActions = useClPositionActions(userAddresses, reloadCl);
+  const clStatus = useClStatus();
+  const keyRefresh = useClKeyBoxRefresh(reloadCl);
 
   useEffect(() => {
     let cancelled = false;
@@ -438,6 +443,8 @@ const LiquidityPage: FC = () => {
         Liquidity
       </Typography>
 
+      <ClStatusBanner />
+
       {/* Summary Stats */}
       <Paper
         sx={{
@@ -607,6 +614,10 @@ const LiquidityPage: FC = () => {
                       busy={clActions.busyId === pos.position_id}
                       onCollect={() => clActions.collect(pos.position_id)}
                       onWithdraw={() => setWithdrawCl(pos)}
+                      clPaused={!!clStatus?.paused}
+                      storagePeriodBlocks={clStatus?.storagePeriodBlocks}
+                      keyBusy={keyRefresh.busyId === pos.position_id}
+                      onRefreshKey={() => keyRefresh.refresh(pos.position_id)}
                     />
                   ))}
                 </TableBody>

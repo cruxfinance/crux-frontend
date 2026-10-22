@@ -14,6 +14,10 @@ import {
 } from "@components/cl/clFormat";
 import { ERG_DECIMALS, ERG_TOKEN_ID, rawPriceToHuman, shortId } from "@components/cl/clMath";
 import type { ClTokenMeta } from "@components/cl/clTypes";
+import { useClStatus } from "@components/cl/useClStatus";
+import { useClKeyBoxRefresh } from "@components/cl/useClKeyBoxRefresh";
+import ClStatusBanner from "@components/liquidity/ClStatusBanner";
+import ClKeyBoxWarning from "@components/liquidity/ClKeyBoxWarning";
 
 type ClPositionsProps = {
   currency: Currencies;
@@ -47,6 +51,12 @@ const ClPositions: FC<ClPositionsProps> = ({ currency, addressList, setCurrency 
       enabled: addressList.length > 0,
     },
   );
+
+  const clStatus = useClStatus();
+  const storagePeriodBlocks = clStatus?.storagePeriodBlocks;
+  const keyRefresh = useClKeyBoxRefresh(() => {
+    clPortfolio.refetch();
+  });
 
   const tableData = useMemo(() => {
     const data = clPortfolio.data;
@@ -106,13 +116,21 @@ const ClPositions: FC<ClPositionsProps> = ({ currency, addressList, setCurrency 
         Value: formatPortfolioValue(currency, p.value_erg, p.value_usd),
         "Uncollected Fees": formatPortfolioValue(currency, p.uncollected_fees_erg, feesUsd),
         Manage: (
-          <Link href="/liquidity" sx={{ whiteSpace: "nowrap" }}>
-            Manage
-          </Link>
+          <Box sx={{ minWidth: 160 }}>
+            <Link href="/liquidity" sx={{ whiteSpace: "nowrap" }}>
+              Manage
+            </Link>
+            <ClKeyBoxWarning
+              ageBlocks={p.key_box_age_blocks}
+              storagePeriodBlocks={storagePeriodBlocks}
+              busy={keyRefresh.busyId === p.position_id}
+              onRefresh={() => keyRefresh.refresh(p.position_id)}
+            />
+          </Box>
         ),
       };
     });
-  }, [clPortfolio.data, currency]);
+  }, [clPortfolio.data, currency, storagePeriodBlocks, keyRefresh]);
 
   if (addressList.length === 0) return null;
   if (clPortfolio.isError) {
@@ -148,6 +166,7 @@ const ClPositions: FC<ClPositionsProps> = ({ currency, addressList, setCurrency 
 
   return (
     <Box>
+      <ClStatusBanner />
       <CruxTableScroll
         title="Concentrated Liquidity Positions"
         actions={tableActions}

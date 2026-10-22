@@ -47,6 +47,9 @@ export interface ClPositionDto {
   /** RFC3339 */
   created_at: string;
   created_height: number;
+  /** Owned positions only; null when unknown. Storage-rent age of the key box. */
+  key_box_created_height?: number | null;
+  key_box_age_blocks?: number | null;
 }
 
 export interface ClPositionsResponse {

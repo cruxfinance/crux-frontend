@@ -4,6 +4,7 @@ import { formatFullNumber } from "@lib/utils/general";
 import { estimateUsdFromErg, formatErgAmount, formatUsdAmount } from "@components/cl/clFormat";
 import { rawToHuman } from "@components/cl/clMath";
 import type { ClPortfolioPosition } from "@components/cl/clTypes";
+import ClKeyBoxWarning from "./ClKeyBoxWarning";
 import ClRangeBar from "./ClRangeBar";
 import type { ClTokenView } from "./ClWithdrawDialog";
 
@@ -15,6 +16,11 @@ interface ClPositionRowProps {
   busy: boolean;
   onCollect: () => void;
   onWithdraw: () => void;
+  /** CL is paused or unavailable: collect is disabled, withdraw stays. */
+  clPaused?: boolean;
+  storagePeriodBlocks?: number | null;
+  keyBusy?: boolean;
+  onRefreshKey?: () => void;
 }
 
 const amount = (raw: number, decimals: number) =>
@@ -29,6 +35,10 @@ const ClPositionRow: FC<ClPositionRowProps> = ({
   busy,
   onCollect,
   onWithdraw,
+  clPaused = false,
+  storagePeriodBlocks,
+  keyBusy = false,
+  onRefreshKey,
 }) => {
   const scale = Math.pow(10, tokenX.decimals - tokenY.decimals);
   const lower = p.price_lower * scale;
@@ -68,6 +78,12 @@ const ClPositionRow: FC<ClPositionRowProps> = ({
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0, display: "block", mt: 0.25 }}>
           {p.fee_bps / 100}% fee tier
         </Typography>
+        <ClKeyBoxWarning
+          ageBlocks={p.key_box_age_blocks}
+          storagePeriodBlocks={storagePeriodBlocks}
+          busy={keyBusy}
+          onRefresh={() => onRefreshKey?.()}
+        />
         <Box sx={{ display: { xs: "block", md: "none" }, mt: 0.75 }}>{rangeBar}</Box>
       </TableCell>
       <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>{rangeBar}</TableCell>
@@ -119,9 +135,15 @@ const ClPositionRow: FC<ClPositionRowProps> = ({
       </TableCell>
       <TableCell align="center">
         <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center", flexWrap: "wrap" }}>
-          <Tooltip title={hasFees ? "Collect uncollected fees, keep the position" : "No fees to collect yet"}>
+          <Tooltip title={
+              clPaused
+                ? "Collecting is unavailable while concentrated liquidity is paused"
+                : hasFees
+                  ? "Collect uncollected fees, keep the position"
+                  : "No fees to collect yet"
+            }>
             <span>
-              <Button size="small" variant="outlined" disabled={!hasFees || busy} onClick={onCollect}>
+              <Button size="small" variant="outlined" disabled={!hasFees || busy || clPaused} onClick={onCollect}>
                 {busy ? <CircularProgress size={14} /> : "Collect"}
               </Button>
             </span>
