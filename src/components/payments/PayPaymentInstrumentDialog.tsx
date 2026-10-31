@@ -105,9 +105,7 @@ const PayPaymentInstrumentDialog: FC<IPayPaymentInstrumentDialogProps> = ({
 
   const handleSubmitTx = async (txId: string) => {
     await addBalanceMutation.mutateAsync({
-      address: addBalance.address,
       paymentInstrumentId: paymentInstrument.id,
-      amount: Math.round(Number(addBalance.amount) * Math.pow(10, tokenDetails.decimals)),
       txId
     });
   }

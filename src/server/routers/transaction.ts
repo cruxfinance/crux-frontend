@@ -3,6 +3,7 @@ import { prisma } from "@server/prisma";
 import { getExchangeRate } from "@server/services/exchangeRateApi";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "@server/trpc";
 import { getUnsignedTransaction } from "@server/utils/ergoClient";
+import { recordPaymentIntent } from "@server/utils/verifyPayment";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { nanoid } from 'nanoid';
@@ -21,9 +22,13 @@ export const transactionRouter = createTRPCRouter({
         amount: z.number()
       }))
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       if (process.env.ADMIN_ADDRESS) {
-        const tx = getUnsignedTransaction(input.address, process.env.ADMIN_ADDRESS, input.amount)
+        const tx = await getUnsignedTransaction(input.address, process.env.ADMIN_ADDRESS, input.amount)
+        const userId = ctx.session?.user?.id
+        if (userId) {
+          await recordPaymentIntent(tx.id, userId)
+        }
         return tx
       }
     }),
@@ -48,6 +53,13 @@ export const transactionRouter = createTRPCRouter({
           message: "Unable to access database. ",
         });
       }
+      await prisma.keyValuePair.create({
+        data: {
+          key: `${key}-owner`,
+          value: ctx.session.user.id,
+          expiresAt: oneHourFromNow
+        }
+      })
       return key
     }),
   checkMobileScan: publicProcedure
