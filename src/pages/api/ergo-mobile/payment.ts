@@ -1,5 +1,6 @@
 import { prisma } from '@server/prisma';
 import { getUnsignedTransaction } from '@server/utils/ergoClient';
+import { recordPaymentIntent } from '@server/utils/verifyPayment';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 // model KeyValuePair {
@@ -65,6 +66,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         error: "Unable to build transaction.",
         message: "The server could not build this transaction due to an unknown error. "
       });
+    }
+
+    const owner = await prisma.keyValuePair.findFirst({
+      where: { key: `${verificationId}-owner` }
+    })
+    if (owner) {
+      await recordPaymentIntent(tx.id, owner.value)
     }
 
     const updateKv = await prisma.keyValuePair.update({

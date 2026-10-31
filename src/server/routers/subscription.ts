@@ -13,6 +13,7 @@ import {
   updateSubscription,
 } from "@server/services/subscription/subscription";
 import { createTRPCRouter, protectedProcedure } from "@server/trpc";
+import { txIdSchema } from "@server/utils/verifyPayment";
 import { z } from "zod";
 
 const allowedTokens = [
@@ -94,9 +95,7 @@ export const subscriptionRouter = createTRPCRouter({
     .input(
       z.object({
         paymentInstrumentId: z.string(),
-        address: z.string(),
-        amount: z.number(),
-        txId: z.string()
+        txId: txIdSchema,
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -110,8 +109,7 @@ export const subscriptionRouter = createTRPCRouter({
       }
       const result = await addPaymentInstrumentBalance({
         paymentInstrumentId: paymentInstrumentId,
-        address: input.address,
-        amount: input.amount,
+        userId,
         txId: input.txId,
       });
       return result;

@@ -71,6 +71,8 @@ const VerifyReportPayment: FC<IVerifyReportPaymentProps> = ({
 
   const verifyTransactionMutation = trpc.accounting.verifyReportPurchaseTransaction.useMutation();
 
+  const [verifyAttempt, setVerifyAttempt] = useState(0)
+
   useEffect(() => {
     if (transactionStatuses.length > 0) {
       transactionStatuses.forEach(({ txId, status }) => {
@@ -80,7 +82,12 @@ const VerifyReportPayment: FC<IVerifyReportPaymentProps> = ({
             txId,
             reportId: report.id,
           }, {
-            onSuccess: () => {
+            onSuccess: (result) => {
+              // The explorer can lag the confirmation, and polling has stopped by now
+              if (result.status !== 'CONFIRMED') {
+                setTimeout(() => setVerifyAttempt(attempt => attempt + 1), 15000)
+                return
+              }
               addAlert('success', 'Report payment confirmed')
               confirmedPaymentCallback()
               console.log(`Transaction ${txId} verified successfully.`);
@@ -94,7 +101,7 @@ const VerifyReportPayment: FC<IVerifyReportPaymentProps> = ({
         }
       });
     }
-  }, [JSON.stringify(transactionStatuses)]);
+  }, [JSON.stringify(transactionStatuses), verifyAttempt]);
 
   const getTokenDetails = (tokenId: string | null) => {
     return allowedTokens.filter(

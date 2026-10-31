@@ -1,10 +1,21 @@
 import { getYearTimestamps } from "@lib/utils/daytime";
 import { prisma } from "@server/prisma";
 import { accountingApi } from "@server/services/accountingApi";
+import { allowedTokens, ERG_TOKEN_ID_MAP } from "@lib/configs/paymentTokens";
+import { getPriceForProduct } from "@lib/configs/productCosts";
 import { checkTransactionStatus } from "@server/utils/checkTransactionStatus";
+import { getTokenPriceInfo } from "@server/utils/tokenPrice";
+import {
+  getPaidAmount,
+  txIdSchema,
+  withPaymentClaim,
+} from "@server/utils/verifyPayment";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+
+// The client quotes its own spot price while the server uses the 24h average.
+const REPORT_PRICE_TOLERANCE = 0.8;
 
 export const accountingRouter = createTRPCRouter({
   getTransactions: protectedProcedure
@@ -337,7 +348,7 @@ export const accountingRouter = createTRPCRouter({
     .input(
       z.object({
         taxYear: z.number(),
-        txId: z.string(),
+        txId: txIdSchema,
         paymentAmounts: z.array(
           z.object({
             amount: z.number(),
@@ -355,45 +366,48 @@ export const accountingRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { taxYear, paymentAmounts, wallets, txId } = input;
 
-      try {
-        const currentReportsThisYear = await prisma.report.findMany({
-          where: {
-            userId: ctx.session.user.id,
-            taxYear,
-          },
-        });
-        // Step 1: Create the report
-        const newReport = await prisma.report.create({
-          data: {
-            userId: ctx.session.user.id,
-            taxYear,
-            wallets: wallets,
-            status: "PAYMENT_PENDING",
-            customName: `${taxYear} Report ${
-              currentReportsThisYear.length + 1
-            }`,
-          },
-        });
+      const created = await withPaymentClaim(txId, ctx.session.user.id, async () => {
+        try {
+          const currentReportsThisYear = await prisma.report.findMany({
+            where: {
+              userId: ctx.session.user.id,
+              taxYear,
+            },
+          });
+          // Step 1: Create the report
+          const newReport = await prisma.report.create({
+            data: {
+              userId: ctx.session.user.id,
+              taxYear,
+              wallets: wallets,
+              status: "PAYMENT_PENDING",
+              customName: `${taxYear} Report ${
+                currentReportsThisYear.length + 1
+              }`,
+            },
+          });
 
-        // Step 2: Create the SimpleTransaction for the report payment
-        const createdTx = await prisma.simpleTransaction.create({
-          data: {
-            userId: ctx.session.user.id,
-            paymentFor: "report",
-            itemId: newReport.id,
-            amounts: paymentAmounts,
-            status: "PENDING",
-            txId,
-          },
-        });
+          // Step 2: Create the SimpleTransaction for the report payment
+          const createdTx = await prisma.simpleTransaction.create({
+            data: {
+              userId: ctx.session.user.id,
+              paymentFor: "report",
+              itemId: newReport.id,
+              amounts: paymentAmounts,
+              status: "PENDING",
+              txId,
+            },
+          });
 
-        return {
-          transaction: createdTx,
-          report: newReport,
-        };
-      } catch (error) {
-        throw new Error("Failed to initiate report payment.");
-      }
+          return {
+            transaction: createdTx,
+            report: newReport,
+          };
+        } catch (error) {
+          throw new Error("Failed to initiate report payment.");
+        }
+      });
+      return created;
     }),
   // used to check all transactions the user has initiated for a given report
   checkReportTxStatuses: protectedProcedure
@@ -471,21 +485,78 @@ export const accountingRouter = createTRPCRouter({
   verifyReportPurchaseTransaction: protectedProcedure
     .input(
       z.object({
-        txId: z.string(),
+        txId: txIdSchema,
         reportId: z.string(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const { txId, reportId } = input;
 
+      // This row is the link between the tx and the report
       const transaction = await prisma.simpleTransaction.findFirst({
-        where: { txId },
+        where: {
+          txId,
+          userId: ctx.session.user.id,
+          paymentFor: "report",
+          itemId: reportId,
+        },
       });
       if (transaction === null) {
         throw new Error(`Transaction ${txId} not found.`);
       }
       const transactionStatus = await checkTransactionStatus(txId);
       if (transactionStatus.status === "CONFIRMED") {
+        if (await prisma.transaction.findFirst({ where: { id: txId } })) {
+          throw new Error(`Transaction ${txId} has already been used.`);
+        }
+        // Legacy duplicate rows: only the oldest claimant may redeem the tx
+        const oldest = await prisma.simpleTransaction.findFirst({
+          where: { txId },
+          orderBy: { createdAt: "asc" },
+        });
+        if (oldest?.id !== transaction.id) {
+          throw new Error(`Transaction ${txId} has already been used.`);
+        }
+
+        const amounts = transaction.amounts as { tokenId: string }[] | null;
+        const tokenId = amounts?.[0]?.tokenId;
+        const token = allowedTokens.find((t) => t.id === tokenId);
+        if (!token) {
+          throw new Error(`Token ${tokenId} is not accepted for payment.`);
+        }
+
+        const paid = await getPaidAmount(
+          txId,
+          token.id === ERG_TOKEN_ID_MAP ? null : token.id
+        );
+        if (paid === null) {
+          return {
+            status: "PENDING",
+          };
+        }
+
+        const level =
+          ctx.session.user.privilegeLevel === "PRO" ||
+          ctx.session.user.privilegeLevel === "BASIC"
+            ? ctx.session.user.privilegeLevel
+            : "DEFAULT";
+        const { discountedPrice } = getPriceForProduct(
+          "report",
+          level,
+          token.name.toLowerCase()
+        );
+        const { tokenPrice } = await getTokenPriceInfo(
+          token.id === ERG_TOKEN_ID_MAP ? null : token.id
+        );
+        const required = Math.ceil(
+          (discountedPrice / tokenPrice) *
+            10 ** token.decimals *
+            REPORT_PRICE_TOLERANCE
+        );
+        if (!Number.isFinite(required) || paid < BigInt(required)) {
+          throw new Error(`Payment for transaction ${txId} is insufficient.`);
+        }
+
         const updatedReport = await prisma.report.update({
           where: {
             userId: ctx.session.user.id,

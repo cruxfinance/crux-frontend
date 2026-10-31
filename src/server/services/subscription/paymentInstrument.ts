@@ -2,15 +2,22 @@ import { TransactionStatus } from "@prisma/client";
 import { prisma } from "@server/prisma";
 import { checkTransactionStatus } from "@server/utils/checkTransactionStatus";
 import {
+  TX_ID_REGEX,
+  getPaidAmount,
+  withPaymentClaim,
+} from "@server/utils/verifyPayment";
+import {
   acquireTransactionalLock,
   releaseTransactionalLock,
 } from "./transactionLock";
 
 const TRANSACTION_EXPIRY_TIMEOUT = 30 * 60 * 1000; // 30 mins
-const RECIPIENT = process.env.ADMIN_ADDRESS ?? "";
 
 // WARNING: Using this method outside this file or incorrectly may break stuff
-const getTransaction = async (transactionId: string) => {
+const getTransaction = async (
+  transactionId: string,
+  tokenId: string | null
+) => {
   const transaction = await prisma.transaction.findFirst({
     where: { id: transactionId },
   });
@@ -22,11 +29,17 @@ const getTransaction = async (transactionId: string) => {
   }
   const transactionStatus = await checkTransactionStatus(transaction.id);
   if (transactionStatus.status === TransactionStatus.CONFIRMED) {
+    // The credited amount is whatever the chain says was paid to the recipient
+    const paid = await getPaidAmount(transaction.id, tokenId);
+    if (paid === null) {
+      return transaction;
+    }
     const updatedTransaction = await prisma.transaction.update({
       where: { id: transactionId },
       data: {
         ...transaction,
-        status: TransactionStatus.CONFIRMED,
+        status: paid > BigInt(0) ? TransactionStatus.CONFIRMED : TransactionStatus.FAILED,
+        amount: paid,
         updatedAt: new Date(),
       },
     });
@@ -98,7 +111,7 @@ export const getPaymentInstrument = async (paymentInstrumentId: string) => {
       };
     }
     const updatedTransactions = await Promise.all(
-      transactions.map((transaction) => getTransaction(transaction.id))
+      transactions.map((transaction) => getTransaction(transaction.id, paymentInstrument.tokenId))
     );
     const confirmedTransactions = updatedTransactions.filter(
       (transaction) => transaction?.status === TransactionStatus.CONFIRMED
@@ -248,38 +261,15 @@ export const refundPaymentInstrument = async (
 
 interface AddPaymentInstrumentBalance {
   paymentInstrumentId: string;
-  address: string;
-  amount: number;
+  userId: string;
   txId: string;
 }
-
-const createOrUpdateTransaction = async (
-  id: string,
-  paymentInstrumentId: string,
-  amount: number
-) => {
-  const transaction = await prisma.transaction.findFirst({
-    where: {
-      id: id,
-    },
-  });
-  if (transaction === null) {
-    return await prisma.transaction.create({
-      data: {
-        id: id,
-        paymentInstrumentId: paymentInstrumentId,
-        amount: amount,
-      },
-    });
-  }
-  return transaction;
-};
 
 export const addPaymentInstrumentBalance = async (
   input: AddPaymentInstrumentBalance
 ) => {
-  if (input.amount <= 0 || !Number.isInteger(input.amount)) {
-    throw new Error(`Amount should be a positive integer.`);
+  if (!TX_ID_REGEX.test(input.txId)) {
+    throw new Error(`Invalid transaction id.`);
   }
   const lock = await acquireTransactionalLock(
     `addPaymentInstrumentBalance.${input.paymentInstrumentId}`
@@ -297,11 +287,21 @@ export const addPaymentInstrumentBalance = async (
         updatedAt: new Date(),
       },
     });
-    const transaction = await createOrUpdateTransaction(
-      input.txId,
-      input.paymentInstrumentId,
-      input.amount
-    );
+    const existing = await prisma.transaction.findFirst({
+      where: { id: input.txId, paymentInstrumentId: input.paymentInstrumentId },
+    });
+    // Retry on the same instrument is idempotent
+    const transaction =
+      existing ??
+      (await withPaymentClaim(input.txId, input.userId, () =>
+        prisma.transaction.create({
+          data: {
+            id: input.txId,
+            paymentInstrumentId: input.paymentInstrumentId,
+            amount: 0,
+          },
+        })
+      ));
     return {
       transactionStatus: transaction,
       paymentInstrument: updatedPaymentInstrument,
