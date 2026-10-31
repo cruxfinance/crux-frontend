@@ -19,11 +19,14 @@ const dexyResolutionSchema = z.enum(["1h", "1d", "1w"]);
 
 const mintTypeSchema = z.enum(["arbmint", "freemint"]);
 
+// Goes into the ci-api URL path, so dots and slashes must never get through.
+const instanceNameSchema = z.string().regex(/^[A-Za-z0-9_-]{1,32}$/);
+
 export const dexyRouter = createTRPCRouter({
   getAnalytics: publicProcedure
     .input(
       z.object({
-        instanceName: z.string().default("USE"),
+        instanceName: instanceNameSchema.default("USE"),
       }),
     )
     .query(async ({ input }) => {
@@ -33,7 +36,7 @@ export const dexyRouter = createTRPCRouter({
   getHistory: publicProcedure
     .input(
       z.object({
-        instanceName: z.string().default("USE"),
+        instanceName: instanceNameSchema.default("USE"),
         metric: dexyMetricSchema,
         from: z.number(),
         to: z.number(),
@@ -57,7 +60,7 @@ export const dexyRouter = createTRPCRouter({
   getMintStatus: publicProcedure
     .input(
       z.object({
-        instanceName: z.string(),
+        instanceName: instanceNameSchema,
         mintType: mintTypeSchema,
         feeToken: z.string().default("erg"),
       }),
@@ -73,7 +76,7 @@ export const dexyRouter = createTRPCRouter({
   buildMintTx: publicProcedure
     .input(
       z.object({
-        instanceName: z.string(),
+        instanceName: instanceNameSchema,
         mintType: mintTypeSchema,
         userAddresses: z.string(),
         targetAddress: z.string(),

@@ -8,10 +8,14 @@ import axios from "axios";
 import { nanoid } from 'nanoid';
 import { z } from "zod";
 
+// These go into upstream URL paths, so dots and slashes must never get through.
+const hexIdSchema = z.string().regex(/^[0-9a-fA-F]{64}$/);
+const addressSchema = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]+$/);
+
 export const transactionRouter = createTRPCRouter({
   getTransaction: publicProcedure
     .input(z.object({
-      address: z.string(),
+      address: addressSchema,
       amount: z.array(z.object({
         tokenId: z.string(),
         amount: z.number()
@@ -89,7 +93,7 @@ export const transactionRouter = createTRPCRouter({
     }),
   checkMobileSuccess: publicProcedure
     .input(z.object({
-      transactionId: z.string()
+      transactionId: hexIdSchema
     }))
     .query(async ({ input }) => {
       const { transactionId } = input
@@ -103,7 +107,7 @@ export const transactionRouter = createTRPCRouter({
     }),
   fetchTokenInfoWithPrice: publicProcedure
     .input(z.object({
-      tokenId: z.string()
+      tokenId: hexIdSchema
     }))
     .query(async ({ input }) => {
       const { tokenId } = input

@@ -19,6 +19,12 @@ import { cruxApi } from "@server/services/axiosInstance";
 const TRANSACTION_CONFIRMATION_COUNT = 1; // Using 1 because ergo block times typically don't cause forks
 
 export const checkTransactionStatus = async (transactionId: string) => {
+  // Goes into the ci-api URL path, and callers pass client-supplied ids.
+  if (!/^[0-9a-fA-F]{64}$/.test(transactionId)) {
+    return {
+      status: TransactionStatus.NOT_FOUND,
+    };
+  }
   try {
     const res = await cruxApi.get(`/crux/tx_status/${transactionId}`);
     if (res.data.num_confirmations >= TRANSACTION_CONFIRMATION_COUNT) {
