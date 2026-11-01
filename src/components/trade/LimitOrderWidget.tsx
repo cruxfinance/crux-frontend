@@ -455,7 +455,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         fee_token_id: feeToken === "crux" ? CRUX_TOKEN_ID : null,
       };
 
-      const response = await fetch(`${process.env.CRUX_API}/dex/limit_order`, {
+      const response = await fetch(`${process.env.CRUX_API}/dex/limit_order${IS_V3 ? "/v3" : ""}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
