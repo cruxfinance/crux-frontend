@@ -241,6 +241,15 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   // Set price to current market price (pair rate, not base token price)
   const pairPrice = calculatePairPrice(baseToken?.price, quoteToken.price);
 
+  // The order's value in ERG, from whichever side is ERG; a pair without ERG
+  // shows no USD value.
+  const ergSideAmount =
+    total && quoteToken.tokenId === ERG_TOKEN_ID
+      ? parseFloat(total)
+      : amount && baseToken?.tokenId === ERG_TOKEN_ID
+        ? parseFloat(amount)
+        : null;
+
   useEffect(() => {
     if (baseToken && pairPrice > 0 && !price) {
       setPrice(pairPrice.toString());
@@ -854,13 +863,13 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           })()}
 
           {/* Total Value */}
-          {total && ergPrice > 0 && (
+          {ergSideAmount !== null && ergPrice > 0 && (
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
               <Typography variant="caption" color="text.secondary">
                 Total Value
               </Typography>
               <Typography variant="caption">
-                ~${formatFullNumber(parseFloat(total) * ergPrice, 2)} USD
+                ~${formatFullNumber(ergSideAmount * ergPrice, 2)} USD
               </Typography>
             </Box>
           )}
