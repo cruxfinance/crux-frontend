@@ -900,17 +900,19 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
             </Typography>
           </Box>
 
-          {/* Fee Reserve */}
-          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Tooltip title="Refundable ERG reserved to cover miner fees when your order is filled. Unused reserve is returned when the order is cancelled or expires." arrow>
-              <Typography variant="caption" color="text.secondary" sx={{ cursor: "help", textDecoration: "underline dotted" }}>
-                Fee Reserve (20 fills)
+          {/* Fee Reserve: v2 only; a v3 box holds the amount plus the execution fee */}
+          {!IS_V3 && (
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Tooltip title="Refundable ERG reserved to cover miner fees when your order is filled. Unused reserve is returned when the order is cancelled or expires." arrow>
+                <Typography variant="caption" color="text.secondary" sx={{ cursor: "help", textDecoration: "underline dotted" }}>
+                  Fee Reserve (20 fills)
+                </Typography>
+              </Tooltip>
+              <Typography variant="caption">
+                {((minerFee * 20) / 1e9).toFixed(4)} ERG
               </Typography>
-            </Tooltip>
-            <Typography variant="caption">
-              {((minerFee * 20) / 1e9).toFixed(4)} ERG
-            </Typography>
-          </Box>
+            </Box>
+          )}
         </Box>
       )}
 

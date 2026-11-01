@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
+  displayFilledPercent,
   isPastExpiry,
   isV3Order,
   v3FilledPercent,
@@ -381,7 +382,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
             </Box>
           )}
           <Typography variant="caption" color={filledPercent > 0 ? "primary" : "text.secondary"}>
-            Filled {filledPercent.toFixed(0)}%
+            Filled {displayFilledPercent(filledPercent)}%
           </Typography>
         </Box>
         {received > 0 && (
@@ -445,7 +446,7 @@ const OpenOrdersPanel: FC<OpenOrdersPanelProps> = ({
             />
           </Box>
           <Typography variant="caption" color="primary">
-            {filledPercent.toFixed(0)}%
+            {displayFilledPercent(filledPercent)}%
           </Typography>
         </Box>
       </Box>
