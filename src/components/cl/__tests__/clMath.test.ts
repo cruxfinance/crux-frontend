@@ -6,7 +6,8 @@ import {
   computeMaxDepositHuman,
   exceedsWalletBalance,
   formatAmountTrimmed,
-  feeBpsToPercent,
+  feePpmToPercent,
+  percentToFeePpm,
   formatProtocolFeeBps,
   formatProtocolFeeFormula,
   formatTokenOptionLabel,
@@ -15,7 +16,7 @@ import {
   humanToRaw,
   isClNotDeployedError,
   isErgTokenInput,
-  isValidFeeBps,
+  isValidFeePpm,
   limitOrderPriceRatio,
   normalizeClTokenIdInput,
   rawPriceToHuman,
@@ -50,27 +51,27 @@ describe("isErgTokenInput / normalizeClTokenIdInput", () => {
   });
 });
 
-describe("isValidFeeBps", () => {
+describe("isValidFeePpm", () => {
   it("accepts 0 (no fee)", () => {
-    expect(isValidFeeBps(0)).toBe(true);
+    expect(isValidFeePpm(0)).toBe(true);
   });
 
-  it("accepts values up to but not including 10000", () => {
-    expect(isValidFeeBps(9999)).toBe(true);
-    expect(isValidFeeBps(10000)).toBe(false);
+  it("accepts values up to but not including 1000000", () => {
+    expect(isValidFeePpm(999999)).toBe(true);
+    expect(isValidFeePpm(1000000)).toBe(false);
   });
 
   it("rejects negative values", () => {
-    expect(isValidFeeBps(-1)).toBe(false);
+    expect(isValidFeePpm(-1)).toBe(false);
   });
 
   it("rejects non-integers and NaN", () => {
-    expect(isValidFeeBps(30.5)).toBe(false);
-    expect(isValidFeeBps(NaN)).toBe(false);
+    expect(isValidFeePpm(250.5)).toBe(false);
+    expect(isValidFeePpm(NaN)).toBe(false);
   });
 
   it("accepts the standard presets", () => {
-    [1, 5, 30, 100].forEach((bps) => expect(isValidFeeBps(bps)).toBe(true));
+    [250, 500, 3000, 5000, 10000].forEach((ppm) => expect(isValidFeePpm(ppm)).toBe(true));
   });
 });
 
@@ -114,11 +115,35 @@ describe("rawPriceToHuman / humanPriceToRaw", () => {
   });
 });
 
-describe("feeBpsToPercent", () => {
-  it("converts basis points to percent", () => {
-    expect(feeBpsToPercent(30)).toBe(0.3);
-    expect(feeBpsToPercent(1)).toBe(0.01);
-    expect(feeBpsToPercent(100)).toBe(1);
+describe("feePpmToPercent", () => {
+  it("converts ppm to percent", () => {
+    expect(feePpmToPercent(3000)).toBe(0.3);
+    expect(feePpmToPercent(250)).toBe(0.025);
+    expect(feePpmToPercent(10000)).toBe(1);
+    expect(feePpmToPercent(0)).toBe(0);
+  });
+});
+
+describe("percentToFeePpm", () => {
+  it("converts percent strings to ppm", () => {
+    expect(percentToFeePpm("0.025")).toBe(250);
+    expect(percentToFeePpm("0.3")).toBe(3000);
+    expect(percentToFeePpm("1")).toBe(10000);
+    expect(percentToFeePpm("0")).toBe(0);
+    expect(percentToFeePpm(" 0.0001 ")).toBe(1);
+  });
+
+  it("reaches the edges of the valid range", () => {
+    expect(percentToFeePpm("99.9999")).toBe(999999);
+    expect(isValidFeePpm(percentToFeePpm("99.9999"))).toBe(true);
+    expect(isValidFeePpm(percentToFeePpm("100"))).toBe(false);
+  });
+
+  it("rejects more than 4 decimals, empty and non-numeric input", () => {
+    expect(percentToFeePpm("0.00001")).toBeNaN();
+    expect(percentToFeePpm("")).toBeNaN();
+    expect(percentToFeePpm("abc")).toBeNaN();
+    expect(percentToFeePpm("-1")).toBeNaN();
   });
 });
 
@@ -166,21 +191,18 @@ describe("classifyRangeSide", () => {
 });
 
 describe("formatProtocolFeeFormula", () => {
-  it("matches the launch example (phi=1667, floor=1 bps)", () => {
-    expect(formatProtocolFeeFormula(1667, 1)).toBe(
-      "max(φ × LP fee, floor) = max(16.67% × LP fee, 1 bps)",
+  it("matches the live intent (phi=4000, floor=1, ceil=10)", () => {
+    expect(formatProtocolFeeFormula(4000, 1, 10)).toBe(
+      "min(max(40% × LP fee, 0.01%), 0.1%)",
     );
   });
 
-  it("drops trailing zeros from a whole-percent phi", () => {
-    expect(formatProtocolFeeFormula(2500, 10)).toBe(
-      "max(φ × LP fee, floor) = max(25% × LP fee, 10 bps)",
+  it("drops trailing zeros and keeps fractional percents", () => {
+    expect(formatProtocolFeeFormula(2500, 10, 50)).toBe(
+      "min(max(25% × LP fee, 0.1%), 0.5%)",
     );
-  });
-
-  it("keeps a single significant decimal when the second is zero", () => {
-    expect(formatProtocolFeeFormula(1650, 1)).toBe(
-      "max(φ × LP fee, floor) = max(16.5% × LP fee, 1 bps)",
+    expect(formatProtocolFeeFormula(1650, 1, 5)).toBe(
+      "min(max(16.5% × LP fee, 0.01%), 0.05%)",
     );
   });
 });

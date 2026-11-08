@@ -322,7 +322,7 @@ describe("buildClRequestBody", () => {
     maxPrice: 2,
     side: "x" as const,
     amount: 1.5,
-    feeBps: 30,
+    feePpm: 3000,
   };
   it("converts human prices and amounts to raw", () => {
     const b = buildClRequestBody(base)!;
@@ -330,7 +330,7 @@ describe("buildClRequestBody", () => {
     expect(b.price_upper).toBeCloseTo(2e-6);
     expect(b.amount_x).toBe(1.5e9);
     expect(b.amount_y).toBeUndefined();
-    expect(b.fee_bps).toBe(30);
+    expect(b.fee_ppm).toBe(3000);
     expect(b.price_current).toBeUndefined();
   });
   it("uses the y side and a manual starting price", () => {

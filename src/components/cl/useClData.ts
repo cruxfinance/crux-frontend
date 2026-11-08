@@ -15,6 +15,14 @@ import type {
 export interface ClProtocolConfig {
   phi: number;
   floor_bps: number;
+  ceil_bps: number;
+  /** Null when the on-chain value is not representable. */
+  ceil_bps_raw: number | null;
+  cp_ceil_bps: number;
+  cp_ceil_bps_raw: number | null;
+  /** Upper bound the contract accepts for a ceiling (bps). */
+  ceil_cap: number;
+  phi_cap: number;
   receiver_address: string;
 }
 

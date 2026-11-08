@@ -2,7 +2,7 @@ import React, { FC } from "react";
 import { Avatar, Box, Button, Chip, CircularProgress, TableCell, TableRow, Tooltip, Typography } from "@mui/material";
 import { formatFullNumber } from "@lib/utils/general";
 import { estimateUsdFromErg, formatErgAmount, formatUsdAmount } from "@components/cl/clFormat";
-import { rawToHuman } from "@components/cl/clMath";
+import { feePpmToPercent, rawToHuman } from "@components/cl/clMath";
 import type { ClPortfolioPosition } from "@components/cl/clTypes";
 import ClRangeBar from "./ClRangeBar";
 import type { ClTokenView } from "./ClWithdrawDialog";
@@ -66,7 +66,7 @@ const ClPositionRow: FC<ClPositionRowProps> = ({
           />
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0, display: "block", mt: 0.25 }}>
-          {p.fee_bps / 100}% fee tier
+          {feePpmToPercent(p.fee_ppm)}% fee tier
         </Typography>
         <Box sx={{ display: { xs: "block", md: "none" }, mt: 0.75 }}>{rangeBar}</Box>
       </TableCell>

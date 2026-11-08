@@ -12,7 +12,7 @@ import {
   formatPortfolioValue,
   sortPositionsInRangeFirst,
 } from "@components/cl/clFormat";
-import { ERG_DECIMALS, ERG_TOKEN_ID, rawPriceToHuman, shortId } from "@components/cl/clMath";
+import { ERG_DECIMALS, ERG_TOKEN_ID, feePpmToPercent, rawPriceToHuman, shortId } from "@components/cl/clMath";
 import type { ClTokenMeta } from "@components/cl/clTypes";
 
 type ClPositionsProps = {
@@ -80,7 +80,7 @@ const ClPositions: FC<ClPositionsProps> = ({ currency, addressList, setCurrency 
           <Box>
             {tokenLabel(p.token_y, `${y.name} / ${x.name}`)}
             <Typography variant="caption" color="text.secondary">
-              {p.fee_bps / 100}% fee
+              {feePpmToPercent(p.fee_ppm)}% fee
             </Typography>
           </Box>
         ),

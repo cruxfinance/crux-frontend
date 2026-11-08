@@ -37,6 +37,8 @@ interface ClConfigValuesDto {
   threshold: number;
   phi: number;
   floor_bps: number;
+  ceil_bps: number;
+  cp_ceil_bps: number;
   value_nanoerg: number;
 }
 
@@ -48,8 +50,11 @@ interface ClCreateConfigResponse {
 }
 
 const DEFAULT_THRESHOLD = "1";
-const DEFAULT_PHI = "1667";
+const DEFAULT_PHI = "4000";
 const DEFAULT_FLOOR_BPS = "1";
+const DEFAULT_CEIL_BPS = "10";
+const PHI_CAP = 10000;
+const CEIL_CAP = 50;
 const DEFAULT_VALUE_ERG = "1";
 
 /** POSTs `body` to `path` and returns the parsed JSON, throwing an Error
@@ -95,6 +100,8 @@ const DevConfigPanel: FC<DevConfigPanelProps> = ({ userAddresses }) => {
   const [threshold, setThreshold] = useState(DEFAULT_THRESHOLD);
   const [phi, setPhi] = useState(DEFAULT_PHI);
   const [floorBps, setFloorBps] = useState(DEFAULT_FLOOR_BPS);
+  const [ceilBps, setCeilBps] = useState(DEFAULT_CEIL_BPS);
+  const [cpCeilBps, setCpCeilBps] = useState(DEFAULT_CEIL_BPS);
   const [valueErg, setValueErg] = useState(DEFAULT_VALUE_ERG);
   const [submitting, setSubmitting] = useState(false);
   const [configNftId, setConfigNftId] = useState<string | null>(null);
@@ -121,6 +128,8 @@ const DevConfigPanel: FC<DevConfigPanelProps> = ({ userAddresses }) => {
     const thresholdNum = parseInt(threshold, 10);
     const phiNum = parseInt(phi, 10);
     const floorBpsNum = parseInt(floorBps, 10);
+    const ceilBpsNum = parseInt(ceilBps, 10);
+    const cpCeilBpsNum = parseInt(cpCeilBps, 10);
     const valueErgNum = parseFloat(valueErg);
     const signerAddresses = parseSignerAddresses(signerAddressesText);
 
@@ -136,12 +145,20 @@ const DevConfigPanel: FC<DevConfigPanelProps> = ({ userAddresses }) => {
       addAlert("error", "Threshold cannot exceed the number of signers");
       return;
     }
-    if (isNaN(phiNum) || phiNum < 0) {
-      addAlert("error", "phi must be a non-negative integer");
+    if (isNaN(phiNum) || phiNum < 0 || phiNum > PHI_CAP) {
+      addAlert("error", `phi must be an integer between 0 and ${PHI_CAP}`);
       return;
     }
     if (isNaN(floorBpsNum) || floorBpsNum < 0) {
       addAlert("error", "floor_bps must be a non-negative integer");
+      return;
+    }
+    if (isNaN(ceilBpsNum) || ceilBpsNum < 0 || ceilBpsNum > CEIL_CAP) {
+      addAlert("error", `CL ceiling must be an integer between 0 and ${CEIL_CAP} bps`);
+      return;
+    }
+    if (isNaN(cpCeilBpsNum) || cpCeilBpsNum < 0 || cpCeilBpsNum > CEIL_CAP) {
+      addAlert("error", `CP ceiling must be an integer between 0 and ${CEIL_CAP} bps`);
       return;
     }
     if (isNaN(valueErgNum) || valueErgNum <= 0) {
@@ -160,6 +177,8 @@ const DevConfigPanel: FC<DevConfigPanelProps> = ({ userAddresses }) => {
           threshold: thresholdNum,
           phi: phiNum,
           floor_bps: floorBpsNum,
+          ceil_bps: ceilBpsNum,
+          cp_ceil_bps: cpCeilBpsNum,
           value_nanoerg: Math.round(valueErgNum * 1_000_000_000),
           miner_fee: minerFee,
         },
@@ -245,14 +264,14 @@ const DevConfigPanel: FC<DevConfigPanelProps> = ({ userAddresses }) => {
           </Grid>
           <Grid item xs={6} sm={3}>
             <TextField
-              label="phi (/ 10000)"
+              label={`phi (/ 10000, max ${PHI_CAP})`}
               type="number"
               fullWidth
               size="small"
               value={phi}
               onChange={(e) => setPhi(e.target.value)}
-              inputProps={{ min: 0, step: 1 }}
-              helperText="1667 = 1/6"
+              inputProps={{ min: 0, max: PHI_CAP, step: 1 }}
+              helperText="4000 = 40% of LP fee"
             />
           </Grid>
           <Grid item xs={6} sm={3}>
@@ -264,6 +283,28 @@ const DevConfigPanel: FC<DevConfigPanelProps> = ({ userAddresses }) => {
               value={floorBps}
               onChange={(e) => setFloorBps(e.target.value)}
               inputProps={{ min: 0, step: 1 }}
+            />
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            <TextField
+              label={`CL ceiling (bps, max ${CEIL_CAP})`}
+              type="number"
+              fullWidth
+              size="small"
+              value={ceilBps}
+              onChange={(e) => setCeilBps(e.target.value)}
+              inputProps={{ min: 0, max: CEIL_CAP, step: 1 }}
+            />
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            <TextField
+              label={`CP ceiling (bps, max ${CEIL_CAP})`}
+              type="number"
+              fullWidth
+              size="small"
+              value={cpCeilBps}
+              onChange={(e) => setCpCeilBps(e.target.value)}
+              inputProps={{ min: 0, max: CEIL_CAP, step: 1 }}
             />
           </Grid>
           <Grid item xs={6} sm={3}>

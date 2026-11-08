@@ -11,7 +11,7 @@ import { ERG_TOKEN_ID, ERG_DECIMALS } from "@lib/configs/paymentTokens";
  *   the CL components have one import path for CL-specific concerns.
  * - Price P is Y per X, in raw units (smallest unit of each token).
  *   Human price = raw price * 10^(decX - decY).
- * - fee_bps is basis points, e.g. 30 = 0.3%. Valid range: 0 <= fee_bps < 10000.
+ * - fee_ppm is parts per million, e.g. 3000 = 0.3%. Valid range: 0 <= fee_ppm <= 999999.
  */
 
 export { ERG_TOKEN_ID, ERG_DECIMALS };
@@ -30,9 +30,9 @@ export function normalizeClTokenIdInput(input: string): string {
   return isErgTokenInput(input) ? ERG_TOKEN_ID : input.trim();
 }
 
-/** fee_bps must be a non-negative integer strictly less than 10000 (100%). */
-export function isValidFeeBps(feeBps: number): boolean {
-  return Number.isInteger(feeBps) && feeBps >= 0 && feeBps < 10000;
+/** fee_ppm must be a non-negative integer strictly less than 1_000_000 (100%). */
+export function isValidFeePpm(feePpm: number): boolean {
+  return Number.isInteger(feePpm) && feePpm >= 0 && feePpm < 1_000_000;
 }
 
 export function rawToHuman(raw: number, decimals: number): number {
@@ -61,8 +61,21 @@ export function humanPriceToRaw(
   return humanPrice * Math.pow(10, decY - decX);
 }
 
-export function feeBpsToPercent(feeBps: number): number {
-  return feeBps / 100;
+export function feePpmToPercent(feePpm: number): number {
+  return feePpm / 10000;
+}
+
+/**
+ * Converts a user-typed percent string ("0.025") to ppm (250), rounding to
+ * the nearest integer. Returns NaN for empty/non-numeric input or more than
+ * 4 decimals (finer than 1 ppm).
+ */
+export function percentToFeePpm(percent: string): number {
+  const t = percent.trim();
+  const m = /^(\d+)(?:\.(\d*))?$/.exec(t);
+  if (!m) return NaN;
+  if ((m[2] ?? "").length > 4) return NaN;
+  return Math.round(parseFloat(t) * 10000);
 }
 
 /** Shortens a hex id to `abc123…789xyz` for compact display. */
@@ -78,16 +91,25 @@ function trimTrailingZeros(n: number): string {
   return n.toFixed(2).replace(/\.?0+$/, "");
 }
 
+/** Basis points as a percent string, up to 4 decimals (10 -> "0.1"). */
+function bpsToPercentText(bps: number): string {
+  return String(parseFloat((bps / 100).toFixed(4)));
+}
+
 /**
- * Formats the protocol-fee rate formula for the page-level header line,
- * e.g. `formatProtocolFeeFormula(1667, 1)` ->
- * `"max(φ × LP fee, floor) = max(16.67% × LP fee, 1 bps)"`.
- * `phi` is parts of 10000 (see `/dex/cl/config`'s `phi`/`phi_raw`), `floorBps`
- * is already in basis points.
+ * Formats the protocol-fee rate formula, e.g.
+ * `formatProtocolFeeFormula(4000, 1, 10)` ->
+ * `"min(max(40% × LP fee, 0.01%), 0.1%)"`.
+ * `phi` is parts of 10000 of the LP fee; `floorBps` and `ceilBps` are bps of
+ * the trade.
  */
-export function formatProtocolFeeFormula(phi: number, floorBps: number): string {
+export function formatProtocolFeeFormula(
+  phi: number,
+  floorBps: number,
+  ceilBps: number,
+): string {
   const phiPercent = trimTrailingZeros(phi / 100);
-  return `max(φ × LP fee, floor) = max(${phiPercent}% × LP fee, ${floorBps} bps)`;
+  return `min(max(${phiPercent}% × LP fee, ${bpsToPercentText(floorBps)}%), ${bpsToPercentText(ceilBps)}%)`;
 }
 
 /** Formats an effective protocol-fee rate (bps of the net input, as

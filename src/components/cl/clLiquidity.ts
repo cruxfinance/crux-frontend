@@ -1,4 +1,4 @@
-import { ERG_TOKEN_ID, humanPriceToRaw, humanToRaw, isValidFeeBps } from "./clMath";
+import { ERG_TOKEN_ID, humanPriceToRaw, humanToRaw, isValidFeePpm } from "./clMath";
 import type { ClPairStats, ClTokenMeta } from "./clTypes";
 import type { PoolWithApr } from "../liquidity/liquidityTypes";
 
@@ -418,7 +418,7 @@ export interface ClRequestInput {
   side: "x" | "y";
   /** Human amount of the deposit-side token. */
   amount: number;
-  feeBps: number;
+  feePpm: number;
 }
 
 /** Body shared by the preview and create endpoints, or null when the input is incomplete. */
@@ -435,7 +435,7 @@ export function buildClRequestBody(i: ClRequestInput): Record<string, unknown> |
   }
   if (i.side === "x") body.amount_x = humanToRaw(i.amount, i.decimalsX);
   else body.amount_y = humanToRaw(i.amount, i.decimalsY);
-  if (isValidFeeBps(i.feeBps)) body.fee_bps = i.feeBps;
+  if (isValidFeePpm(i.feePpm)) body.fee_ppm = i.feePpm;
   return body;
 }
 

@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatFullNumber } from "@lib/utils/general";
-import { rawToHuman } from "@components/cl/clMath";
+import { feePpmToPercent, rawToHuman } from "@components/cl/clMath";
 import type { ClPortfolioPosition } from "@components/cl/clTypes";
 
 export interface ClTokenView {
@@ -111,7 +111,7 @@ const ClWithdrawDialog: FC<ClWithdrawDialogProps> = ({
               {tokenY.name} / {tokenX.name}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0 }}>
-              Range position, {position.fee_bps / 100}% fee tier
+              Range position, {feePpmToPercent(position.fee_ppm)}% fee tier
             </Typography>
           </Box>
           {position.value_usd !== null && position.value_usd !== undefined && (

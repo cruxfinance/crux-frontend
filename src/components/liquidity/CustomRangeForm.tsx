@@ -23,14 +23,15 @@ import {
   classifyRangeSide,
   computeMaxDepositHuman,
   exceedsWalletBalance,
-  feeBpsToPercent,
+  feePpmToPercent,
   formatAmountTrimmed,
   formatProtocolFeeBps,
   formatProtocolFeeFormula,
   formatWalletBalanceHuman,
   humanToRaw,
   isClNotDeployedError,
-  isValidFeeBps,
+  isValidFeePpm,
+  percentToFeePpm,
   rawPriceToHuman,
   rawToHuman,
   reserveToWalletRaw,
@@ -59,7 +60,8 @@ import { useMinerFee } from "@contexts/MinerFeeContext";
 import { apiJson, fetchWalletBalances } from "@components/cl/walletTokens";
 import type { ClPositionDto } from "@components/cl/clTypes";
 
-const FEE_PRESETS_BPS = [1, 5, 30, 100];
+/** LP fee tier presets, in parts per million (3000 = 0.3%). */
+const FEE_PRESETS_PPM = [250, 500, 3000, 5000, 10000];
 const CUSTOM_FEE = -1;
 const PREVIEW_DEBOUNCE_MS = 400;
 const HISTOGRAM_BUCKETS = 48;
@@ -129,9 +131,9 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
   const [minDraft, setMinDraft] = useState<string | null>(null);
   const [maxDraft, setMaxDraft] = useState<string | null>(null);
 
-  const [feeBpsPreset, setFeeBpsPreset] = useState(30);
-  const [feeBpsCustom, setFeeBpsCustom] = useState("30");
-  const feeBps = feeBpsPreset === CUSTOM_FEE ? parseInt(feeBpsCustom, 10) : feeBpsPreset;
+  const [feePpmPreset, setFeePpmPreset] = useState(3000);
+  const [feePercentCustom, setFeePercentCustom] = useState("0.3");
+  const feePpm = feePpmPreset === CUSTOM_FEE ? percentToFeePpm(feePercentCustom) : feePpmPreset;
 
   const [amtX, setAmtX] = useState("");
   const [amtY, setAmtY] = useState("");
@@ -275,9 +277,9 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
       currentPrice: referencePrice ? null : manualNum > 0 ? manualNum : null,
       side: edited,
       amount: editedNum,
-      feeBps,
+      feePpm,
     });
-  }, [selection, tokenX, tokenY, decX, decY, referencePrice, manualNum, edited, editedNum, feeBps]);
+  }, [selection, tokenX, tokenY, decX, decY, referencePrice, manualNum, edited, editedNum, feePpm]);
 
   // Debounced preview; fills the other side's amount.
   useEffect(() => {
@@ -381,7 +383,7 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
 
   const handleCreate = async () => {
     if (!requestBody) return;
-    const r = await create(requestBody, feeBps);
+    const r = await create(requestBody, feePpm);
     if (r) {
       setSuccess(r);
       onCreated();
@@ -521,7 +523,7 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
   }
 
   const canCreate =
-    !!preview && !previewError && walletConnected && isValidFeeBps(feeBps) && !insufficient && !creating;
+    !!preview && !previewError && walletConnected && isValidFeePpm(feePpm) && !insufficient && !creating;
 
   return (
     <>
@@ -655,41 +657,41 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
           Fee tier
         </Typography>
         <Box sx={{ display: "flex", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
-          {FEE_PRESETS_BPS.map((bps) => (
+          {FEE_PRESETS_PPM.map((ppm) => (
             <Chip
-              key={bps}
-              label={`${feeBpsToPercent(bps)}%`}
-              onClick={() => setFeeBpsPreset(bps)}
-              color={feeBpsPreset === bps ? "primary" : "default"}
-              variant={feeBpsPreset === bps ? "filled" : "outlined"}
-              sx={{ flex: 1, fontWeight: 600, borderRadius: "8px", height: 32, ...(feeBpsPreset !== bps && { borderColor: "divider" }) }}
+              key={ppm}
+              label={`${feePpmToPercent(ppm)}%`}
+              onClick={() => setFeePpmPreset(ppm)}
+              color={feePpmPreset === ppm ? "primary" : "default"}
+              variant={feePpmPreset === ppm ? "filled" : "outlined"}
+              sx={{ flex: 1, fontWeight: 600, borderRadius: "8px", height: 32, ...(feePpmPreset !== ppm && { borderColor: "divider" }) }}
             />
           ))}
           <Chip
             label="Custom"
-            onClick={() => setFeeBpsPreset(CUSTOM_FEE)}
-            color={feeBpsPreset === CUSTOM_FEE ? "primary" : "default"}
-            variant={feeBpsPreset === CUSTOM_FEE ? "filled" : "outlined"}
-            sx={{ flex: 1, fontWeight: 600, borderRadius: "8px", height: 32, ...(feeBpsPreset !== CUSTOM_FEE && { borderColor: "divider" }) }}
+            onClick={() => setFeePpmPreset(CUSTOM_FEE)}
+            color={feePpmPreset === CUSTOM_FEE ? "primary" : "default"}
+            variant={feePpmPreset === CUSTOM_FEE ? "filled" : "outlined"}
+            sx={{ flex: 1, fontWeight: 600, borderRadius: "8px", height: 32, ...(feePpmPreset !== CUSTOM_FEE && { borderColor: "divider" }) }}
           />
         </Box>
-        {feeBpsPreset === CUSTOM_FEE && (
+        {feePpmPreset === CUSTOM_FEE && (
           <TextField
             size="small"
             type="number"
-            label="Custom fee (bps)"
-            value={feeBpsCustom}
-            onChange={(e) => setFeeBpsCustom(e.target.value)}
-            inputProps={{ min: 0, max: 9999, step: 1 }}
-            error={feeBpsCustom.trim() !== "" && !isValidFeeBps(feeBps)}
-            helperText={!isValidFeeBps(feeBps) ? "Integer, 0 to 9999" : "0 = no fee"}
+            label="Custom fee (%)"
+            value={feePercentCustom}
+            onChange={(e) => setFeePercentCustom(e.target.value)}
+            inputProps={{ min: 0, max: 99.9999, step: 0.0001 }}
+            error={feePercentCustom.trim() !== "" && !isValidFeePpm(feePpm)}
+            helperText={!isValidFeePpm(feePpm) ? "Up to 4 decimals, below 100%" : "up to 4 decimals, 0 = no fee"}
             sx={{ mt: 1, mb: 0.5, width: 180 }}
           />
         )}
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
           Stable pairs: 0.01&ndash;0.05%. Volatile pairs: 0.3&ndash;1%.
           {protocolConfig
-            ? ` Protocol fee: ${formatProtocolFeeFormula(protocolConfig.phi, protocolConfig.floor_bps)}.`
+            ? ` Protocol fee: ${formatProtocolFeeFormula(protocolConfig.phi, protocolConfig.floor_bps, protocolConfig.ceil_bps)}.`
             : ""}
         </Typography>
 
@@ -759,7 +761,7 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
               Takers pay
             </Typography>
             <Typography variant="body2" fontWeight={500} sx={{ mb: 0 }}>
-              {isValidFeeBps(feeBps) ? `${feeBps} bps` : "—"}
+              {isValidFeePpm(feePpm) ? `${feePpmToPercent(feePpm)}%` : "—"}
               {preview?.protocol_fee_bps !== undefined
                 ? ` + ${formatProtocolFeeBps(preview.protocol_fee_bps)} protocol`
                 : ""}

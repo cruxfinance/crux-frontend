@@ -23,7 +23,8 @@ export interface ClPositionDto {
   y: number;
   vx: number;
   vy: number;
-  fee_bps: number;
+  /** LP fee in parts per million (3000 = 0.3%). */
+  fee_ppm: number;
   /** Uncollected LP fees, raw units. */
   fee_x: number;
   fee_y: number;
@@ -34,8 +35,8 @@ export interface ClPositionDto {
   liquidity: number;
   in_range: boolean;
   owned: boolean;
-  /** Effective protocol-fee rate for this position's fee_bps, in bps of the
-   * net input (`max(phi * fee_bps, floor_bps * 10000) / 10000`). */
+  /** Effective protocol-fee rate for this position's LP fee, in bps of the
+   * net input (`min(max(phi * LP fee, floor), ceil)`). */
   protocol_fee_bps: number;
   /** Lifetime gross taker input routed through the position, raw units. */
   volume_x: number;

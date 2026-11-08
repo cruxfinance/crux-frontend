@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useAlert } from "@contexts/AlertContext";
 import { useMinerFee } from "@contexts/MinerFeeContext";
-import { isValidFeeBps, shortId } from "./clMath";
+import { isValidFeePpm, shortId } from "./clMath";
 import { apiJson, submitSignedTx } from "./walletTokens";
 
 declare global {
@@ -49,7 +49,7 @@ export function useClCreate(userAddresses: string[]) {
   const create = useCallback(
     async (
       body: Record<string, unknown>,
-      feeBps: number,
+      feePpm: number,
     ): Promise<ClCreateResult | null> => {
       if (!window.ergoConnector?.nautilus) {
         addAlert("error", "Please connect Nautilus wallet");
@@ -59,8 +59,8 @@ export function useClCreate(userAddresses: string[]) {
         addAlert("error", "No wallet addresses found");
         return null;
       }
-      if (!isValidFeeBps(feeBps)) {
-        addAlert("error", "Fee tier must be an integer between 0 and 9999 bps");
+      if (!isValidFeePpm(feePpm)) {
+        addAlert("error", "Fee tier must be an integer between 0 and 999999 ppm");
         return null;
       }
       setCreating(true);
@@ -68,7 +68,7 @@ export function useClCreate(userAddresses: string[]) {
         const result = await apiJson<CreateResponse>("/dex/cl/create", {
           ...body,
           user_addresses: userAddresses,
-          fee_bps: feeBps,
+          fee_ppm: feePpm,
           miner_fee: minerFee,
         });
         const context = await window.ergoConnector.nautilus.getContext();
