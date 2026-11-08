@@ -1,7 +1,7 @@
 import React, { FC } from "react";
 import { Avatar, Box, Button, Chip, CircularProgress, TableCell, TableRow, Tooltip, Typography } from "@mui/material";
 import { formatFullNumber } from "@lib/utils/general";
-import { estimateUsdFromErg, formatErgAmount, formatUsdAmount } from "@components/cl/clFormat";
+import { clPositionStatusLabel, estimateUsdFromErg, formatErgAmount, formatUsdAmount } from "@components/cl/clFormat";
 import { feePpmToPercent, rawToHuman } from "@components/cl/clMath";
 import type { ClPortfolioPosition } from "@components/cl/clTypes";
 import ClRangeBar from "./ClRangeBar";
@@ -57,13 +57,21 @@ const ClPositionRow: FC<ClPositionRowProps> = ({
             {tokenY.name} / {tokenX.name}
           </Typography>
           <Chip label="CL" size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: "0.65rem" }} />
-          <Chip
-            label={p.in_range ? "In range" : "Out of range"}
-            size="small"
-            color={p.in_range ? "success" : "warning"}
-            variant={p.in_range ? "filled" : "outlined"}
-            sx={{ height: 18, fontSize: "0.65rem" }}
-          />
+          <Tooltip
+            title={
+              p.withdraw_only
+                ? "Retired contract version: this position can no longer trade or collect fees and must be withdrawn."
+                : ""
+            }
+          >
+            <Chip
+              label={clPositionStatusLabel(p)}
+              size="small"
+              color={p.withdraw_only ? "default" : p.in_range ? "success" : "warning"}
+              variant={p.withdraw_only || !p.in_range ? "outlined" : "filled"}
+              sx={{ height: 18, fontSize: "0.65rem" }}
+            />
+          </Tooltip>
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0, display: "block", mt: 0.25 }}>
           {feePpmToPercent(p.fee_ppm)}% fee tier
@@ -119,13 +127,15 @@ const ClPositionRow: FC<ClPositionRowProps> = ({
       </TableCell>
       <TableCell align="center">
         <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center", flexWrap: "wrap" }}>
-          <Tooltip title={hasFees ? "Collect uncollected fees, keep the position" : "No fees to collect yet"}>
-            <span>
-              <Button size="small" variant="outlined" disabled={!hasFees || busy} onClick={onCollect}>
-                {busy ? <CircularProgress size={14} /> : "Collect"}
-              </Button>
-            </span>
-          </Tooltip>
+          {!p.withdraw_only && (
+            <Tooltip title={hasFees ? "Collect uncollected fees, keep the position" : "No fees to collect yet"}>
+              <span>
+                <Button size="small" variant="outlined" disabled={!hasFees || busy} onClick={onCollect}>
+                  {busy ? <CircularProgress size={14} /> : "Collect"}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
           <Tooltip title="Close the position and return everything to your wallet">
             <span>
               <Button size="small" variant="outlined" color="error" disabled={busy} onClick={onWithdraw}>

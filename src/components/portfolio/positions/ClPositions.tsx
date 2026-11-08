@@ -9,6 +9,7 @@ import CurrencyButton from "@components/CurrencyButton";
 import Link from "@components/Link";
 import {
   estimateUsdFromErg,
+  clPositionStatusLabel,
   formatPortfolioValue,
   sortPositionsInRangeFirst,
 } from "@components/cl/clFormat";
@@ -96,10 +97,10 @@ const ClPositions: FC<ClPositionsProps> = ({ currency, addressList, setCurrency 
         ),
         Status: (
           <Chip
-            label={p.in_range ? "In range" : "Out of range"}
+            label={clPositionStatusLabel(p)}
             size="small"
-            color={p.in_range ? "success" : "warning"}
-            variant={p.in_range ? "filled" : "outlined"}
+            color={p.withdraw_only ? "default" : p.in_range ? "success" : "warning"}
+            variant={p.withdraw_only || !p.in_range ? "outlined" : "filled"}
             sx={{ height: 20, fontSize: "0.65rem" }}
           />
         ),

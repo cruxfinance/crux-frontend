@@ -1,5 +1,6 @@
 import {
   NO_VALUE,
+  clPositionStatusLabel,
   formatAprFraction,
   estimateUsdFromErg,
   formatErgAmount,
@@ -83,5 +84,17 @@ describe("formatPortfolioValue / estimateUsdFromErg", () => {
     expect(estimateUsdFromErg(2, 0, 50)).toBeNull();
     expect(estimateUsdFromErg(null, 100, 50)).toBeNull();
     expect(estimateUsdFromErg(2, 100, null)).toBeNull();
+  });
+});
+
+describe("clPositionStatusLabel", () => {
+  it("labels retired positions as withdraw only, even when in range", () => {
+    expect(clPositionStatusLabel({ withdraw_only: true, in_range: true })).toBe("Withdraw only");
+  });
+  it("labels current in-range positions", () => {
+    expect(clPositionStatusLabel({ withdraw_only: false, in_range: true })).toBe("In range");
+  });
+  it("labels current out-of-range positions", () => {
+    expect(clPositionStatusLabel({ withdraw_only: false, in_range: false })).toBe("Out of range");
   });
 });

@@ -21,6 +21,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Alert,
 } from "@mui/material";
 import Grid from "@mui/system/Unstable_Grid/Grid";
 import SearchIcon from "@mui/icons-material/Search";
@@ -482,6 +483,11 @@ const LiquidityPage: FC = () => {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Your Positions
           </Typography>
+          {clPortfolio.positions.some((p) => p.withdraw_only) && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Some of your positions are on a retired contract version. They can no longer trade or collect fees and must be withdrawn.
+            </Alert>
+          )}
           {positionsBusy ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
               <CircularProgress size={32} />

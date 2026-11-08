@@ -34,6 +34,12 @@ export interface ClPositionDto {
   price_current: number;
   liquidity: number;
   in_range: boolean;
+  /** Which contract generation holds the position. `retired` positions sit
+   * behind a superseded shell and can only be withdrawn. */
+  shell_generation: "current" | "retired";
+  /** True when the position can only be withdrawn: no trading, no fee
+   * collection, and its storage-rent clock no longer refreshes. */
+  withdraw_only: boolean;
   owned: boolean;
   /** Effective protocol-fee rate for this position's LP fee, in bps of the
    * net input (`min(max(phi * LP fee, floor), ceil)`). */

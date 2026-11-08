@@ -19,6 +19,15 @@ export function sortPositionsInRangeFirst<
     .map(({ p }) => p);
 }
 
+/** Status label for a position row: retired positions are withdraw-only. */
+export function clPositionStatusLabel(p: {
+  withdraw_only: boolean;
+  in_range: boolean;
+}): "Withdraw only" | "In range" | "Out of range" {
+  if (p.withdraw_only) return "Withdraw only";
+  return p.in_range ? "In range" : "Out of range";
+}
+
 /** APR as a percentage string from a fraction (0.12 -> "12.00%"). */
 export function formatAprFraction(apr: number | null | undefined): string {
   if (apr === null || apr === undefined || !Number.isFinite(apr)) return NO_VALUE;
