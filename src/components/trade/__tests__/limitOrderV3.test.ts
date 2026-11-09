@@ -1,4 +1,5 @@
 import {
+  displayFilledPercent,
   isPastExpiry,
   isV3Order,
   v3FilledPercent,
@@ -35,5 +36,22 @@ describe("limitOrderV3", () => {
   it("scales the received amount by taken decimals", () => {
     expect(v3ReceivedAmount({ ...base, version: "v3", total_bought: 12345 })).toBeCloseTo(123.45);
     expect(v3ReceivedAmount({ ...base, version: "v3" })).toBe(0);
+  });
+
+  it("never shows 100% for an order that is not complete", () => {
+    expect(displayFilledPercent(100)).toBe("100");
+    expect(displayFilledPercent(99.8)).toBe("99");
+    expect(displayFilledPercent(99.9999)).toBe("99");
+    expect(displayFilledPercent(40.7)).toBe("40");
+    expect(displayFilledPercent(0.4)).toBe("0");
+    expect(displayFilledPercent(0)).toBe("0");
+    expect(displayFilledPercent(NaN)).toBe("0");
+    const nearly = v3FilledPercent({
+      ...base,
+      version: "v3",
+      total_sold: 998,
+      remaining_given_amount: 2,
+    });
+    expect(displayFilledPercent(nearly)).toBe("99");
   });
 });

@@ -37,18 +37,24 @@ import { formatNumber, formatFullNumber, normalizeTicker } from "@lib/utils/gene
 import { ERG_TOKEN_ID } from "@lib/configs/paymentTokens";
 import { useRouter } from "next/router";
 import AddLiquidityModal from "@components/liquidity/AddLiquidityModal";
+import NewClPairDialog from "@components/liquidity/NewClPairDialog";
 import ClPositionRow from "@components/liquidity/ClPositionRow";
 import ClWithdrawDialog from "@components/liquidity/ClWithdrawDialog";
 import type { ClTokenView } from "@components/liquidity/ClWithdrawDialog";
 import { useClPairs, useClPortfolio, fetchClProtocolConfig } from "@components/cl/useClData";
 import type { ClProtocolConfig } from "@components/cl/useClData";
 import { useClPositionActions } from "@components/cl/useClPositionActions";
+import { useClStatus } from "@components/cl/useClStatus";
+import { useClKeyBoxRefresh } from "@components/cl/useClKeyBoxRefresh";
+import ClStatusBanner from "@components/liquidity/ClStatusBanner";
 import {
+  emptyClPair,
   filterMergedPairs,
   mergePoolsAndClPairs,
+  pairKey,
   sortMergedPairs,
 } from "@components/cl/clLiquidity";
-import type { MergedPair, MergedSortField, VenueSplit } from "@components/cl/clLiquidity";
+import type { MergedPair, MergedSortField, PickedToken, VenueSplit } from "@components/cl/clLiquidity";
 import { sortPositionsInRangeFirst } from "@components/cl/clFormat";
 import { ERG_DECIMALS } from "@components/cl/clMath";
 import type { ClPairStats, ClPortfolioPosition } from "@components/cl/clTypes";
@@ -93,6 +99,8 @@ const LiquidityPage: FC = () => {
 
   // Modal state
   const [addModalPair, setAddModalPair] = useState<MergedPair | null>(null);
+  const [addModalMode, setAddModalMode] = useState<"full" | "custom" | undefined>(undefined);
+  const [newPairOpen, setNewPairOpen] = useState(false);
   const [withdrawCl, setWithdrawCl] = useState<ClPortfolioPosition | null>(null);
   const [protocolConfig, setProtocolConfig] = useState<ClProtocolConfig | null>(null);
   const [removeModalPosition, setRemoveModalPosition] =
@@ -138,6 +146,8 @@ const LiquidityPage: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cl.reload, clPortfolio.reload]);
   const clActions = useClPositionActions(userAddresses, reloadCl);
+  const clStatus = useClStatus();
+  const keyRefresh = useClKeyBoxRefresh(reloadCl);
 
   useEffect(() => {
     let cancelled = false;
@@ -428,9 +438,30 @@ const LiquidityPage: FC = () => {
   const hasAnyPosition = positions.length > 0 || clPortfolio.positions.length > 0;
   const positionsBusy = positionsLoading || (clPortfolio.loading && clPortfolio.positions.length === 0);
 
+  const openAdd = (row: MergedPair, mode?: "full" | "custom") => {
+    setAddModalMode(mode);
+    setAddModalPair(row);
+  };
+
+  const handleNewPair = (a: PickedToken, b: PickedToken) => {
+    const key = pairKey(a.id, b.id);
+    const existing = mergedPairs.find((m) => m.key === key);
+    setNewPairOpen(false);
+    openAdd(existing ?? emptyClPair(a, b), "custom");
+    resolveIcons([a.id, b.id]);
+  };
+
+  const newPositionDisabledReason = !dAppWallet.connected
+    ? "Connect a wallet to open a new position"
+    : clStatus === null
+      ? "Checking concentrated-liquidity status…"
+      : clStatus.paused
+        ? clStatus.message ?? "Concentrated liquidity is unavailable"
+        : null;
+
   const openAddForPool = (poolId: string) => {
     const row = mergedPairs.find((m) => m.pools.some((p) => p.pool_id === poolId));
-    if (row) setAddModalPair(row);
+    if (row) openAdd(row);
   };
 
   return (
@@ -438,6 +469,8 @@ const LiquidityPage: FC = () => {
       <Typography variant="h5" sx={{ mb: 2 }}>
         Liquidity
       </Typography>
+
+      <ClStatusBanner />
 
       {/* Summary Stats */}
       <Paper
@@ -613,6 +646,10 @@ const LiquidityPage: FC = () => {
                       busy={clActions.busyId === pos.position_id}
                       onCollect={() => clActions.collect(pos.position_id)}
                       onWithdraw={() => setWithdrawCl(pos)}
+                      clPaused={!!clStatus?.paused}
+                      storagePeriodBlocks={clStatus?.storagePeriodBlocks}
+                      keyBusy={keyRefresh.busyId === pos.position_id}
+                      onRefreshKey={() => keyRefresh.refresh(pos.position_id)}
                     />
                   ))}
                 </TableBody>
@@ -640,6 +677,20 @@ const LiquidityPage: FC = () => {
           }}
         >
           <Typography variant="h6">All Pools</Typography>
+          <Tooltip title={newPositionDisabledReason ?? "Open a concentrated-liquidity position for any pair"}>
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddIcon />}
+                disabled={!!newPositionDisabledReason}
+                onClick={() => setNewPairOpen(true)}
+                sx={{ whiteSpace: "nowrap" }}
+              >
+                New position
+              </Button>
+            </span>
+          </Tooltip>
           <TextField
             size="small"
             placeholder="Search pools..."
@@ -838,7 +889,7 @@ const LiquidityPage: FC = () => {
                               variant="outlined"
                               startIcon={<AddIcon />}
                               disabled={!canAddToPair(row)}
-                              onClick={() => setAddModalPair(row)}
+                              onClick={() => openAdd(row)}
                               sx={{
                                 whiteSpace: "nowrap",
                                 "tr:hover &": {
@@ -895,6 +946,7 @@ const LiquidityPage: FC = () => {
           ergPrice={ergPrice}
           icons={icons}
           protocolConfig={protocolConfig}
+          initialMode={addModalMode}
           onClose={() => setAddModalPair(null)}
           onSuccess={() => {
             setAddModalPair(null);
@@ -903,6 +955,11 @@ const LiquidityPage: FC = () => {
           onClCreated={reloadCl}
         />
       )}
+      <NewClPairDialog
+        open={newPairOpen}
+        onClose={() => setNewPairOpen(false)}
+        onContinue={handleNewPair}
+      />
       {withdrawCl && (
         <ClWithdrawDialog
           open={!!withdrawCl}

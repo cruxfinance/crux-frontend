@@ -6,6 +6,7 @@ import {
   combineApr,
   computeDomain,
   dragHandle,
+  emptyClPair,
   filterMergedPairs,
   formatPriceCompact,
   invertRange,
@@ -351,5 +352,38 @@ describe("formatPriceCompact", () => {
     expect(formatPriceCompact(1.23456)).toBe("1.2346");
     expect(formatPriceCompact(0.0123456)).toBe("0.01235");
     expect(formatPriceCompact(NaN)).toBe("—");
+  });
+});
+
+describe("emptyClPair", () => {
+  const erg = { id: ERG_TOKEN_ID, name: "ERG", decimals: 9 };
+  const tok = { id: TOKEN, name: "TOK", decimals: 4 };
+
+  it("orients ERG as X regardless of argument order", () => {
+    for (const p of [emptyClPair(tok, erg), emptyClPair(erg, tok)]) {
+      expect(p.tokenX).toBe(ERG_TOKEN_ID);
+      expect(p.tokenY).toBe(TOKEN);
+      expect(p.nameX).toBe("ERG");
+      expect(p.decimalsX).toBe(9);
+      expect(p.nameY).toBe("TOK");
+      expect(p.decimalsY).toBe(4);
+      expect(p.leftId).toBe(TOKEN);
+      expect(p.rightId).toBe(ERG_TOKEN_ID);
+      expect(p.key).toBe(pairKey(ERG_TOKEN_ID, TOKEN));
+    }
+  });
+
+  it("orders two tokens by id and carries no venue data", () => {
+    const t2 = { id: TOKEN2, name: "T2", decimals: 2 };
+    const p = emptyClPair(t2, tok);
+    expect(p.tokenX).toBe(TOKEN);
+    expect(p.tokenY).toBe(TOKEN2);
+    expect(p.nameY).toBe("T2");
+    expect(p.pool).toBeNull();
+    expect(p.cl).toBeNull();
+    expect(p.pools).toEqual([]);
+    expect(p.spectrum).toBeNull();
+    expect(p.clSplit).toBeNull();
+    expect(p.tvl_erg).toBeNull();
   });
 });

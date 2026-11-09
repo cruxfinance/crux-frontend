@@ -241,6 +241,15 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
   // Set price to current market price (pair rate, not base token price)
   const pairPrice = calculatePairPrice(baseToken?.price, quoteToken.price);
 
+  // The order's value in ERG, from whichever side is ERG; a pair without ERG
+  // shows no USD value.
+  const ergSideAmount =
+    total && quoteToken.tokenId === ERG_TOKEN_ID
+      ? parseFloat(total)
+      : amount && baseToken?.tokenId === ERG_TOKEN_ID
+        ? parseFloat(amount)
+        : null;
+
   useEffect(() => {
     if (baseToken && pairPrice > 0 && !price) {
       setPrice(pairPrice.toString());
@@ -455,7 +464,7 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
         fee_token_id: feeToken === "crux" ? CRUX_TOKEN_ID : null,
       };
 
-      const response = await fetch(`${process.env.CRUX_API}/dex/limit_order`, {
+      const response = await fetch(`${process.env.CRUX_API}/dex/limit_order${IS_V3 ? "/v3" : ""}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
@@ -854,13 +863,13 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
           })()}
 
           {/* Total Value */}
-          {total && ergPrice > 0 && (
+          {ergSideAmount !== null && ergPrice > 0 && (
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
               <Typography variant="caption" color="text.secondary">
                 Total Value
               </Typography>
               <Typography variant="caption">
-                ~${formatFullNumber(parseFloat(total) * ergPrice, 2)} USD
+                ~${formatFullNumber(ergSideAmount * ergPrice, 2)} USD
               </Typography>
             </Box>
           )}
@@ -891,17 +900,19 @@ const LimitOrderWidget: FC<LimitOrderWidgetProps> = ({
             </Typography>
           </Box>
 
-          {/* Fee Reserve */}
-          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Tooltip title="Refundable ERG reserved to cover miner fees when your order is filled. Unused reserve is returned when the order is cancelled or expires." arrow>
-              <Typography variant="caption" color="text.secondary" sx={{ cursor: "help", textDecoration: "underline dotted" }}>
-                Fee Reserve (20 fills)
+          {/* Fee Reserve: v2 only; a v3 box holds the amount plus the execution fee */}
+          {!IS_V3 && (
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Tooltip title="Refundable ERG reserved to cover miner fees when your order is filled. Unused reserve is returned when the order is cancelled or expires." arrow>
+                <Typography variant="caption" color="text.secondary" sx={{ cursor: "help", textDecoration: "underline dotted" }}>
+                  Fee Reserve (20 fills)
+                </Typography>
+              </Tooltip>
+              <Typography variant="caption">
+                {((minerFee * 20) / 1e9).toFixed(4)} ERG
               </Typography>
-            </Tooltip>
-            <Typography variant="caption">
-              {((minerFee * 20) / 1e9).toFixed(4)} ERG
-            </Typography>
-          </Box>
+            </Box>
+          )}
         </Box>
       )}
 

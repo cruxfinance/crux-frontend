@@ -54,6 +54,7 @@ import {
 } from "@components/cl/clLiquidity";
 import type { LiquidityRange, MergedPair, PriceRange } from "@components/cl/clLiquidity";
 import { fetchPairPositions } from "@components/cl/useClData";
+import { useClStatus } from "@components/cl/useClStatus";
 import type { ClProtocolConfig } from "@components/cl/useClData";
 import { ClPreviewResponse, useClCreate } from "@components/cl/useClCreate";
 import { useMinerFee } from "@contexts/MinerFeeContext";
@@ -104,6 +105,8 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
 }) => {
   const theme = useTheme();
   const { create, creating } = useClCreate(userAddresses);
+  const clStatus = useClStatus();
+  const clPaused = !!clStatus?.paused;
   const { minerFee } = useMinerFee();
 
   const { tokenX, tokenY, nameX, nameY, decimalsX: decX, decimalsY: decY } = pair;
@@ -840,6 +843,11 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
             .
           </Alert>
         )}
+        {clStatus?.message && (
+          <Alert severity={clStatus.state === "killed" ? "warning" : "info"} sx={{ mb: 1 }}>
+            {clStatus.message} Adding concentrated liquidity is disabled.
+          </Alert>
+        )}
         {!walletConnected && (
           <Alert severity="info" sx={{ mb: 1 }}>
             Connect a Nautilus wallet to add liquidity.
@@ -853,7 +861,7 @@ const CustomRangeForm: FC<CustomRangeFormProps> = ({
           variant="contained"
           size="large"
           onClick={handleCreate}
-          disabled={!canCreate}
+          disabled={!canCreate || clPaused}
           sx={{
             py: 1.5,
             borderRadius: "12px",

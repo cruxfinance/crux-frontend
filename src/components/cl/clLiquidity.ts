@@ -62,6 +62,43 @@ export interface MergedPair {
   clSplit: VenueSplit | null;
 }
 
+export interface PickedToken {
+  id: string;
+  name: string;
+  decimals: number;
+}
+
+/**
+ * Synthetic row for a pair that has no Spectrum pool and no CL liquidity
+ * yet, so the add flow can open it in custom-range (first provider) mode.
+ */
+export function emptyClPair(a: PickedToken, b: PickedToken): MergedPair {
+  const [xId, yId] = clOrientation(a.id, b.id);
+  const x = a.id === xId ? a : b;
+  const y = a.id === xId ? b : a;
+  return {
+    key: pairKey(a.id, b.id),
+    tokenX: x.id,
+    tokenY: y.id,
+    nameX: x.name,
+    nameY: y.name,
+    decimalsX: x.decimals,
+    decimalsY: y.decimals,
+    leftId: y.id,
+    rightId: x.id,
+    pools: [],
+    pool: null,
+    cl: null,
+    tvl_erg: null,
+    volume_24h: 0,
+    fee_pct: null,
+    apr_7d: null,
+    apr_30d: null,
+    spectrum: null,
+    clSplit: null,
+  };
+}
+
 /** TVL-weighted mean of `{tvl, apr}` entries, ignoring null APRs. */
 export function combineApr(
   venues: ReadonlyArray<{ tvl: number | null; apr: number | null }>,

@@ -33,6 +33,16 @@ export const v3FilledPercent = (order: OrderAmounts): number => {
   return Math.max(0, Math.min(100, (sold / total) * 100));
 };
 
+/**
+ * The whole-number text of a filled percentage for display. Only a complete
+ * order (100) reads "100"; 99.8 floors to 99 instead of rounding up to 100.
+ */
+export const displayFilledPercent = (percent: number): string => {
+  if (!(percent > 0)) return "0";
+  if (percent >= 100) return "100";
+  return String(Math.min(99, Math.floor(percent)));
+};
+
 /** total_bought in whole units of the taken token, or 0 if none yet. */
 export const v3ReceivedAmount = (order: OrderAmounts): number =>
   (order.total_bought ?? 0) / Math.pow(10, order.taken_token_decimals ?? 9);
