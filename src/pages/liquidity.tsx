@@ -60,16 +60,9 @@ import { ERG_DECIMALS } from "@components/cl/clMath";
 import type { ClPairStats, ClPortfolioPosition } from "@components/cl/clTypes";
 import type { LpPosition, PoolWithApr } from "@components/liquidity/liquidityTypes";
 import RemoveLiquidityModal from "@components/liquidity/RemoveLiquidityModal";
+import { POOL_TYPE_LABELS, supportsLiquidity } from "@components/liquidity/poolOptions";
 
 const NO_LIQUIDITY_TOOLTIP = "Liquidity for Lithos pools isn't supported on Crux yet";
-
-const POOL_TYPE_LABELS: Record<string, string> = {
-  spectrum: "Spectrum",
-  dexy: "Dexy",
-  lithos: "Lithos",
-};
-
-const supportsLiquidity = (poolType?: string) => poolType !== "lithos";
 
 // A merged row can take liquidity through its CL venue even when its pool is Lithos.
 const canAddToPair = (row: MergedPair) => supportsLiquidity(row.pool?.pool_type) || !!row.cl;
@@ -453,11 +446,7 @@ const LiquidityPage: FC = () => {
 
   const newPositionDisabledReason = !dAppWallet.connected
     ? "Connect a wallet to open a new position"
-    : clStatus === null
-      ? "Checking concentrated-liquidity status…"
-      : clStatus.paused
-        ? clStatus.message ?? "Concentrated liquidity is unavailable"
-        : null;
+    : null;
 
   const openAddForPool = (poolId: string) => {
     const row = mergedPairs.find((m) => m.pools.some((p) => p.pool_id === poolId));
@@ -677,7 +666,7 @@ const LiquidityPage: FC = () => {
           }}
         >
           <Typography variant="h6">All Pools</Typography>
-          <Tooltip title={newPositionDisabledReason ?? "Open a concentrated-liquidity position for any pair"}>
+          <Tooltip title={newPositionDisabledReason ?? "Open a position or create a pool for any pair"}>
             <span>
               <Button
                 size="small"

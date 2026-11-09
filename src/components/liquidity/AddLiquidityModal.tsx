@@ -1,5 +1,6 @@
-import React, { FC, useState } from "react";
+import React, { FC, useMemo, useState } from "react";
 import {
+  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -22,7 +23,12 @@ import { formatFullNumber, toRawAmount } from "@lib/utils/general";
 import type { MergedPair } from "@components/cl/clLiquidity";
 import type { ClProtocolConfig } from "@components/cl/useClData";
 import type { PoolWithApr } from "./liquidityTypes";
+import { useCruxPools } from "@components/cl/useCpData";
+import { useClStatus } from "@components/cl/useClStatus";
 import CustomRangeForm from "./CustomRangeForm";
+import CreatePoolForm from "./CreatePoolForm";
+import PoolSelector, { NEW_CRUX_POOL } from "./PoolSelector";
+import { buildPoolOptions, supportsLiquidity } from "./poolOptions";
 
 declare global {
   interface Window {
@@ -469,11 +475,36 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
   onSuccess,
   onClCreated,
 }) => {
-  const pool = pair.pool;
+  const clStatus = useClStatus();
+  const clPaused = !!clStatus?.paused;
+  const { pools: cruxPools, reload: reloadCruxPools } = useCruxPools(pair.tokenX, pair.tokenY, open);
+  const options = useMemo(() => buildPoolOptions(pair.pools, cruxPools), [pair.pools, cruxPools]);
+
   const [mode, setMode] = useState<"full" | "custom">(
-    initialMode ?? (pool ? "full" : "custom"),
+    initialMode ?? (pair.pool ? "full" : "custom"),
   );
-  const effectiveMode = pool ? mode : "custom";
+  // Pools can still be created while CL is paused; only its own side is closed.
+  const effectiveMode = mode === "custom" && clPaused ? "full" : mode;
+
+  // A pair's largest pool can be one we cannot deposit into (Lithos); then start on the create form.
+  const [selectedId, setSelectedId] = useState<string>(
+    pair.pool && supportsLiquidity(pair.pool.pool_type) ? pair.pool.pool_id : NEW_CRUX_POOL,
+  );
+  const [existsNotice, setExistsNotice] = useState(false);
+  const selected = options.find((o) => o.poolId === selectedId && !o.disabled);
+  const selectedPool = selected?.pool ?? null;
+
+  const selectPool = (id: string) => {
+    setExistsNotice(false);
+    setSelectedId(id);
+  };
+
+  // The pool is read fresh before selecting it, so it is in the options by then.
+  const switchToExisting = async (poolId: string) => {
+    await reloadCruxPools();
+    setExistsNotice(true);
+    setSelectedId(poolId);
+  };
 
   const leftName = pair.leftId === pair.tokenX ? pair.nameX : pair.nameY;
   const rightName = pair.rightId === pair.tokenX ? pair.nameX : pair.nameY;
@@ -552,8 +583,10 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
               {leftName} / {rightName}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0 }}>
-              {effectiveMode === "full" && pool
-                ? `Fee: ${pool.fee_pct.toFixed(1)}%`
+              {effectiveMode === "full"
+                ? selectedPool
+                  ? `Fee: ${selected?.feePercent}%`
+                  : "Create a new Crux pool"
                 : "Choose your own price range"}
             </Typography>
           </Box>
@@ -576,30 +609,57 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
             },
           }}
         >
-          <ToggleButton value="full" disabled={!pool}>
-            <Tooltip
-              title={pool ? "Spread liquidity over the whole price curve" : "No full-range pool exists for this pair"}
-              arrow
-            >
+          <ToggleButton value="full">
+            <Tooltip title="Spread liquidity over the whole price curve" arrow>
               <span>Full range</span>
             </Tooltip>
           </ToggleButton>
-          <ToggleButton value="custom">
-            <Tooltip title="Concentrate liquidity in a price range you choose" arrow>
+          <ToggleButton value="custom" disabled={clPaused}>
+            <Tooltip
+              title={
+                clPaused
+                  ? clStatus?.message ?? "Concentrated liquidity is unavailable"
+                  : "Concentrate liquidity in a price range you choose"
+              }
+              arrow
+            >
               <span>Custom range</span>
             </Tooltip>
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
-      {effectiveMode === "full" && pool ? (
-        <FullRangeForm
-          pool={pool}
-          userAddresses={userAddresses}
-          ergPrice={ergPrice}
-          icons={icons}
-          onSuccess={onSuccess}
-        />
+      {effectiveMode === "full" ? (
+        <>
+          <Box sx={{ px: 3, pb: 0 }}>
+            <PoolSelector options={options} value={selectedPool ? selectedId : NEW_CRUX_POOL} onChange={selectPool} />
+            {existsNotice && selectedPool && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                A Crux pool for this pair and fee already exists. You can add liquidity to it here.
+              </Alert>
+            )}
+          </Box>
+          {selectedPool ? (
+            <FullRangeForm
+              key={selectedPool.pool_id}
+              pool={selectedPool}
+              userAddresses={userAddresses}
+              ergPrice={ergPrice}
+              icons={icons}
+              onSuccess={onSuccess}
+            />
+          ) : (
+            <CreatePoolForm
+              pair={pair}
+              userAddresses={userAddresses}
+              walletConnected={walletConnected}
+              icons={icons}
+              cruxPools={cruxPools}
+              onExistingPool={switchToExisting}
+              onDone={onSuccess}
+            />
+          )}
+        </>
       ) : (
         <CustomRangeForm
           pair={pair}

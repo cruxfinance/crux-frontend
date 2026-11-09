@@ -26,7 +26,7 @@ export interface ClProtocolConfig {
   receiver_address: string;
 }
 
-async function getJson<T>(path: string): Promise<T> {
+export async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${process.env.CRUX_API}${path}`);
   let data: any = null;
   try {

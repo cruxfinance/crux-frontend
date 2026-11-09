@@ -125,6 +125,9 @@ export function formatProtocolFeeBps(bps: number): string {
  */
 export interface ApiRequestError extends Error {
   status?: number;
+  /** Parsed JSON error body, for callers that need more than the message
+   * (e.g. the 409 of `/dex/cp/create` carries the existing `pool_id`). */
+  body?: unknown;
 }
 
 /** Whether `error` is ci-api's "CL is not deployed on this network" 503

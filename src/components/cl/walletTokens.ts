@@ -30,6 +30,7 @@ export async function apiJson<T>(path: string, body: object): Promise<T> {
   if (!response.ok) {
     const err: ApiRequestError = new Error(data?.error || `Request failed (${response.status})`);
     err.status = response.status;
+    err.body = data;
     throw err;
   }
   if (data?.error) {
