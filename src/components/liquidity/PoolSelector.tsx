@@ -25,7 +25,7 @@ const PoolSelector: FC<PoolSelectorProps> = ({ options, value, onChange }) => (
         {o.label}
       </MenuItem>
     ))}
-    <MenuItem value={NEW_CRUX_POOL}>New Crux pool…</MenuItem>
+    <MenuItem value={NEW_CRUX_POOL}>New ErgoDex pool…</MenuItem>
   </TextField>
 );
 

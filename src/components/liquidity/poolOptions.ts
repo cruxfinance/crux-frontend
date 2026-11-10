@@ -7,7 +7,7 @@ export const POOL_TYPE_LABELS: Record<string, string> = {
   spectrum: "Spectrum",
   dexy: "Dexy",
   lithos: "Lithos",
-  crux_cp: "Crux",
+  crux_cp: "ErgoDex",
 };
 
 export const CRUX_POOL_TYPE = "crux_cp";

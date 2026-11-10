@@ -143,13 +143,13 @@ describe("AddLiquidityModal for a brand-new pair", () => {
     const user = userEvent.setup();
     renderModal(emptyPair(), { initialMode: "custom" });
     await user.click(screen.getByText("Full range"));
-    expect(poolSelect()).toHaveTextContent("New Crux pool…");
+    expect(poolSelect()).toHaveTextContent("New ErgoDex pool…");
     expect(await screen.findByRole("button", { name: "Create pool" })).toBeInTheDocument();
   });
 });
 
 describe("pool selector", () => {
-  it("defaults to the pair's pool, lists Crux pools it lacks, and ends with the create entry", async () => {
+  it("defaults to the pair's pool, lists ErgoDex pools it lacks, and ends with the create entry", async () => {
     const spectrum = poolFixture({});
     const lithos = poolFixture({ pool_id: "pool-lithos", pool_type: "lithos", tvl_erg: 1 });
     cpPools = [cruxPool("cp-30", 30), { ...cruxPool("pool-spectrum", 30), pool_type: "spectrum" }];
@@ -162,8 +162,8 @@ describe("pool selector", () => {
     expect(options.map((o) => o.textContent)).toEqual([
       "Spectrum · 0.3%",
       "Lithos · 0.3%",
-      "Crux · 0.3%", // lp_fee_bps, not the rounded total fee_pct
-      "New Crux pool…",
+      "ErgoDex · 0.3%", // lp_fee_bps, not the rounded total fee_pct
+      "New ErgoDex pool…",
     ]);
     expect(options[1]).toHaveAttribute("aria-disabled", "true");
     expect(options[0]).not.toHaveAttribute("aria-disabled", "true");
@@ -172,13 +172,13 @@ describe("pool selector", () => {
   it("starts on the create form when the only pool is not depositable", async () => {
     const lithos = poolFixture({ pool_id: "pool-lithos", pool_type: "lithos" });
     renderModal(pairWith([lithos]));
-    expect(poolSelect()).toHaveTextContent("New Crux pool…");
+    expect(poolSelect()).toHaveTextContent("New ErgoDex pool…");
     expect(await screen.findByRole("button", { name: "Create pool" })).toBeInTheDocument();
   });
 
-  it("labels a crux_cp pool of the pair as Crux", async () => {
+  it("labels a crux_cp pool of the pair as ErgoDex", async () => {
     renderModal(pairWith([poolFixture({ pool_id: "cp-1", pool_type: "crux_cp" })]));
-    expect(poolSelect()).toHaveTextContent("Crux · 0.3%");
+    expect(poolSelect()).toHaveTextContent("ErgoDex · 0.3%");
   });
 
   it("closes only the custom side while CL is paused", async () => {
@@ -224,9 +224,9 @@ describe("fee tiers", () => {
     const tier = await screen.findByRole("button", { name: /^0\.5%\s*exists/ });
     await user.click(tier);
     expect(await screen.findByRole("button", { name: "Add Liquidity" })).toBeInTheDocument();
-    expect(poolSelect()).toHaveTextContent("Crux · 0.5%");
+    expect(poolSelect()).toHaveTextContent("ErgoDex · 0.5%");
     expect(
-      screen.getByText("A Crux pool for this pair and fee already exists. You can add liquidity to it here."),
+      screen.getByText("An ErgoDex pool for this pair and fee already exists. You can add liquidity to it here."),
     ).toBeInTheDocument();
   });
 });
@@ -260,7 +260,7 @@ describe("create form validation", () => {
     renderModal(pairWith([poolFixture({})]), { initialMode: "full" });
     const user = userEvent.setup();
     await user.click(poolSelect());
-    await user.click(await screen.findByRole("option", { name: "New Crux pool…" }));
+    await user.click(await screen.findByRole("option", { name: "New ErgoDex pool…" }));
     await fill("10", "10"); // 1 TOK = 1 ERG: no gap
     expect(screen.getByText("Opening price: 1 TOK = 1 ERG")).toBeInTheDocument();
     expect(screen.getByText("You receive: 31,622,776 LP tokens")).toBeInTheDocument();
@@ -444,9 +444,9 @@ describe("two-step create flow", () => {
     cpPools = [cruxPool("cp-30", 30)]; // indexed between the form opening and the request
     await create();
     expect(await screen.findByRole("button", { name: "Add Liquidity" })).toBeInTheDocument();
-    expect(poolSelect()).toHaveTextContent("Crux · 0.3%");
+    expect(poolSelect()).toHaveTextContent("ErgoDex · 0.3%");
     expect(
-      screen.getByText("A Crux pool for this pair and fee already exists. You can add liquidity to it here."),
+      screen.getByText("An ErgoDex pool for this pair and fee already exists. You can add liquidity to it here."),
     ).toBeInTheDocument();
     expect(signTx).not.toHaveBeenCalled();
   });

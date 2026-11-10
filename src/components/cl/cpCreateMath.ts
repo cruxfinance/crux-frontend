@@ -3,7 +3,7 @@ import { ERG_TOKEN_ID, trimDecimalZeros } from "./clMath";
 import type { PoolWithApr } from "../liquidity/liquidityTypes";
 
 /**
- * Pure helpers behind the "New Crux pool" form. Raw amounts are BigInt
+ * Pure helpers behind the "New ErgoDex pool" form. Raw amounts are BigInt
  * because the product of two token amounts easily passes 2^53.
  */
 

@@ -586,7 +586,7 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
               {effectiveMode === "full"
                 ? selectedPool
                   ? `Fee: ${selected?.feePercent}%`
-                  : "Create a new Crux pool"
+                  : "Create a new ErgoDex pool"
                 : "Choose your own price range"}
             </Typography>
           </Box>
@@ -635,7 +635,7 @@ const AddLiquidityModal: FC<AddLiquidityModalProps> = ({
             <PoolSelector options={options} value={selectedPool ? selectedId : NEW_CRUX_POOL} onChange={selectPool} />
             {existsNotice && selectedPool && (
               <Alert severity="info" sx={{ mb: 2 }}>
-                A Crux pool for this pair and fee already exists. You can add liquidity to it here.
+                An ErgoDex pool for this pair and fee already exists. You can add liquidity to it here.
               </Alert>
             )}
           </Box>
